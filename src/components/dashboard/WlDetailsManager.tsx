@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { WlDetails } from '@/data/trackingData';
+import { WlDetails, ReviewEntry, BundleEntry } from '@/data/trackingData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDate, formatCurrency } from '@/lib/utils';
@@ -13,15 +13,25 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, Plus } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface WlDetailsManagerProps {
     details: WlDetails | undefined;
@@ -140,7 +150,7 @@ const AddReviewForm: React.FC<{ gameName: string, onSave: (data: ReviewFormValue
 
 // --- Display Components ---
 
-const ReviewTable: React.FC<{ reviews: any[] }> = ({ reviews }) => (
+const ReviewTable: React.FC<{ reviews: ReviewEntry[], onDelete: (id: string) => void }> = ({ reviews, onDelete }) => (
     <Table>
         <TableHeader>
             <TableRow>
@@ -150,24 +160,48 @@ const ReviewTable: React.FC<{ reviews: any[] }> = ({ reviews }) => (
                 <TableHead className="text-center">Negativas</TableHead>
                 <TableHead className="text-center">% Positivas</TableHead>
                 <TableHead>Classificação Steam</TableHead>
+                <TableHead className="w-[50px] text-center">Ações</TableHead>
             </TableRow>
         </TableHeader>
         <TableBody>
             {reviews.map((r, i) => (
-                <TableRow key={i}>
+                <TableRow key={r.id || i}>
                     <TableCell>{formatDate(r.date)}</TableCell>
                     <TableCell className="text-center">{r.reviews}</TableCell>
                     <TableCell className="text-center">{r.positive}</TableCell>
                     <TableCell className="text-center">{r.negative}</TableCell>
                     <TableCell className="text-center">{`${(Number(r.percentage) * 100).toFixed(0)}%`}</TableCell>
                     <TableCell>{r.rating}</TableCell>
+                    <TableCell className="text-center">
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Esta ação removerá permanentemente esta entrada de review da data {formatDate(r.date)}.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => onDelete(r.id)} className="bg-destructive hover:bg-destructive/90">
+                                        Remover
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </TableCell>
                 </TableRow>
             ))}
         </TableBody>
     </Table>
 );
 
-const BundleTable: React.FC<{ bundles: any[] }> = ({ bundles }) => (
+const BundleTable: React.FC<{ bundles: BundleEntry[], onDelete: (id: string) => void }> = ({ bundles, onDelete }) => (
     <Table>
         <TableHeader>
             <TableRow>
@@ -175,15 +209,39 @@ const BundleTable: React.FC<{ bundles: any[] }> = ({ bundles }) => (
                 <TableHead className="text-right">Unidades Bundle</TableHead>
                 <TableHead className="text-right">Unidades Package</TableHead>
                 <TableHead className="text-right">Vendas ($)</TableHead>
+                <TableHead className="w-[50px] text-center">Ações</TableHead>
             </TableRow>
         </TableHeader>
         <TableBody>
             {bundles.map((b, i) => (
-                <TableRow key={i}>
+                <TableRow key={b.id || i}>
                     <TableCell>{b.name}</TableCell>
                     <TableCell className="text-right">{b.bundleUnits}</TableCell>
                     <TableCell className="text-right">{b.packageUnits}</TableCell>
                     <TableCell className="text-right">{b.sales}</TableCell>
+                    <TableCell className="text-center">
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Esta ação removerá permanentemente o registro do Bundle/DLC "{b.name}".
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => onDelete(b.id)} className="bg-destructive hover:bg-destructive/90">
+                                        Remover
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </TableCell>
                 </TableRow>
             ))}
         </TableBody>
@@ -205,7 +263,12 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
         const positiveReviews = values.positive;
         const percentage = totalReviews > 0 ? positiveReviews / totalReviews : 0;
 
-        const newReviewEntry = {
+        // Generate a local unique ID for the new entry
+        let localIdCounter = details.reviews.length + details.bundles.length + 1;
+        const generateLocalUniqueId = (prefix: string) => `${prefix}-${localIdCounter++}`;
+
+        const newReviewEntry: ReviewEntry = {
+            id: generateLocalUniqueId('review'),
             reviews: totalReviews,
             positive: positiveReviews,
             negative: values.negative,
@@ -218,6 +281,20 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
         onUpdateDetails(gameName, {
             reviews: [...details.reviews, newReviewEntry].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0))
         });
+    };
+
+    const handleDeleteReview = (id: string) => {
+        onUpdateDetails(gameName, {
+            reviews: details.reviews.filter(r => r.id !== id)
+        });
+        toast.success("Entrada de review removida.");
+    };
+
+    const handleDeleteBundle = (id: string) => {
+        onUpdateDetails(gameName, {
+            bundles: details.bundles.filter(b => b.id !== id)
+        });
+        toast.success("Entrada de bundle/DLC removida.");
     };
 
     return (
@@ -261,7 +338,7 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
                             <AccordionTrigger className="font-semibold">Histórico Completo de Reviews ({details.reviews.length} entradas)</AccordionTrigger>
                             <AccordionContent>
                                 <div className="overflow-x-auto">
-                                    <ReviewTable reviews={details.reviews} />
+                                    <ReviewTable reviews={details.reviews} onDelete={handleDeleteReview} />
                                 </div>
                             </AccordionContent>
                         </AccordionItem>
@@ -272,7 +349,7 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
                             <AccordionTrigger className="font-semibold">Vendas de Bundles & DLCs ({details.bundles.length} entradas)</AccordionTrigger>
                             <AccordionContent>
                                 <div className="overflow-x-auto">
-                                    <BundleTable bundles={details.bundles} />
+                                    <BundleTable bundles={details.bundles} onDelete={handleDeleteBundle} />
                                 </div>
                             </AccordionContent>
                         </AccordionItem>

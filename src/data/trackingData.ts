@@ -77,6 +77,25 @@ export interface WLSalesEntry {
     saleType: SaleType; // New field
 }
 
+export interface ReviewEntry {
+    id: string;
+    reviews: number;
+    positive: number;
+    negative: number;
+    percentage: number | string;
+    rating: string;
+    date: Date | null;
+}
+
+export interface BundleEntry {
+    id: string;
+    name: string;
+    bundleUnits: number;
+    packageUnits: number;
+    sales: string | number; // Sales in USD
+    xsolla: string | number;
+}
+
 export interface ResultSummaryEntry {
     type: 'Influencers' | 'Eventos' | 'Trafego Pago';
     game: string;
@@ -92,8 +111,8 @@ export interface ResultSummaryEntry {
 
 export interface WlDetails {
     game: string;
-    reviews: any[];
-    bundles: any[];
+    reviews: ReviewEntry[];
+    bundles: BundleEntry[];
     traffic: any[];
 }
 
@@ -125,21 +144,14 @@ const cleanValue = (value: any): number | string => {
     return value;
 };
 
-// ... (other processing functions remain the same)
-
 const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[] => {
     const wlSales: WLSalesEntry[] = [];
     const salesMap = new Map<number, number>();
-    
-    // Assuming sales data is mixed in the sheet, we prioritize WL data for the main entry
-    // We will treat all initial sales data as 'Padrão' for simplicity of import
     
     sheetData.forEach(item => {
         const dateKey = item.Data_2 ?? item.__EMPTY_17;
         const salesValue = item.Vendas ?? item.__EMPTY_18;
         if (typeof dateKey === 'number' && typeof salesValue === 'number' && salesValue > 0) {
-            // Note: In a real app, we'd need more columns to determine saleType from raw data.
-            // Here, we aggregate sales by date and assume 'Padrão' for imported data.
             salesMap.set(dateKey, (salesMap.get(dateKey) || 0) + salesValue);
         }
     });
@@ -166,8 +178,6 @@ const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[]
 
     return wlSales.filter(entry => entry.wishlists > 0).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
 };
-
-// ... (rest of the file remains the same)
 
 const processInfluencerTracking = (data: any[]): InfluencerTrackingEntry[] => {
     return data
@@ -259,6 +269,7 @@ const processWlDetails = (sheetData: any[], gameName: string): WlDetails => {
         details.reviews = sheetData.slice(reviewHeaderIndex + 1)
             .filter(r => r.__EMPTY_19 && !isNaN(Number(r.__EMPTY_19)))
             .map(r => ({
+                id: generateUniqueId('review'), // Assign unique ID
                 reviews: r.__EMPTY_19,
                 positive: r.__EMPTY_20,
                 negative: r.__EMPTY_21,
@@ -273,6 +284,7 @@ const processWlDetails = (sheetData: any[], gameName: string): WlDetails => {
         details.bundles = sheetData.slice(bundleHeaderIndex + 1)
             .filter(r => r.__EMPTY_19)
             .map(r => ({
+                id: generateUniqueId('bundle'), // Assign unique ID
                 name: r.__EMPTY_19,
                 bundleUnits: r.__EMPTY_20,
                 packageUnits: r.__EMPTY_21,
