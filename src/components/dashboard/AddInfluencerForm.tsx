@@ -1,3 +1,4 @@
+FormLabel) to fix the syntax error.">
 "use client";
 
 import React from 'react';
@@ -136,7 +137,7 @@ const AddInfluencerForm: React.FC<AddInfluencerFormProps> = ({ games, onSave, on
                         name="platform"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Plataforma</Formलेशन>
+                                <FormLabel>Plataforma</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
