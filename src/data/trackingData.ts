@@ -65,12 +65,16 @@ export interface DemoTrackingEntry {
     totalGameTime: string;
 }
 
+export type SaleType = 'Padrão' | 'Bundle' | 'DLC';
+
 export interface WLSalesEntry {
+    id: string; // Added unique ID for manipulation
     date: Date | null;
     game: string;
     wishlists: number;
     sales: number;
     variation: number;
+    saleType: SaleType; // New field
 }
 
 export interface ResultSummaryEntry {
@@ -120,6 +124,50 @@ const cleanValue = (value: any): number | string => {
     }
     return value;
 };
+
+// ... (other processing functions remain the same)
+
+const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[] => {
+    const wlSales: WLSalesEntry[] = [];
+    const salesMap = new Map<number, number>();
+    
+    // Assuming sales data is mixed in the sheet, we prioritize WL data for the main entry
+    // We will treat all initial sales data as 'Padrão' for simplicity of import
+    
+    sheetData.forEach(item => {
+        const dateKey = item.Data_2 ?? item.__EMPTY_17;
+        const salesValue = item.Vendas ?? item.__EMPTY_18;
+        if (typeof dateKey === 'number' && typeof salesValue === 'number' && salesValue > 0) {
+            // Note: In a real app, we'd need more columns to determine saleType from raw data.
+            // Here, we aggregate sales by date and assume 'Padrão' for imported data.
+            salesMap.set(dateKey, (salesMap.get(dateKey) || 0) + salesValue);
+        }
+    });
+
+    sheetData.forEach(item => {
+        const dateKey = item.Data ?? item.__EMPTY;
+        const wlValue = item.WL ?? item.__EMPTY_1;
+        const variation = item.Variação ?? item.__EMPTY_9;
+
+        if (typeof dateKey === 'number' && typeof wlValue === 'number' && dateKey > 10000) {
+            const sales = salesMap.get(dateKey) || 0;
+            
+            wlSales.push({
+                id: generateUniqueId('wl'),
+                date: excelSerialDateToJSDate(dateKey),
+                game: gameName,
+                wishlists: wlValue,
+                sales: sales,
+                variation: Number(variation) || 0,
+                saleType: 'Padrão', // Defaulting imported data to Padrão
+            });
+        }
+    });
+
+    return wlSales.filter(entry => entry.wishlists > 0).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
+};
+
+// ... (rest of the file remains the same)
 
 const processInfluencerTracking = (data: any[]): InfluencerTrackingEntry[] => {
     return data
@@ -201,39 +249,6 @@ const processDemoTracking = (data: any[]): DemoTrackingEntry[] => {
             totalDemoTime: item['Tempo total de demo'] || '-',
             totalGameTime: item['Tempo total do jogo'] || '-',
         }));
-};
-
-const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[] => {
-    const wlSales: WLSalesEntry[] = [];
-    const salesMap = new Map<number, number>();
-    
-    sheetData.forEach(item => {
-        const dateKey = item.Data_2 ?? item.__EMPTY_17;
-        const salesValue = item.Vendas ?? item.__EMPTY_18;
-        if (typeof dateKey === 'number' && typeof salesValue === 'number' && salesValue > 0) {
-            salesMap.set(dateKey, salesValue);
-        }
-    });
-
-    sheetData.forEach(item => {
-        const dateKey = item.Data ?? item.__EMPTY;
-        const wlValue = item.WL ?? item.__EMPTY_1;
-        const variation = item.Variação ?? item.__EMPTY_9;
-
-        if (typeof dateKey === 'number' && typeof wlValue === 'number' && dateKey > 10000) {
-            const sales = salesMap.get(dateKey) || 0;
-            
-            wlSales.push({
-                date: excelSerialDateToJSDate(dateKey),
-                game: gameName,
-                wishlists: wlValue,
-                sales: sales,
-                variation: Number(variation) || 0,
-            });
-        }
-    });
-
-    return wlSales.filter(entry => entry.wishlists > 0).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
 };
 
 const processWlDetails = (sheetData: any[], gameName: string): WlDetails => {

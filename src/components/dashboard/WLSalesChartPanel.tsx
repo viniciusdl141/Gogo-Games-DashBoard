@@ -47,7 +47,6 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data }) => {
     }
 
     // Recharts expects data to be an array of objects with keys for X and Y axes.
-    // We use the raw date number as the key for XAxis and format it in the tooltip/label.
     const chartData = data.map(item => ({
         date: item.date ? item.date.getTime() : null, // Use timestamp for sorting/keying
         Wishlists: item.wishlists,
@@ -80,14 +79,14 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data }) => {
                         <Line 
                             type="monotone" 
                             dataKey="Wishlists" 
-                            stroke="hsl(var(--primary))" 
+                            stroke="hsl(var(--primary))" // Cor primária (Azul escuro/Preto)
                             strokeWidth={2}
                             dot={false}
                         />
                         <Line 
                             type="monotone" 
                             dataKey="Vendas" 
-                            stroke="hsl(var(--accent-foreground))" 
+                            stroke="hsl(var(--destructive))" // Cor destrutiva (Vermelho) para contraste
                             strokeWidth={2}
                             dot={false}
                         />
