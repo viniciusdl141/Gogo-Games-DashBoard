@@ -30,7 +30,7 @@ import DemoTrackingPanel from '@/components/dashboard/DemoTrackingPanel';
 import KpiCard from '@/components/dashboard/KpiCard';
 import WlDetailsManager from '@/components/dashboard/WlDetailsManager';
 import AddInfluencerForm from '@/components/dashboard/AddInfluencerForm';
-import AddEventForm from '@/components/dashboard/AddEventForm'; // Caminho corrigido
+import AddEventForm from '@/components/dashboard/AddEventForm';
 import AddPaidTrafficForm from '@/components/dashboard/AddPaidTrafficForm';
 import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm';
 import EditWLSalesForm from '@/components/dashboard/EditWLSalesForm';
@@ -392,7 +392,7 @@ const Dashboard = () => {
   // Renderização condicional para quando não há jogos
   if (trackingData.games.length === 0) {
     return (
-        <div className="min-h-screen flex items-center justify-center p-8 bg-background text-foreground gaming-background">
+        <div className="min-h-screen flex items-center justify-center p-8 bg-background text-foreground"> {/* Removido gaming-background */}
             <Card className="p-6 shadow-xl border border-border">
                 <h1 className="text-2xl font-bold mb-4 text-gogo-cyan">Dashboard de Rastreamento</h1>
                 <p className="text-muted-foreground">Nenhum dado de rastreamento encontrado.</p>
@@ -419,7 +419,7 @@ const Dashboard = () => {
 
   // Renderização principal
   return (
-    <div className="min-h-screen p-4 md:p-8 font-sans gaming-background">
+    <div className="min-h-screen p-4 md:p-8 font-sans"> {/* Removido gaming-background */}
       <ResizablePanelGroup
         direction="horizontal"
         className="min-h-[calc(100vh-64px)] w-full rounded-lg border border-border bg-card text-card-foreground shadow-gogo-cyan-glow transition-shadow duration-300"
