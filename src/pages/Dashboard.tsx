@@ -6,10 +6,12 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, Gamepad2, EyeOff } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, Gamepad2, EyeOff, Image as ImageIcon } from 'lucide-react'; // Importar ImageIcon
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"; // Importar DialogFooter
 import { Button } from "@/components/ui/button"; 
+import { Input } from '@/components/ui/input'; // Importar Input
+import { Label } from '@/components/ui/label'; // Importar Label
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
@@ -53,6 +55,9 @@ const Dashboard = () => {
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
   const [editingWLSalesEntry, setEditingWLSalesEntry] = useState<WLSalesPlatformEntry | null>(null);
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
+  const [isLogoEditDialogOpen, setIsLogoEditDialogOpen] = useState(false); // Estado para o dialog do logo
+  const [currentLogoUrl, setCurrentLogoUrl] = useState('/gogo-games-logo.png'); // Estado para a URL do logo
+  const [newLogoUrl, setNewLogoUrl] = useState(''); // Estado temporário para a nova URL do logo
 
   // Função auxiliar para recalcular variações de WL
   const recalculateWLSales = useCallback((wlSales: WLSalesPlatformEntry[], game: string, platform: Platform): WLSalesPlatformEntry[] => {
@@ -277,6 +282,17 @@ const Dashboard = () => {
     });
   }, []);
 
+  const handleSaveLogoUrl = () => {
+    if (newLogoUrl.trim() !== '') {
+      setCurrentLogoUrl(newLogoUrl.trim());
+      toast.success("URL do logo atualizada com sucesso!");
+    } else {
+      toast.error("Por favor, insira uma URL válida para o logo.");
+    }
+    setIsLogoEditDialogOpen(false);
+    setNewLogoUrl(''); // Limpar o campo após salvar
+  };
+
 
   const filteredData = useMemo(() => {
     if (!selectedGame) return null;
@@ -414,10 +430,39 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="flex flex-col sm:flex-row items-center justify-between mb-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
             <div className="flex items-center mb-4 sm:mb-0">
-                <img src="/gogo-games-logo.png" alt="Gogo Games Logo" className="h-14 w-auto mr-4" />
+                <img src={currentLogoUrl} alt="Gogo Games Logo" className="h-14 w-auto mr-4 object-contain" />
                 <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">
                     Dashboard de Performance
                 </h1>
+                <Dialog open={isLogoEditDialogOpen} onOpenChange={setIsLogoEditDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="ml-2 text-muted-foreground hover:text-gogo-cyan">
+                            <ImageIcon className="h-5 w-5" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Editar URL do Logo</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="logo-url" className="text-right">
+                                    URL
+                                </Label>
+                                <Input
+                                    id="logo-url"
+                                    defaultValue={currentLogoUrl}
+                                    onChange={(e) => setNewLogoUrl(e.target.value)}
+                                    className="col-span-3"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsLogoEditDialogOpen(false)}>Cancelar</Button>
+                            <Button onClick={handleSaveLogoUrl} className="bg-gogo-cyan hover:bg-gogo-cyan/90">Salvar</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
             <div className="flex items-center gap-4">
                 <label htmlFor="game-select" className="font-semibold text-lg text-gray-700 dark:text-gray-200">Jogo:</label>

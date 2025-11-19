@@ -23,8 +23,8 @@ interface WLSalesChartPanelProps {
 }
 
 // Cores Gogo Games
-const WL_COLOR = "#10b981"; // Emerald 500 (Wishlists)
-const SALES_COLOR = "#8b5cf6"; // Violet 500 (Vendas)
+const WL_COLOR = "#00BFFF"; // Gogo Cyan
+const SALES_COLOR = "#FF6600"; // Gogo Orange
 
 // Mapeamento de cores e formas para a frequência
 const FREQUENCY_STYLES: Record<EntryFrequency, { fill: string, stroke: string, shape: 'circle' | 'triangle' | 'square' }> = {

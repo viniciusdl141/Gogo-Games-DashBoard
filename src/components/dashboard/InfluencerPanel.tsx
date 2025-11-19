@@ -209,9 +209,9 @@ const InfluencerBarChart: React.FC<{ data: InfluencerSummaryEntry[] }> = ({ data
         Wishlists: item.wishlistsGenerated,
     }));
 
-    // Cores Gogo Games: Roxo para Investimento, Verde para Wishlists
-    const INVESTMENT_COLOR = "hsl(var(--gogo-orange))"; 
-    const WL_COLOR = "hsl(var(--gogo-cyan))"; 
+    // Cores Gogo Games: Laranja para Investimento, Ciano para Wishlists
+    const INVESTMENT_COLOR = "#FF6600"; // Gogo Orange
+    const WL_COLOR = "#00BFFF"; // Gogo Cyan
 
     return (
         <div className="h-[300px] w-full mt-6">

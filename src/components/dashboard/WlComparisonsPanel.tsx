@@ -29,10 +29,10 @@ const fullConfig = resolveConfig(tailwindConfig);
 const platformColors: Record<string, string> = (fullConfig.theme?.colors as any)?.platform || {};
 
 // Cores Gogo Games
-const WL_COLOR = "hsl(var(--gogo-cyan))"; 
-const SALES_COLOR = "hsl(var(--gogo-orange))"; 
-const CONVERSION_COLOR = "hsl(var(--primary))"; // Usando primary do shadcn
-const GROWTH_COLOR = "hsl(var(--secondary))"; // Usando secondary do shadcn
+const WL_COLOR = "#00BFFF"; // Gogo Cyan
+const SALES_COLOR = "#FF6600"; // Gogo Orange
+const CONVERSION_COLOR = "#4285F4"; // Um azul para conversão (Google Ads blue)
+const GROWTH_COLOR = "#10b981"; // Um verde para crescimento (Emerald 500)
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {

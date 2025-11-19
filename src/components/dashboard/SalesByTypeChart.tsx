@@ -39,7 +39,7 @@ const SalesByTypeChart: React.FC<SalesByTypeChartProps> = ({ data }) => {
     }
 
     // Cores Gogo Games: Cyan, Orange, e um terceiro para DLC
-    const COLORS = {
+    const COLORS: Record<string, string> = {
         'Padrão': '#00BFFF', // gogo-cyan
         'Bundle': '#FF6600', // gogo-orange
         'DLC': '#8b5cf6', // Violet (complementar)
@@ -61,9 +61,9 @@ const SalesByTypeChart: React.FC<SalesByTypeChartProps> = ({ data }) => {
                         <XAxis type="number" tickFormatter={(value) => formatNumber(value)} />
                         <YAxis dataKey="name" type="category" width={80} />
                         <Tooltip formatter={(value) => formatNumber(value as number)} />
-                        <Bar dataKey="Vendas" fill={COLORS['Padrão']} name="Vendas" >
+                        <Bar dataKey="Vendas" name="Vendas" >
                             {salesSummary.map((entry, index) => (
-                                <Bar key={`bar-${index}`} dataKey="Vendas" fill={COLORS[entry.name as keyof typeof COLORS] || '#6b7280'} />
+                                <Bar key={`bar-${index}`} dataKey="Vendas" fill={COLORS[entry.name] || '#6b7280'} />
                             ))}
                         </Bar>
                     </BarChart>
