@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export function cn(...inputs: ClassValue[]) {
@@ -19,12 +19,23 @@ export function excelSerialDateToJSDate(serial: number): Date | null {
 
 export function formatDate(date: Date | number | null): string {
     if (!date) return '-';
+    
+    let dateToFormat: Date;
+
     if (typeof date === 'number') {
         const jsDate = excelSerialDateToJSDate(date);
         if (!jsDate) return '-';
-        return format(jsDate, 'dd/MM/yyyy', { locale: ptBR });
+        dateToFormat = jsDate;
+    } else {
+        dateToFormat = date;
     }
-    return format(date, 'dd/MM/yyyy', { locale: ptBR });
+    
+    // Check validity before formatting to prevent 'Invalid time value' errors
+    if (!isValid(dateToFormat)) {
+        return '-';
+    }
+
+    return format(dateToFormat, 'dd/MM/yyyy', { locale: ptBR });
 }
 
 export function formatCurrency(value: number | string | undefined): string {
