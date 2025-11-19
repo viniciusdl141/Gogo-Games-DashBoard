@@ -13,8 +13,8 @@ import { Button } from "@/components/ui/button";
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
-import WLSalesTablePanel from '@/components/dashboard/WLSalesTablePanel'; // <-- Novo Import
-import SalesByTypeChart from '@/components/dashboard/SalesByTypeChart'; // <-- Novo Import
+import WLSalesTablePanel from '@/components/dashboard/WLSalesTablePanel';
+import SalesByTypeChart from '@/components/dashboard/SalesByTypeChart';
 import InfluencerPanel from '@/components/dashboard/InfluencerPanel';
 import EventPanel from '@/components/dashboard/EventPanel';
 import PaidTrafficPanel from '@/components/dashboard/PaidTrafficPanel';
@@ -95,7 +95,17 @@ const Dashboard = () => {
     toast.success("Entrada de Wishlist/Vendas removida com sucesso.");
   }, []);
 
-  // --- Influencer Handlers (omitted for brevity, assumed correct) ---
+  // --- Influencer Handlers ---
+  
+  const handleEditInfluencerEntry = useCallback((updatedEntry: InfluencerTrackingEntry) => {
+    setTrackingData(prevData => ({
+        ...prevData,
+        influencerTracking: prevData.influencerTracking.map(entry => 
+            entry.id === updatedEntry.id ? updatedEntry : entry
+        ).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)),
+    }));
+  }, []);
+
   const handleDeleteInfluencerEntry = useCallback((id: string) => {
     setTrackingData(prevData => ({
       ...prevData,
@@ -120,7 +130,17 @@ const Dashboard = () => {
     setIsAddInfluencerFormOpen(false);
   }, []);
 
-  // --- Event Handlers (omitted for brevity, assumed correct) ---
+  // --- Event Handlers ---
+  
+  const handleEditEventEntry = useCallback((updatedEntry: EventTrackingEntry) => {
+    setTrackingData(prevData => ({
+        ...prevData,
+        eventTracking: prevData.eventTracking.map(entry => 
+            entry.id === updatedEntry.id ? updatedEntry : entry
+        ).sort((a, b) => (a.startDate?.getTime() || 0) - (b.startDate?.getTime() || 0)),
+    }));
+  }, []);
+
   const handleDeleteEventEntry = useCallback((id: string) => {
     setTrackingData(prevData => ({
       ...prevData,
@@ -149,7 +169,17 @@ const Dashboard = () => {
     setIsAddEventFormOpen(false);
   }, []);
 
-  // --- Paid Traffic Handlers (omitted for brevity, assumed correct) ---
+  // --- Paid Traffic Handlers ---
+  
+  const handleEditPaidTrafficEntry = useCallback((updatedEntry: PaidTrafficEntry) => {
+    setTrackingData(prevData => ({
+        ...prevData,
+        paidTraffic: prevData.paidTraffic.map(entry => 
+            entry.id === updatedEntry.id ? updatedEntry : entry
+        ).sort((a, b) => (a.startDate?.getTime() || 0) - (b.startDate?.getTime() || 0)),
+    }));
+  }, []);
+
   const handleDeletePaidTrafficEntry = useCallback((id: string) => {
     setTrackingData(prevData => ({
       ...prevData,
@@ -349,7 +379,7 @@ const Dashboard = () => {
                     <div className="flex justify-end mb-4">
                         <Dialog open={isAddWLSalesFormOpen} onOpenChange={setIsAddWLSalesFormOpen}>
                             <DialogTrigger asChild>
-                                <Button onClick={() => setIsAddWLSalesFormOpen(true)}>
+                                <Button onClick={() => setIsAddWLSalesFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
                                     <Plus className="h-4 w-4 mr-2" /> Adicionar WL/Venda
                                 </Button>
                             </DialogTrigger>
@@ -375,7 +405,7 @@ const Dashboard = () => {
                     <div className="flex justify-end mb-4">
                         <Dialog open={isAddInfluencerFormOpen} onOpenChange={setIsAddInfluencerFormOpen}>
                             <DialogTrigger asChild>
-                                <Button onClick={() => setIsAddInfluencerFormOpen(true)}>
+                                <Button onClick={() => setIsAddInfluencerFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
                                     <Plus className="h-4 w-4 mr-2" /> Adicionar Entrada
                                 </Button>
                             </DialogTrigger>
@@ -395,6 +425,8 @@ const Dashboard = () => {
                         summary={filteredData.influencerSummary} 
                         tracking={filteredData.influencerTracking} 
                         onDeleteTracking={handleDeleteInfluencerEntry}
+                        onEditTracking={handleEditInfluencerEntry}
+                        games={trackingData.games}
                     />
                 </TabsContent>
 
@@ -402,7 +434,7 @@ const Dashboard = () => {
                     <div className="flex justify-end mb-4">
                         <Dialog open={isAddEventFormOpen} onOpenChange={setIsAddEventFormOpen}>
                             <DialogTrigger asChild>
-                                <Button onClick={() => setIsAddEventFormOpen(true)}>
+                                <Button onClick={() => setIsAddEventFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
                                     <Plus className="h-4 w-4 mr-2" /> Adicionar Evento
                                 </Button>
                             </DialogTrigger>
@@ -418,14 +450,19 @@ const Dashboard = () => {
                             </DialogContent>
                         </Dialog>
                     </div>
-                    <EventPanel data={filteredData.eventTracking} onDeleteTracking={handleDeleteEventEntry} />
+                    <EventPanel 
+                        data={filteredData.eventTracking} 
+                        onDeleteTracking={handleDeleteEventEntry} 
+                        onEditTracking={handleEditEventEntry}
+                        games={trackingData.games}
+                    />
                 </TabsContent>
 
                 <TabsContent value="paid-traffic" className="mt-4">
                     <div className="flex justify-end mb-4">
                         <Dialog open={isAddPaidTrafficFormOpen} onOpenChange={setIsAddPaidTrafficFormOpen}>
                             <DialogTrigger asChild>
-                                <Button onClick={() => setIsAddPaidTrafficFormOpen(true)}>
+                                <Button onClick={() => setIsAddPaidTrafficFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
                                     <Plus className="h-4 w-4 mr-2" /> Adicionar Tráfego Pago
                                 </Button>
                             </DialogTrigger>
@@ -441,7 +478,12 @@ const Dashboard = () => {
                             </DialogContent>
                         </Dialog>
                     </div>
-                    <PaidTrafficPanel data={filteredData.paidTraffic} onDeleteTracking={handleDeletePaidTrafficEntry} />
+                    <PaidTrafficPanel 
+                        data={filteredData.paidTraffic} 
+                        onDeleteTracking={handleDeletePaidTrafficEntry} 
+                        onEditTracking={handleEditPaidTrafficEntry}
+                        games={trackingData.games}
+                    />
                 </TabsContent>
 
                 <TabsContent value="demo" className="mt-4">

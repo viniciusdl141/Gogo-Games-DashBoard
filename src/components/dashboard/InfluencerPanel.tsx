@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { InfluencerTrackingEntry, InfluencerSummaryEntry } from '@/data/trackingData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency, formatDate, formatNumber } from '@/lib/utils';
-import { Trash2, BarChart3, ChevronDown } from 'lucide-react';
+import { Trash2, BarChart3, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     AlertDialog,
@@ -42,11 +42,15 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import EditInfluencerForm from './EditInfluencerForm'; // Importar o novo formulário
 
 interface InfluencerPanelProps {
     summary: InfluencerSummaryEntry[];
     tracking: InfluencerTrackingEntry[];
     onDeleteTracking: (id: string) => void;
+    onEditTracking: (entry: InfluencerTrackingEntry) => void; // Novo prop para edição
+    games: string[]; // Necessário para o formulário de edição
 }
 
 const formatROI = (value: number | string): string => {
@@ -83,7 +87,14 @@ const InfluencerSummaryTable: React.FC<{ data: InfluencerSummaryEntry[] }> = ({ 
     </div>
 );
 
-const InfluencerTrackingAccordion: React.FC<{ data: InfluencerTrackingEntry[], onDelete: (id: string) => void }> = ({ data, onDelete }) => {
+const InfluencerTrackingAccordion: React.FC<{ 
+    data: InfluencerTrackingEntry[], 
+    onDelete: (id: string) => void,
+    onEdit: (entry: InfluencerTrackingEntry) => void,
+    games: string[],
+}> = ({ data, onDelete, onEdit, games }) => {
+    const [openDialogId, setOpenDialogId] = useState<string | null>(null);
+
     const groupedData = useMemo(() => {
         return data.reduce((acc, item) => {
             const influencer = item.influencer;
@@ -119,7 +130,7 @@ const InfluencerTrackingAccordion: React.FC<{ data: InfluencerTrackingEntry[], o
                                             <TableHead className="text-center">WL Est.</TableHead>
                                             <TableHead className="text-right">ROI (R$/WL)</TableHead>
                                             <TableHead>Obs.</TableHead>
-                                            <TableHead className="w-[50px] text-center">Ações</TableHead>
+                                            <TableHead className="w-[100px] text-center">Ações</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -133,7 +144,29 @@ const InfluencerTrackingAccordion: React.FC<{ data: InfluencerTrackingEntry[], o
                                                 <TableCell className="text-center">{formatNumber(item.estimatedWL)}</TableCell>
                                                 <TableCell className="text-right">{formatROI(item.roi)}</TableCell>
                                                 <TableCell className="text-sm max-w-[150px] truncate">{item.observations || '-'}</TableCell>
-                                                <TableCell className="text-center">
+                                                <TableCell className="text-center flex items-center justify-center space-x-1">
+                                                    
+                                                    {/* Botão de Edição */}
+                                                    <Dialog open={openDialogId === item.id} onOpenChange={(open) => setOpenDialogId(open ? item.id : null)}>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gogo-cyan hover:bg-gogo-cyan/10">
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="sm:max-w-[600px]">
+                                                            <DialogHeader>
+                                                                <DialogTitle>Editar Tracking de Influencer</DialogTitle>
+                                                            </DialogHeader>
+                                                            <EditInfluencerForm 
+                                                                games={games}
+                                                                entry={item}
+                                                                onSave={onEdit}
+                                                                onClose={() => setOpenDialogId(null)}
+                                                            />
+                                                        </DialogContent>
+                                                    </Dialog>
+
+                                                    {/* Botão de Exclusão */}
                                                     <AlertDialog>
                                                         <AlertDialogTrigger asChild>
                                                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
@@ -205,7 +238,7 @@ const InfluencerBarChart: React.FC<{ data: InfluencerSummaryEntry[] }> = ({ data
 };
 
 
-const InfluencerPanel: React.FC<InfluencerPanelProps> = ({ summary, tracking, onDeleteTracking }) => {
+const InfluencerPanel: React.FC<InfluencerPanelProps> = ({ summary, tracking, onDeleteTracking, onEditTracking, games }) => {
     const hasData = summary.length > 0 || tracking.length > 0;
 
     return (
@@ -231,7 +264,12 @@ const InfluencerPanel: React.FC<InfluencerPanelProps> = ({ summary, tracking, on
                 {tracking.length > 0 && <Separator className="my-6" />}
                 
                 {tracking.length > 0 && (
-                    <InfluencerTrackingAccordion data={tracking} onDelete={onDeleteTracking} />
+                    <InfluencerTrackingAccordion 
+                        data={tracking} 
+                        onDelete={onDeleteTracking} 
+                        onEdit={onEditTracking}
+                        games={games}
+                    />
                 )}
             </CardContent>
         </Card>
