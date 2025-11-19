@@ -390,8 +390,8 @@ const Dashboard = () => {
   // Renderização condicional para quando não há jogos
   if (trackingData.games.length === 0) {
     return (
-        <div className="min-h-screen flex items-center justify-center p-8 bg-background text-foreground">
-            <Card className="p-6 shadow-lg">
+        <div className="min-h-screen flex items-center justify-center p-8 bg-background text-foreground gaming-background">
+            <Card className="p-6 shadow-xl border border-border">
                 <h1 className="text-2xl font-bold mb-4 text-gogo-cyan">Dashboard de Rastreamento</h1>
                 <p className="text-muted-foreground">Nenhum dado de rastreamento encontrado.</p>
                 <Dialog open={isAddGameFormOpen} onOpenChange={setIsAddGameFormOpen}>
@@ -417,12 +417,12 @@ const Dashboard = () => {
 
   // Renderização principal
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-background text-foreground font-sans">
+    <div className="min-h-screen p-4 md:p-8 font-sans gaming-background">
       <ResizablePanelGroup
         direction="horizontal"
-        className="min-h-[calc(100vh-64px)] w-full rounded-lg border bg-card text-card-foreground shadow-lg"
+        className="min-h-[calc(100vh-64px)] w-full rounded-lg border border-border bg-card text-card-foreground shadow-2xl"
       >
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-muted/20 border-r">
+        <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-muted/20 border-r border-border">
           <div className="flex flex-col h-full">
             <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">Selecione um Jogo</h2>
             <div className="flex-grow space-y-4">
@@ -474,7 +474,7 @@ const Dashboard = () => {
             {filteredData && (
                 <>
                     <Tabs defaultValue="overview" className="w-full">
-                        <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b bg-card text-muted-foreground rounded-t-lg p-0 h-auto shadow-sm">
+                        <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b border-border bg-card text-muted-foreground rounded-t-lg p-0 h-auto shadow-sm">
                             <TabsTrigger value="overview" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Visão Geral</TabsTrigger>
                             <TabsTrigger value="wl-sales" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Wishlists</TabsTrigger>
                             <TabsTrigger value="comparisons" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Comparações</TabsTrigger>
@@ -484,7 +484,7 @@ const Dashboard = () => {
                             <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Demo</TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="overview" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
+                        <TabsContent value="overview" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             <GameSummaryPanel 
                                 gameName={selectedGame}
                                 totalSales={filteredData.kpis.totalSales}
@@ -500,7 +500,7 @@ const Dashboard = () => {
                             <ResultSummaryPanel data={filteredData.resultSummary} />
                         </TabsContent>
 
-                        <TabsContent value="wl-sales" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
+                        <TabsContent value="wl-sales" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             <Card className="bg-muted/50 border-none shadow-none">
                                 <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
                                     <Label htmlFor="platform-select" className="font-semibold text-foreground min-w-[150px]">Filtrar por Plataforma:</Label>
@@ -565,11 +565,11 @@ const Dashboard = () => {
                             )}
                         </TabsContent>
 
-                        <TabsContent value="comparisons" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
+                        <TabsContent value="comparisons" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             <WlComparisonsPanel data={filteredData.wlSales} allPlatforms={ALL_PLATFORMS} />
                         </TabsContent>
 
-                        <TabsContent value="influencers" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
+                        <TabsContent value="influencers" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.influencerTracking} 
@@ -603,7 +603,7 @@ const Dashboard = () => {
                             />
                         </TabsContent>
 
-                        <TabsContent value="events" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
+                        <TabsContent value="events" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.eventTracking} 
@@ -636,7 +636,7 @@ const Dashboard = () => {
                             />
                         </TabsContent>
 
-                        <TabsContent value="paid-traffic" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
+                        <TabsContent value="paid-traffic" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.paidTraffic} 
@@ -669,7 +669,7 @@ const Dashboard = () => {
                             />
                         </TabsContent>
 
-                        <TabsContent value="demo" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
+                        <TabsContent value="demo" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.demoTracking} 

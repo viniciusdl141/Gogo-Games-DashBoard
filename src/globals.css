@@ -137,4 +137,31 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Gaming-inspired background pattern */
+  .gaming-background {
+    background-color: hsl(var(--background));
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(var(--gogo-cyan)/0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(var(--gogo-orange)/0.1) 0px, transparent 50%),
+      linear-gradient(135deg, hsla(var(--background)/0.8) 25%, transparent 25%),
+      linear-gradient(225deg, hsla(var(--background)/0.8) 25%, transparent 25%),
+      linear-gradient(45deg, hsla(var(--background)/0.8) 25%, transparent 25%),
+      linear-gradient(315deg, hsla(var(--background)/0.8) 25%, hsla(var(--background)/0.8) 25%);
+    background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px, 20px 20px, 20px 20px;
+    background-position: 0 0, 0 0, 0 0, 10px 0, 10px -10px, 0px 10px;
+  }
+
+  .dark .gaming-background {
+    background-color: hsl(var(--background));
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(var(--gogo-cyan)/0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(var(--gogo-orange)/0.05) 0px, transparent 50%),
+      linear-gradient(135deg, hsla(var(--background)/0.9) 25%, transparent 25%),
+      linear-gradient(225deg, hsla(var(--background)/0.9) 25%, transparent 25%),
+      linear-gradient(45deg, hsla(var(--background)/0.9) 25%, transparent 25%),
+      linear-gradient(315deg, hsla(var(--background)/0.9) 25%, hsla(var(--background)/0.9) 25%);
+    background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px, 20px 20px, 20px 20px;
+    background-position: 0 0, 0 0, 0 0, 10px 0, 10px -10px, 0px 10px;
+  }
 }
