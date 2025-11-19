@@ -38,7 +38,6 @@ import ExportDataButton from '@/components/dashboard/ExportDataButton';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
-import GameCapsule3D from '@/components/dashboard/GameCapsule3D'; // Importar o novo componente 3D
 
 // Initialize data once
 const initialData = getTrackingData();
@@ -427,23 +426,18 @@ const Dashboard = () => {
           <div className="flex flex-col h-full">
             <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">Selecione um Jogo</h2>
             <div className="flex-grow space-y-4">
-              <Label className="font-semibold text-foreground mb-2 block">Jogo:</Label>
-              <div className="space-y-1">
-                  {trackingData.games.map(game => (
-                      <Button
-                          key={game}
-                          variant={selectedGame === game ? "secondary" : "ghost"}
-                          className={`w-full justify-start text-left ${selectedGame === game ? 'bg-gogo-cyan/20 text-gogo-cyan hover:bg-gogo-cyan/30' : 'hover:bg-muted/50'}`}
-                          onClick={() => setSelectedGame(game)}
-                      >
-                          <span className="flex items-center gap-2">
-                              {selectedGame === game && (
-                                  <GameCapsule3D color="#00BFFF" size={[0.08, 0.2, 4]} rotationSpeed={0.02} />
-                              )}
-                              {game}
-                          </span>
-                      </Button>
-                  ))}
+              <div className="space-y-2">
+                <Label htmlFor="game-select" className="font-semibold text-foreground">Jogo:</Label>
+                <Select onValueChange={setSelectedGame} defaultValue={selectedGame}>
+                  <SelectTrigger id="game-select" className="w-full bg-background">
+                    <SelectValue placeholder="Selecione um jogo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {trackingData.games.map(game => (
+                      <SelectItem key={game} value={game}>{game}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <Dialog open={isAddGameFormOpen} onOpenChange={setIsAddGameFormOpen}>
                 <DialogTrigger asChild>
