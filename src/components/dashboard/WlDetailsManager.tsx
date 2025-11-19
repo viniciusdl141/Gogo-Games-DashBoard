@@ -32,7 +32,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import AddBundleForm from './AddBundleForm'; // Novo Import
+import AddBundleForm, { BundleFormValues } from './AddBundleForm'; // Importar BundleFormValues
 import { FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'; // Importar componentes de formulário
 
 // --- Forms for adding new entries (moved AddReviewForm here for encapsulation) ---
@@ -285,7 +285,7 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
         toast.success("Nova análise de review adicionada.");
     };
 
-    const handleSaveBundle = (values: z.infer<typeof AddBundleForm>) => {
+    const handleSaveBundle = (values: BundleFormValues) => { // Corrigido o tipo aqui
         const newBundleEntry: BundleEntry = {
             id: generateLocalUniqueId('bundle'),
             name: values.name,
