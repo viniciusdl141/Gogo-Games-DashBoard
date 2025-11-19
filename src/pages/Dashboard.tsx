@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff, Megaphone } from 'lucide-react'; // Adicionado Megaphone
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -290,6 +290,16 @@ const Dashboard = () => {
     
     const game = selectedGame.trim();
 
+    // Hardcoded launch date for demonstration
+    const launchDates: Record<string, Date | null> = {
+        'Legacy of Evil': new Date('2024-12-25T00:00:00'), // Example: Future launch
+        'Hellbrella': new Date('2024-01-15T00:00:00'), // Example: Past launch
+        'The Mare Show': new Date('2024-07-20T00:00:00'), // Example: Recent launch
+        'DREADSTONE KEEP': null, // No launch date
+        'LIA HACKING DESTINY': null, // No launch date
+    };
+    const gameLaunchDate = launchDates[game] || null;
+
     // 1. Filter and enhance data, recalculating dynamic fields
     const influencerTracking = trackingData.influencerTracking
         .filter(d => d.game.trim() === game)
@@ -353,10 +363,12 @@ const Dashboard = () => {
 
     const totalInvestment = investmentSources.influencers + investmentSources.events + investmentSources.paidTraffic;
 
+    // Separar Visualizações e Impressões
     const totalViews = 
         influencerTracking.reduce((sum, item) => sum + item.views, 0) +
-        eventTracking.reduce((sum, item) => sum + item.views, 0) +
-        paidTraffic.reduce((sum, item) => sum + item.impressions, 0);
+        eventTracking.reduce((sum, item) => sum + item.views, 0);
+    
+    const totalImpressions = paidTraffic.reduce((sum, item) => sum + item.impressions, 0);
     
     const totalWLGenerated = 
         influencerTracking.reduce((sum, item) => sum + item.estimatedWL, 0) +
@@ -378,11 +390,13 @@ const Dashboard = () => {
       wlDetails: trackingData.wlDetails.find(d => d.game.trim() === game),
       kpis: {
           totalInvestment,
-          totalViews,
+          totalViews, // Novo KPI
+          totalImpressions, // Novo KPI
           totalWLGenerated,
           totalSales,
           totalWishlists,
           investmentSources,
+          launchDate: gameLaunchDate, // Passar a data de lançamento
       }
     };
   }, [selectedGame, selectedPlatform, trackingData, recalculateWLSales]);
@@ -490,13 +504,11 @@ const Dashboard = () => {
                                 totalSales={filteredData.kpis.totalSales}
                                 totalWishlists={filteredData.kpis.totalWishlists}
                                 totalInvestment={filteredData.kpis.totalInvestment}
+                                totalViews={filteredData.kpis.totalViews}
+                                totalImpressions={filteredData.kpis.totalImpressions}
+                                launchDate={filteredData.kpis.launchDate}
                                 investmentSources={filteredData.kpis.investmentSources}
                             />
-                            <div className="grid gap-4 md:grid-cols-3">
-                                <KpiCard title="Investimento Total" value={formatCurrency(filteredData.kpis.totalInvestment)} icon={<DollarSign className="h-4 w-4 text-gogo-orange" />} />
-                                <KpiCard title="Views + Impressões" value={formatNumber(filteredData.kpis.totalViews)} icon={<Eye className="h-4 w-4 text-gogo-cyan" />} />
-                                <KpiCard title="Wishlists Geradas (Est.)" value={formatNumber(filteredData.kpis.totalWLGenerated)} description="Estimativa baseada em ações de marketing." icon={<List className="h-4 w-4 text-gogo-orange" />} />
-                            </div>
                             <ResultSummaryPanel data={filteredData.resultSummary} />
                         </TabsContent>
 

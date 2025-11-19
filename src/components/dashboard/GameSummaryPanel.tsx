@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, List, TrendingUp, Info } from 'lucide-react';
+import { DollarSign, List, TrendingUp, Info, Eye, Megaphone } from 'lucide-react'; // Adicionado Megaphone para Impressões
 import KpiCard from './KpiCard';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -15,12 +15,16 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import LaunchTimer from './LaunchTimer'; // Importar o novo componente
 
 interface GameSummaryPanelProps {
     gameName: string;
     totalSales: number;
     totalWishlists: number;
     totalInvestment: number;
+    totalViews: number; // Novo KPI
+    totalImpressions: number; // Novo KPI
+    launchDate: Date | null; // Nova prop
     investmentSources: { influencers: number, events: number, paidTraffic: number };
 }
 
@@ -29,6 +33,9 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     totalSales, 
     totalWishlists, 
     totalInvestment,
+    totalViews, // Usar o novo KPI
+    totalImpressions, // Usar o novo KPI
+    launchDate, // Usar a nova prop
     investmentSources
 }) => {
     const [gamePrice, setGamePrice] = React.useState(19.99); // Preço padrão em R$
@@ -67,6 +74,13 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
             </CardHeader>
             <CardContent className="space-y-6">
                 
+                {/* Contador de Lançamento */}
+                {launchDate && (
+                    <div className="flex justify-center mb-4">
+                        <LaunchTimer launchDate={launchDate} />
+                    </div>
+                )}
+
                 {/* KPIs de Vendas e WL */}
                 <div className="grid gap-4 md:grid-cols-3">
                     <KpiCard 
@@ -94,6 +108,22 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                                 </TooltipContent>
                             </Tooltip>
                         } 
+                    />
+                </div>
+
+                {/* Novos KPIs de Visualizações e Impressões */}
+                <div className="grid gap-4 md:grid-cols-2">
+                    <KpiCard 
+                        title="Visualizações (Orgânicas/Eventos)" 
+                        value={formatNumber(totalViews)} 
+                        icon={<Eye className="h-4 w-4 text-gogo-cyan" />} 
+                        description="De influencers e eventos."
+                    />
+                    <KpiCard 
+                        title="Impressões (Tráfego Pago)" 
+                        value={formatNumber(totalImpressions)} 
+                        icon={<Megaphone className="h-4 w-4 text-gogo-orange" />} 
+                        description="De campanhas de tráfego pago."
                     />
                 </div>
 
