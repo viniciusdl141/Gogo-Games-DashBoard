@@ -20,11 +20,12 @@ import EventPanel from '@/components/dashboard/EventPanel';
 import PaidTrafficPanel from '@/components/dashboard/PaidTrafficPanel';
 import DemoTrackingPanel from '@/components/dashboard/DemoTrackingPanel';
 import KpiCard from '@/components/dashboard/KpiCard';
-import WlDetailsPanel from '@/components/dashboard/WlDetailsPanel';
+import WlDetailsManager from '@/components/dashboard/WlDetailsManager'; // Novo Import
 import AddInfluencerForm from '@/components/dashboard/AddInfluencerForm';
 import AddEventForm from '@/components/dashboard/AddEventForm';
 import AddPaidTrafficForm from '@/components/dashboard/AddPaidTrafficForm';
 import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm';
+import EditWLSalesForm from '@/components/dashboard/EditWLSalesForm';
 import GameSummaryPanel from '@/components/dashboard/GameSummaryPanel';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
@@ -43,57 +44,79 @@ const Dashboard = () => {
   const [isAddPaidTrafficFormOpen, setIsAddPaidTrafficFormOpen] = useState(false);
   const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
 
+  // Função auxiliar para recalcular variações de WL
+  const recalculateWLSales = useCallback((wlSales: WLSalesEntry[], game: string): WLSalesEntry[] => {
+    const gameEntries = wlSales.filter(e => e.game === game).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
+    const otherEntries = wlSales.filter(e => e.game !== game);
+
+    let lastWL = 0;
+    const recalculatedGameEntries = gameEntries.map(entry => {
+        const currentWL = entry.wishlists;
+        const currentVariation = currentWL - lastWL;
+        lastWL = currentWL;
+        return { ...entry, variation: currentVariation };
+    });
+
+    return [...otherEntries, ...recalculatedGameEntries].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
+  }, []);
+
   // --- WL/Sales Handlers ---
+
+  const handleEditWLSalesEntry = useCallback((updatedEntry: WLSalesEntry) => {
+    setTrackingData(prevData => {
+        const updatedWLSales = prevData.wlSales.map(entry => 
+            entry.id === updatedEntry.id ? updatedEntry : entry
+        );
+        
+        const finalWLSales = recalculateWLSales(updatedWLSales, updatedEntry.game);
+
+        return {
+            ...prevData,
+            wlSales: finalWLSales,
+        };
+    });
+  }, [recalculateWLSales]);
 
   const handleAddWLSalesEntry = useCallback((newEntry: Omit<WLSalesEntry, 'date' | 'variation' | 'id'> & { date: string, saleType: SaleType }) => {
     const dateObject = new Date(newEntry.date);
     
     setTrackingData(prevData => {
-        const updatedWLSales = [...prevData.wlSales, {
+        const entryToAdd: WLSalesEntry = {
             ...newEntry,
             id: generateLocalUniqueId('wl'),
             date: dateObject,
-            variation: 0, // Temporary, will be recalculated below
-        }];
+            variation: 0, // Will be recalculated
+        };
         
-        // Sort all WL entries for the game
-        updatedWLSales.sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
-
-        // Recalculate variations for all entries of this game
-        let lastWL = 0;
-        const recalculatedWLSales = updatedWLSales.map(entry => {
-            if (entry.game === newEntry.game) {
-                const currentWL = entry.wishlists;
-                const currentVariation = currentWL - lastWL;
-                lastWL = currentWL;
-                return { ...entry, variation: currentVariation };
-            }
-            return entry;
-        });
+        const updatedWLSales = [...prevData.wlSales, entryToAdd];
+        const finalWLSales = recalculateWLSales(updatedWLSales, newEntry.game);
 
         return {
             ...prevData,
-            wlSales: recalculatedWLSales,
+            wlSales: finalWLSales,
         };
     });
     
     setIsAddWLSalesFormOpen(false);
-  }, []);
+  }, [recalculateWLSales]);
 
   const handleDeleteWLSalesEntry = useCallback((id: string) => {
     setTrackingData(prevData => {
+        const entryToDelete = prevData.wlSales.find(entry => entry.id === id);
+        if (!entryToDelete) return prevData;
+
         const updatedWLSales = prevData.wlSales.filter(entry => entry.id !== id);
         
-        // Note: A full recalculation of subsequent variations is complex here, 
-        // but the useMemo below will handle sorting and filtering for display.
+        // Recalculate variations for the affected game
+        const finalWLSales = recalculateWLSales(updatedWLSales, entryToDelete.game);
         
         return {
             ...prevData,
-            wlSales: updatedWLSales,
+            wlSales: finalWLSales,
         };
     });
     toast.success("Entrada de Wishlist/Vendas removida com sucesso.");
-  }, []);
+  }, [recalculateWLSales]);
 
   // --- Influencer Handlers ---
   
@@ -209,6 +232,19 @@ const Dashboard = () => {
     setIsAddPaidTrafficFormOpen(false);
   }, []);
 
+  // --- WL Details Handler ---
+  const handleUpdateWlDetails = useCallback((game: string, newDetails: Partial<WlDetails>) => {
+    setTrackingData(prevData => {
+        const updatedWlDetails = prevData.wlDetails.map(detail => {
+            if (detail.game === game) {
+                return { ...detail, ...newDetails };
+            }
+            return detail;
+        });
+        return { ...prevData, wlDetails: updatedWlDetails };
+    });
+  }, []);
+
 
   const filteredData = useMemo(() => {
     if (!selectedGame) return null;
@@ -309,7 +345,7 @@ const Dashboard = () => {
           investmentSources,
       }
     };
-  }, [selectedGame, trackingData]);
+  }, [selectedGame, trackingData, recalculateWLSales]);
 
   if (trackingData.games.length === 0) {
     return (
@@ -397,8 +433,17 @@ const Dashboard = () => {
                     </div>
                     <WLSalesChartPanel data={filteredData.wlSales} />
                     <SalesByTypeChart data={filteredData.wlSales} />
-                    <WLSalesTablePanel data={filteredData.wlSales} onDelete={handleDeleteWLSalesEntry} />
-                    <WlDetailsPanel details={filteredData.wlDetails} />
+                    <WLSalesTablePanel 
+                        data={filteredData.wlSales} 
+                        onDelete={handleDeleteWLSalesEntry} 
+                        onEdit={handleEditWLSalesEntry}
+                        games={trackingData.games}
+                    />
+                    <WlDetailsManager 
+                        details={filteredData.wlDetails} 
+                        gameName={selectedGame}
+                        onUpdateDetails={handleUpdateWlDetails}
+                    />
                 </TabsContent>
 
                 <TabsContent value="influencers" className="mt-4">
