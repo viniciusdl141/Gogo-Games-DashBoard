@@ -17,6 +17,7 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { ThemeToggle } from '@/components/ThemeToggle'; // Importar ThemeToggle
+import { motion, AnimatePresence } from 'framer-motion'; // Importar motion e AnimatePresence
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
@@ -52,6 +53,7 @@ const Dashboard = () => {
   const [trackingData, setTrackingData] = useState(initialData);
   const [selectedGame, setSelectedGame] = useState<string>(trackingData.games[0] || '');
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'All'>('All');
+  const [activeTab, setActiveTab] = useState("overview"); // Estado para gerenciar a aba ativa
   
   const [isAddInfluencerFormOpen, setIsAddInfluencerFormOpen] = useState(false);
   const [isAddEventFormOpen, setIsAddEventFormOpen] = useState(false);
@@ -473,7 +475,7 @@ const Dashboard = () => {
 
             {filteredData && (
                 <>
-                    <Tabs defaultValue="overview" className="w-full">
+                    <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b border-border bg-card text-muted-foreground rounded-t-lg p-0 h-auto shadow-md">
                             <TabsTrigger value="overview" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Visão Geral</TabsTrigger>
                             <TabsTrigger value="wl-sales" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Wishlists</TabsTrigger>
@@ -484,202 +486,266 @@ const Dashboard = () => {
                             <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Demo</TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="overview" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
-                            <GameSummaryPanel 
-                                gameName={selectedGame}
-                                totalSales={filteredData.kpis.totalSales}
-                                totalWishlists={filteredData.kpis.totalWishlists}
-                                totalInvestment={filteredData.kpis.totalInvestment}
-                                investmentSources={filteredData.kpis.investmentSources}
-                            />
-                            <div className="grid gap-4 md:grid-cols-3">
-                                <KpiCard title="Investimento Total" value={formatCurrency(filteredData.kpis.totalInvestment)} icon={<DollarSign className="h-4 w-4 text-gogo-orange" />} />
-                                <KpiCard title="Views + Impressões" value={formatNumber(filteredData.kpis.totalViews)} icon={<Eye className="h-4 w-4 text-gogo-cyan" />} />
-                                <KpiCard title="Wishlists Geradas (Est.)" value={formatNumber(filteredData.kpis.totalWLGenerated)} description="Estimativa baseada em ações de marketing." icon={<List className="h-4 w-4 text-gogo-orange" />} />
-                            </div>
-                            <ResultSummaryPanel data={filteredData.resultSummary} />
-                        </TabsContent>
-
-                        <TabsContent value="wl-sales" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
-                            <Card className="bg-muted/50 border-none shadow-none">
-                                <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
-                                    <Label htmlFor="platform-select" className="font-semibold text-foreground min-w-[150px]">Filtrar por Plataforma:</Label>
-                                    <Select onValueChange={(value: Platform | 'All') => setSelectedPlatform(value)} defaultValue={selectedPlatform}>
-                                        <SelectTrigger id="platform-select" className="w-full md:w-[200px] bg-background">
-                                            <SelectValue placeholder="Todas as Plataformas" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="All">Todas as Plataformas</SelectItem>
-                                            {ALL_PLATFORMS.map(platform => (
-                                                <SelectItem key={platform} value={platform}>{platform}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </CardContent>
-                            </Card>
-
-                            <div className="flex justify-end mb-4 space-x-2">
-                                <Button variant="outline" size="sm" onClick={() => setIsHistoryVisible(!isHistoryVisible)} className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10">
-                                    {isHistoryVisible ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                                    {isHistoryVisible ? 'Ocultar Histórico' : 'Mostrar Histórico'}
-                                </Button>
-                                <ExportDataButton 
-                                    data={filteredData.wlSales} 
-                                    filename={`${selectedGame}_${selectedPlatform}_WL_Vendas.csv`} 
-                                    label="WL/Vendas"
-                                />
-                                <Dialog open={isAddWLSalesFormOpen} onOpenChange={setIsAddWLSalesFormOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button onClick={() => setIsAddWLSalesFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
-                                            <Plus className="h-4 w-4 mr-2" /> Adicionar WL/Venda
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-[600px]">
-                                        <DialogHeader>
-                                            <DialogTitle>Adicionar Entrada Diária de Wishlist/Vendas</DialogTitle>
-                                        </DialogHeader>
-                                        <AddWLSalesForm 
-                                            games={trackingData.games} 
-                                            onSave={handleAddWLSalesEntry} 
-                                            onClose={() => setIsAddWLSalesFormOpen(false)} 
+                        <AnimatePresence mode="wait">
+                            {activeTab === "overview" && (
+                                <TabsContent value="overview" key="overview" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <GameSummaryPanel 
+                                            gameName={selectedGame}
+                                            totalSales={filteredData.kpis.totalSales}
+                                            totalWishlists={filteredData.kpis.totalWishlists}
+                                            totalInvestment={filteredData.kpis.totalInvestment}
+                                            investmentSources={filteredData.kpis.investmentSources}
                                         />
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                            <WLSalesChartPanel data={filteredData.wlSales} onPointClick={handleChartPointClick} />
-                            <SalesByTypeChart data={filteredData.wlSales} />
-                            {isHistoryVisible && (
-                                <WLSalesTablePanel 
-                                    data={filteredData.wlSales} 
-                                    onDelete={handleDeleteWLSalesEntry} 
-                                    onEdit={handleEditWLSalesEntry}
-                                    games={trackingData.games}
-                                />
+                                        <div className="grid gap-4 md:grid-cols-3">
+                                            <KpiCard title="Investimento Total" value={formatCurrency(filteredData.kpis.totalInvestment)} icon={<DollarSign className="h-4 w-4 text-gogo-orange" />} />
+                                            <KpiCard title="Views + Impressões" value={formatNumber(filteredData.kpis.totalViews)} icon={<Eye className="h-4 w-4 text-gogo-cyan" />} />
+                                            <KpiCard title="Wishlists Geradas (Est.)" value={formatNumber(filteredData.kpis.totalWLGenerated)} description="Estimativa baseada em ações de marketing." icon={<List className="h-4 w-4 text-gogo-orange" />} />
+                                        </div>
+                                        <ResultSummaryPanel data={filteredData.resultSummary} />
+                                    </motion.div>
+                                </TabsContent>
                             )}
-                            {selectedPlatform === 'Steam' && filteredData.wlDetails && (
-                                <WlDetailsManager 
-                                    details={filteredData.wlDetails} 
-                                    gameName={selectedGame}
-                                    onUpdateDetails={handleUpdateWlDetails}
-                                />
+
+                            {activeTab === "wl-sales" && (
+                                <TabsContent value="wl-sales" key="wl-sales" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <Card className="bg-muted/50 border-none shadow-none">
+                                            <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
+                                                <Label htmlFor="platform-select" className="font-semibold text-foreground min-w-[150px]">Filtrar por Plataforma:</Label>
+                                                <Select onValueChange={(value: Platform | 'All') => setSelectedPlatform(value)} defaultValue={selectedPlatform}>
+                                                    <SelectTrigger id="platform-select" className="w-full md:w-[200px] bg-background">
+                                                        <SelectValue placeholder="Todas as Plataformas" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="All">Todas as Plataformas</SelectItem>
+                                                        {ALL_PLATFORMS.map(platform => (
+                                                            <SelectItem key={platform} value={platform}>{platform}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </CardContent>
+                                        </Card>
+
+                                        <div className="flex justify-end mb-4 space-x-2">
+                                            <Button variant="outline" size="sm" onClick={() => setIsHistoryVisible(!isHistoryVisible)} className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10">
+                                                {isHistoryVisible ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                                                {isHistoryVisible ? 'Ocultar Histórico' : 'Mostrar Histórico'}
+                                            </Button>
+                                            <ExportDataButton 
+                                                data={filteredData.wlSales} 
+                                                filename={`${selectedGame}_${selectedPlatform}_WL_Vendas.csv`} 
+                                                label="WL/Vendas"
+                                            />
+                                            <Dialog open={isAddWLSalesFormOpen} onOpenChange={setIsAddWLSalesFormOpen}>
+                                                <DialogTrigger asChild>
+                                                    <Button onClick={() => setIsAddWLSalesFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
+                                                        <Plus className="h-4 w-4 mr-2" /> Adicionar WL/Venda
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="sm:max-w-[600px]">
+                                                    <DialogHeader>
+                                                        <DialogTitle>Adicionar Entrada Diária de Wishlist/Vendas</DialogTitle>
+                                                    </DialogHeader>
+                                                    <AddWLSalesForm 
+                                                        games={trackingData.games} 
+                                                        onSave={handleAddWLSalesEntry} 
+                                                        onClose={() => setIsAddWLSalesFormOpen(false)} 
+                                                    />
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                        <WLSalesChartPanel data={filteredData.wlSales} onPointClick={handleChartPointClick} />
+                                        <SalesByTypeChart data={filteredData.wlSales} />
+                                        {isHistoryVisible && (
+                                            <WLSalesTablePanel 
+                                                data={filteredData.wlSales} 
+                                                onDelete={handleDeleteWLSalesEntry} 
+                                                onEdit={handleEditWLSalesEntry}
+                                                games={trackingData.games}
+                                            />
+                                        )}
+                                        {selectedPlatform === 'Steam' && filteredData.wlDetails && (
+                                            <WlDetailsManager 
+                                                details={filteredData.wlDetails} 
+                                                gameName={selectedGame}
+                                                onUpdateDetails={handleUpdateWlDetails}
+                                            />
+                                        )}
+                                    </motion.div>
+                                </TabsContent>
                             )}
-                        </TabsContent>
 
-                        <TabsContent value="comparisons" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
-                            <WlComparisonsPanel data={filteredData.wlSales} allPlatforms={ALL_PLATFORMS} />
-                        </TabsContent>
+                            {activeTab === "comparisons" && (
+                                <TabsContent value="comparisons" key="comparisons" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <WlComparisonsPanel data={filteredData.wlSales} allPlatforms={ALL_PLATFORMS} />
+                                    </motion.div>
+                                </TabsContent>
+                            )}
 
-                        <TabsContent value="influencers" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
-                            <div className="flex justify-end mb-4 space-x-2">
-                                <ExportDataButton 
-                                    data={filteredData.influencerTracking} 
-                                    filename={`${selectedGame}_Influencers_Tracking.csv`} 
-                                    label="Tracking Detalhado"
-                                />
-                                <Dialog open={isAddInfluencerFormOpen} onOpenChange={setIsAddInfluencerFormOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button onClick={() => setIsAddInfluencerFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
-                                            <Plus className="h-4 w-4 mr-2" /> Adicionar Entrada
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-[600px]">
-                                        <DialogHeader>
-                                            <DialogTitle>Adicionar Novo Tracking de Influencer</DialogTitle>
-                                        </DialogHeader>
-                                        <AddInfluencerForm 
-                                            games={trackingData.games} 
-                                            onSave={handleAddInfluencerEntry} 
-                                            onClose={() => setIsAddInfluencerFormOpen(false)} 
+                            {activeTab === "influencers" && (
+                                <TabsContent value="influencers" key="influencers" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <div className="flex justify-end mb-4 space-x-2">
+                                            <ExportDataButton 
+                                                data={filteredData.influencerTracking} 
+                                                filename={`${selectedGame}_Influencers_Tracking.csv`} 
+                                                label="Tracking Detalhado"
+                                            />
+                                            <Dialog open={isAddInfluencerFormOpen} onOpenChange={setIsAddInfluencerFormOpen}>
+                                                <DialogTrigger asChild>
+                                                    <Button onClick={() => setIsAddInfluencerFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
+                                                        <Plus className="h-4 w-4 mr-2" /> Adicionar Entrada
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="sm:max-w-[600px]">
+                                                    <DialogHeader>
+                                                        <DialogTitle>Adicionar Novo Tracking de Influencer</DialogTitle>
+                                                    </DialogHeader>
+                                                    <AddInfluencerForm 
+                                                        games={trackingData.games} 
+                                                        onSave={handleAddInfluencerEntry} 
+                                                        onClose={() => setIsAddInfluencerFormOpen(false)} 
+                                                    />
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                        <InfluencerPanel 
+                                            summary={filteredData.influencerSummary} 
+                                            tracking={filteredData.influencerTracking} 
+                                            onDeleteTracking={handleDeleteInfluencerEntry}
+                                            onEditTracking={handleEditInfluencerEntry}
+                                            games={trackingData.games}
                                         />
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                            <InfluencerPanel 
-                                summary={filteredData.influencerSummary} 
-                                tracking={filteredData.influencerTracking} 
-                                onDeleteTracking={handleDeleteInfluencerEntry}
-                                onEditTracking={handleEditInfluencerEntry}
-                                games={trackingData.games}
-                            />
-                        </TabsContent>
+                                    </motion.div>
+                                </TabsContent>
+                            )}
 
-                        <TabsContent value="events" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
-                            <div className="flex justify-end mb-4 space-x-2">
-                                <ExportDataButton 
-                                    data={filteredData.eventTracking} 
-                                    filename={`${selectedGame}_Eventos_Tracking.csv`} 
-                                    label="Eventos"
-                                />
-                                <Dialog open={isAddEventFormOpen} onOpenChange={setIsAddEventFormOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button onClick={() => setIsAddEventFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
-                                            <Plus className="h-4 w-4 mr-2" /> Adicionar Evento
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-[600px]">
-                                        <DialogHeader>
-                                            <DialogTitle>Adicionar Novo Tracking de Evento</DialogTitle>
-                                        </DialogHeader>
-                                        <AddEventForm 
-                                            games={trackingData.games} 
-                                            onSave={handleAddEventEntry} 
-                                            onClose={() => setIsAddEventFormOpen(false)} 
+                            {activeTab === "events" && (
+                                <TabsContent value="events" key="events" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <div className="flex justify-end mb-4 space-x-2">
+                                            <ExportDataButton 
+                                                data={filteredData.eventTracking} 
+                                                filename={`${selectedGame}_Eventos_Tracking.csv`} 
+                                                label="Eventos"
+                                            />
+                                            <Dialog open={isAddEventFormOpen} onOpenChange={setIsAddEventFormOpen}>
+                                                <DialogTrigger asChild>
+                                                    <Button onClick={() => setIsAddEventFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
+                                                        <Plus className="h-4 w-4 mr-2" /> Adicionar Evento
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="sm:max-w-[600px]">
+                                                    <DialogHeader>
+                                                        <DialogTitle>Adicionar Novo Tracking de Evento</DialogTitle>
+                                                    </DialogHeader>
+                                                    <AddEventForm 
+                                                        games={trackingData.games} 
+                                                        onSave={handleAddEventEntry} 
+                                                        onClose={() => setIsAddEventFormOpen(false)} 
+                                                    />
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                        <EventPanel 
+                                            data={filteredData.eventTracking} 
+                                            onDeleteTracking={handleDeleteEventEntry} 
+                                            onEditTracking={handleEditEventEntry}
+                                            games={trackingData.games}
                                         />
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                            <EventPanel 
-                                data={filteredData.eventTracking} 
-                                onDeleteTracking={handleDeleteEventEntry} 
-                                onEditTracking={handleEditEventEntry}
-                                games={trackingData.games}
-                            />
-                        </TabsContent>
+                                    </motion.div>
+                                </TabsContent>
+                            )}
 
-                        <TabsContent value="paid-traffic" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
-                            <div className="flex justify-end mb-4 space-x-2">
-                                <ExportDataButton 
-                                    data={filteredData.paidTraffic} 
-                                    filename={`${selectedGame}_Trafego_Pago.csv`} 
-                                    label="Tráfego Pago"
-                                />
-                                <Dialog open={isAddPaidTrafficFormOpen} onOpenChange={setIsAddPaidTrafficFormOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button onClick={() => setIsAddPaidTrafficFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
-                                            <Plus className="h-4 w-4 mr-2" /> Adicionar Tráfego Pago
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-[600px]">
-                                        <DialogHeader>
-                                            <DialogTitle>Adicionar Novo Tracking de Tráfego Pago</DialogTitle>
-                                        </DialogHeader>
-                                        <AddPaidTrafficForm 
-                                            games={trackingData.games} 
-                                            onSave={handleAddPaidTrafficEntry} 
-                                            onClose={() => setIsAddPaidTrafficFormOpen(false)} 
+                            {activeTab === "paid-traffic" && (
+                                <TabsContent value="paid-traffic" key="paid-traffic" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <div className="flex justify-end mb-4 space-x-2">
+                                            <ExportDataButton 
+                                                data={filteredData.paidTraffic} 
+                                                filename={`${selectedGame}_Trafego_Pago.csv`} 
+                                                label="Tráfego Pago"
+                                            />
+                                            <Dialog open={isAddPaidTrafficFormOpen} onOpenChange={setIsAddPaidTrafficFormOpen}>
+                                                <DialogTrigger asChild>
+                                                    <Button onClick={() => setIsAddPaidTrafficFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
+                                                        <Plus className="h-4 w-4 mr-2" /> Adicionar Tráfego Pago
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="sm:max-w-[600px]">
+                                                    <DialogHeader>
+                                                        <DialogTitle>Adicionar Novo Tracking de Tráfego Pago</DialogTitle>
+                                                    </DialogHeader>
+                                                    <AddPaidTrafficForm 
+                                                        games={trackingData.games} 
+                                                        onSave={handleAddPaidTrafficEntry} 
+                                                        onClose={() => setIsAddPaidTrafficFormOpen(false)} 
+                                                    />
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                        <PaidTrafficPanel 
+                                            data={filteredData.paidTraffic} 
+                                            onDeleteTracking={handleDeletePaidTrafficEntry} 
+                                            onEditTracking={handleEditPaidTrafficEntry}
+                                            games={trackingData.games}
                                         />
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                            <PaidTrafficPanel 
-                                data={filteredData.paidTraffic} 
-                                onDeleteTracking={handleDeletePaidTrafficEntry} 
-                                onEditTracking={handleEditPaidTrafficEntry}
-                                games={trackingData.games}
-                            />
-                        </TabsContent>
+                                    </motion.div>
+                                </TabsContent>
+                            )}
 
-                        <TabsContent value="demo" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
-                            <div className="flex justify-end mb-4 space-x-2">
-                                <ExportDataButton 
-                                    data={filteredData.demoTracking} 
-                                    filename={`${selectedGame}_Demo_Tracking.csv`} 
-                                    label="Demo Tracking"
-                                />
-                            </div>
-                            <DemoTrackingPanel data={filteredData.demoTracking} />
-                        </TabsContent>
-                    </Tabs>
+                            {activeTab === "demo" && (
+                                <TabsContent value="demo" key="demo" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <div className="flex justify-end mb-4 space-x-2">
+                                            <ExportDataButton 
+                                                data={filteredData.demoTracking} 
+                                                filename={`${selectedGame}_Demo_Tracking.csv`} 
+                                                label="Demo Tracking"
+                                            />
+                                        </div>
+                                        <DemoTrackingPanel data={filteredData.demoTracking} />
+                                    </motion.div>
+                                </TabsContent>
+                            )}
+                        </AnimatePresence>
 
                     <Dialog open={!!editingWLSalesEntry} onOpenChange={(open) => !open && setEditingWLSalesEntry(null)}>
                         <DialogContent className="sm:max-w-[600px]">

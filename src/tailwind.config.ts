@@ -31,6 +31,7 @@ export default {
         // Gogo Games Custom Colors
         'gogo-cyan': 'hsl(var(--gogo-cyan))', // Base Cyan/Light Blue
         'gogo-orange': 'hsl(var(--gogo-orange))', // Base Orange/Copper
+        'gogo-purple': 'hsl(var(--gogo-purple))', // New: for Monthly
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
