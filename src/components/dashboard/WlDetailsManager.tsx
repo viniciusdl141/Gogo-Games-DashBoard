@@ -33,6 +33,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import AddBundleForm from './AddBundleForm'; // Novo Import
+import { FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'; // Importar componentes de formulário
 
 // --- Forms for adding new entries (moved AddReviewForm here for encapsulation) ---
 
@@ -244,6 +245,12 @@ const BundleTable: React.FC<{ bundles: BundleEntry[], onDelete: (id: string) => 
 );
 
 // --- Main Manager Component ---
+
+interface WlDetailsManagerProps {
+    details: WlDetails;
+    gameName: string;
+    onUpdateDetails: (game: string, newDetails: Partial<WlDetails>) => void;
+}
 
 const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, onUpdateDetails }) => {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
