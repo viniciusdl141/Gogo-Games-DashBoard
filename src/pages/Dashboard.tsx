@@ -55,9 +55,10 @@ const Dashboard = () => {
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
   const [editingWLSalesEntry, setEditingWLSalesEntry] = useState<WLSalesPlatformEntry | null>(null);
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
-  const [isLogoEditDialogOpen, setIsLogoEditDialogOpen] = useState(false); // Estado para o dialog do logo
-  const [currentLogoUrl, setCurrentLogoUrl] = useState('/gogo-games-logo.png'); // Estado para a URL do logo
-  const [newLogoUrl, setNewLogoUrl] = useState(''); // Estado temporário para a nova URL do logo
+  // Removendo estados relacionados à edição do logo
+  // const [isLogoEditDialogOpen, setIsLogoEditDialogOpen] = useState(false); 
+  // const [currentLogoUrl, setCurrentLogoUrl] = useState('/gogo-games-logo.png'); 
+  // const [newLogoUrl, setNewLogoUrl] = useState(''); 
 
   // Função auxiliar para recalcular variações de WL
   const recalculateWLSales = useCallback((wlSales: WLSalesPlatformEntry[], game: string, platform: Platform): WLSalesPlatformEntry[] => {
@@ -282,16 +283,17 @@ const Dashboard = () => {
     });
   }, []);
 
-  const handleSaveLogoUrl = () => {
-    if (newLogoUrl.trim() !== '') {
-      setCurrentLogoUrl(newLogoUrl.trim());
-      toast.success("URL do logo atualizada com sucesso!");
-    } else {
-      toast.error("Por favor, insira uma URL válida para o logo.");
-    }
-    setIsLogoEditDialogOpen(false);
-    setNewLogoUrl(''); // Limpar o campo após salvar
-  };
+  // Removendo a função de salvar URL do logo
+  // const handleSaveLogoUrl = () => {
+  //   if (newLogoUrl.trim() !== '') {
+  //     setCurrentLogoUrl(newLogoUrl.trim());
+  //     toast.success("URL do logo atualizada com sucesso!");
+  //   } else {
+  //     toast.error("Por favor, insira uma URL válida para o logo.");
+  //   }
+  //   setIsLogoEditDialogOpen(false);
+  //   setNewLogoUrl(''); // Limpar o campo após salvar
+  // };
 
 
   const filteredData = useMemo(() => {
@@ -430,11 +432,13 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="flex flex-col sm:flex-row items-center justify-between mb-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
             <div className="flex items-center mb-4 sm:mb-0">
-                <img src={currentLogoUrl} alt="Gogo Games Logo" className="h-14 w-auto mr-4 object-contain" />
+                {/* Removendo a imagem do logo e a funcionalidade de edição */}
+                {/* <img src={currentLogoUrl} alt="Gogo Games Logo" className="h-14 w-auto mr-4 object-contain" /> */}
                 <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">
-                    Dashboard de Performance
+                    Gogo Games Dashboard
                 </h1>
-                <Dialog open={isLogoEditDialogOpen} onOpenChange={setIsLogoEditDialogOpen}>
+                {/* Removendo o botão de edição do logo */}
+                {/* <Dialog open={isLogoEditDialogOpen} onOpenChange={setIsLogoEditDialogOpen}>
                     <DialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="ml-2 text-muted-foreground hover:text-gogo-cyan">
                             <ImageIcon className="h-5 w-5" />
@@ -462,7 +466,7 @@ const Dashboard = () => {
                             <Button onClick={handleSaveLogoUrl} className="bg-gogo-cyan hover:bg-gogo-cyan/90">Salvar</Button>
                         </DialogFooter>
                     </DialogContent>
-                </Dialog>
+                </Dialog> */}
             </div>
             <div className="flex items-center gap-4">
                 <label htmlFor="game-select" className="font-semibold text-lg text-gray-700 dark:text-gray-200">Jogo:</label>

@@ -31,9 +31,9 @@ const PlatformIcon: React.FC<PlatformIconProps> = ({ platform, className = "h-4 
 
     switch (normalizedPlatform) {
         case 'steam':
-            return <img src="/images/platforms/steam.png" alt="Steam" className={`${className} object-contain`} />;
+            return <Monitor className={`${className} ${colorClass}`} style={color ? { color } : undefined} />;
         case 'xbox':
-            return <img src="/images/platforms/xbox.png" alt="Xbox" className={`${className} object-contain`} />;
+            return <Gamepad2 className={`${className} ${colorClass}`} style={color ? { color } : undefined} />;
         case 'playstation':
             return <Gamepad2 className={`${className} ${colorClass}`} style={color ? { color } : undefined} />;
         case 'nintendo':
