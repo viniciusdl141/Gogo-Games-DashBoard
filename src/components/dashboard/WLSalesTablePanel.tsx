@@ -40,15 +40,15 @@ interface WLSalesTablePanelProps {
 const getPlatformColorClass = (platform: string) => {
     const normalizedPlatform = platform.toLowerCase().replace(/\s/g, '');
     switch (normalizedPlatform) {
-        case 'steam': return 'bg-platform-steam hover:bg-platform-steam/90';
-        case 'xbox': return 'bg-platform-xbox hover:bg-platform-xbox/90';
-        case 'playstation': return 'bg-platform-playstation hover:bg-platform-playstation/90';
-        case 'nintendo': return 'bg-platform-nintendo hover:bg-platform-nintendo/90';
-        case 'android': return 'bg-platform-android hover:bg-platform-android/90';
-        case 'ios': return 'bg-platform-ios hover:bg-platform-ios/90';
-        case 'epicgames': return 'bg-platform-epicgames hover:bg-platform-epicgames/90';
+        case 'steam': return 'bg-platform-steam hover:bg-platform-steam/90 text-white';
+        case 'xbox': return 'bg-platform-xbox hover:bg-platform-xbox/90 text-white';
+        case 'playstation': return 'bg-platform-playstation hover:bg-platform-playstation/90 text-white';
+        case 'nintendo': return 'bg-platform-nintendo hover:bg-platform-nintendo/90 text-white';
+        case 'android': return 'bg-platform-android hover:bg-platform-android/90 text-white';
+        case 'ios': return 'bg-platform-ios hover:bg-platform-ios/90 text-white';
+        case 'epicgames': return 'bg-platform-epicgames hover:bg-platform-epicgames/90 text-white';
         case 'outra':
-        default: return 'bg-platform-outra hover:bg-platform-outra/90';
+        default: return 'bg-platform-outra hover:bg-platform-outra/90 text-white';
     }
 };
 

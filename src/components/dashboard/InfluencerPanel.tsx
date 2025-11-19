@@ -210,8 +210,8 @@ const InfluencerBarChart: React.FC<{ data: InfluencerSummaryEntry[] }> = ({ data
     }));
 
     // Cores Gogo Games: Roxo para Investimento, Verde para Wishlists
-    const INVESTMENT_COLOR = "#8b5cf6"; // Violet 500
-    const WL_COLOR = "#10b981"; // Emerald 500
+    const INVESTMENT_COLOR = "hsl(var(--gogo-orange))"; 
+    const WL_COLOR = "hsl(var(--gogo-cyan))"; 
 
     return (
         <div className="h-[300px] w-full mt-6">

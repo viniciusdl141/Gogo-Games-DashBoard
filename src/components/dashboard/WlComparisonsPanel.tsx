@@ -28,10 +28,11 @@ interface WlComparisonsPanelProps {
 const fullConfig = resolveConfig(tailwindConfig);
 const platformColors: Record<string, string> = (fullConfig.theme?.colors as any)?.platform || {};
 
-const WL_COLOR = "#10b981"; // Emerald 500 (Wishlists)
-const SALES_COLOR = "#8b5cf6"; // Violet 500 (Vendas)
-const CONVERSION_COLOR = "#FF6600"; // Gogo Orange
-const GROWTH_COLOR = "#00BFFF"; // Gogo Cyan
+// Cores Gogo Games
+const WL_COLOR = "hsl(var(--gogo-cyan))"; 
+const SALES_COLOR = "hsl(var(--gogo-orange))"; 
+const CONVERSION_COLOR = "hsl(var(--primary))"; // Usando primary do shadcn
+const GROWTH_COLOR = "hsl(var(--secondary))"; // Usando secondary do shadcn
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {

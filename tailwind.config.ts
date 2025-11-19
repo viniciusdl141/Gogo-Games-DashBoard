@@ -79,6 +79,15 @@ export default {
           ios: '#000000',
           epicgames: '#313131',
           outra: '#6B7280', // Gray
+        },
+        // Network specific colors for Paid Traffic
+        network: {
+          meta: '#1877F2',
+          reddit: '#FF4500',
+          youtube: '#FF0000',
+          tiktok: '#000000',
+          googleads: '#4285F4',
+          outra: '#6B7280', // Gray
         }
       },
       borderRadius: {

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Facebook, Youtube, MessageSquare, TrendingUp, Globe } from 'lucide-react';
+import { Facebook, Youtube, MessageSquare, TrendingUp, Globe, Search } from 'lucide-react';
 
 interface NetworkIconProps {
     network: string;
@@ -11,17 +11,33 @@ interface NetworkIconProps {
 const NetworkIcon: React.FC<NetworkIconProps> = ({ network, className = "h-5 w-5" }) => {
     const normalizedNetwork = network.toLowerCase().replace(/ - .*/, '').trim();
 
+    // Map normalized network to a Tailwind color class
+    const getColorClass = (net: string) => {
+        switch (net) {
+            case 'meta': return 'text-network-meta';
+            case 'youtube': return 'text-network-youtube';
+            case 'reddit': return 'text-network-reddit';
+            case 'tiktok': return 'text-network-tiktok';
+            case 'google ads': return 'text-network-googleads';
+            default: return 'text-network-outra';
+        }
+    };
+
+    const colorClass = getColorClass(normalizedNetwork);
+
     switch (normalizedNetwork) {
         case 'meta':
-            return <Facebook className={className} color="#1877F2" />;
+            return <Facebook className={`${className} ${colorClass}`} />;
         case 'youtube':
-            return <Youtube className={className} color="#FF0000" />;
+            return <Youtube className={`${className} ${colorClass}`} />;
         case 'reddit':
-            return <MessageSquare className={className} color="#FF4500" />; // Usando MessageSquare no lugar de Reddit
+            return <MessageSquare className={`${className} ${colorClass}`} />; // Usando MessageSquare no lugar de Reddit
         case 'tiktok':
-            return <TrendingUp className={className} color="#000000" />; 
+            return <TrendingUp className={`${className} ${colorClass}`} />; 
+        case 'google ads':
+            return <Search className={`${className} ${colorClass}`} />; // Usando Search para Google Ads
         default:
-            return <Globe className={className} color="#6b7280" />;
+            return <Globe className={`${className} ${colorClass}`} />;
     }
 };
 
