@@ -15,11 +15,12 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { WLSalesEntry } from '@/data/trackingData';
+import { WLSalesEntry, SaleType, EntryFrequency } from '@/data/trackingData';
 import { toast } from 'sonner';
 
 // Definindo o tipo de venda
-const SaleType = z.enum(['Padrão', 'Bundle', 'DLC']);
+const SaleTypeEnum = z.enum(['Padrão', 'Bundle', 'DLC']);
+const FrequencyEnum = z.enum(['Diário', 'Semanal', 'Mensal']);
 
 // Schema de validação
 const formSchema = z.object({
@@ -28,7 +29,8 @@ const formSchema = z.object({
     date: z.string().min(1, "A data é obrigatória (formato YYYY-MM-DD)."),
     wishlists: z.number().min(0, "Wishlists deve ser um número positivo.").default(0),
     sales: z.number().min(0, "Vendas deve ser um número positivo.").default(0),
-    saleType: SaleType.default('Padrão'),
+    saleType: SaleTypeEnum.default('Padrão'),
+    frequency: FrequencyEnum.default('Diário'), // Novo campo
 });
 
 type WLSalesFormValues = z.infer<typeof formSchema>;
@@ -40,7 +42,7 @@ interface EditWLSalesFormProps {
     onClose: () => void;
 }
 
-const AddWLSalesForm: React.FC<EditWLSalesFormProps> = ({ games, entry, onSave, onClose }) => {
+const EditWLSalesForm: React.FC<EditWLSalesFormProps> = ({ games, entry, onSave, onClose }) => {
     const defaultDate = entry.date ? entry.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
     const form = useForm<WLSalesFormValues>({
@@ -52,13 +54,13 @@ const AddWLSalesForm: React.FC<EditWLSalesFormProps> = ({ games, entry, onSave, 
             wishlists: entry.wishlists,
             sales: entry.sales,
             saleType: entry.saleType,
+            frequency: entry.frequency, // Default
         },
     });
 
     const onSubmit = (values: WLSalesFormValues) => {
         const dateObject = new Date(values.date);
         
-        // Note: Variation calculation is handled by the parent component (Dashboard)
         onSave({
             ...values,
             date: dateObject,
@@ -122,8 +124,30 @@ const AddWLSalesForm: React.FC<EditWLSalesFormProps> = ({ games, entry, onSave, 
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {SaleType.options.map(type => (
+                                        {SaleTypeEnum.options.map(type => (
                                             <SelectItem key={type} value={type}>{type}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="frequency"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Frequência da Entrada</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Frequência" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {FrequencyEnum.options.map(freq => (
+                                            <SelectItem key={freq} value={freq}>{freq}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -185,4 +209,4 @@ const AddWLSalesForm: React.FC<EditWLSalesFormProps> = ({ games, entry, onSave, 
     );
 };
 
-export default AddWLSalesForm;
+export default EditWLSalesForm;

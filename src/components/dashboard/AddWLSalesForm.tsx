@@ -15,11 +15,12 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { WLSalesEntry } from '@/data/trackingData';
+import { WLSalesEntry, SaleType, EntryFrequency } from '@/data/trackingData';
 import { toast } from 'sonner';
 
 // Definindo o tipo de venda
-const SaleType = z.enum(['Padrão', 'Bundle', 'DLC']);
+const SaleTypeEnum = z.enum(['Padrão', 'Bundle', 'DLC']);
+const FrequencyEnum = z.enum(['Diário', 'Semanal', 'Mensal']);
 
 // Schema de validação
 const formSchema = z.object({
@@ -27,14 +28,15 @@ const formSchema = z.object({
     date: z.string().min(1, "A data é obrigatória (formato YYYY-MM-DD)."),
     wishlists: z.number().min(0, "Wishlists deve ser um número positivo.").default(0),
     sales: z.number().min(0, "Vendas deve ser um número positivo.").default(0),
-    saleType: SaleType.default('Padrão'),
+    saleType: SaleTypeEnum.default('Padrão'),
+    frequency: FrequencyEnum.default('Diário'), // Novo campo
 });
 
 type WLSalesFormValues = z.infer<typeof formSchema>;
 
 interface AddWLSalesFormProps {
     games: string[];
-    onSave: (data: Omit<WLSalesEntry, 'date' | 'variation'> & { date: string, saleType: z.infer<typeof SaleType> }) => void;
+    onSave: (data: Omit<WLSalesEntry, 'date' | 'variation' | 'id'> & { date: string, saleType: z.infer<typeof SaleTypeEnum>, frequency: z.infer<typeof FrequencyEnum> }) => void;
     onClose: () => void;
 }
 
@@ -47,6 +49,7 @@ const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ games, onSave, onClose 
             wishlists: 0,
             sales: 0,
             saleType: 'Padrão',
+            frequency: 'Diário', // Default
         },
     });
 
@@ -109,8 +112,30 @@ const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ games, onSave, onClose 
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {SaleType.options.map(type => (
+                                        {SaleTypeEnum.options.map(type => (
                                             <SelectItem key={type} value={type}>{type}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="frequency"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Frequência da Entrada</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Frequência" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {FrequencyEnum.options.map(freq => (
+                                            <SelectItem key={freq} value={freq}>{freq}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>

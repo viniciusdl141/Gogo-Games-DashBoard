@@ -66,6 +66,7 @@ export interface DemoTrackingEntry {
 }
 
 export type SaleType = 'Padrão' | 'Bundle' | 'DLC';
+export type EntryFrequency = 'Diário' | 'Semanal' | 'Mensal';
 
 export interface WLSalesEntry {
     id: string; // Added unique ID for manipulation
@@ -75,6 +76,7 @@ export interface WLSalesEntry {
     sales: number;
     variation: number;
     saleType: SaleType; // New field
+    frequency: EntryFrequency; // New field
 }
 
 export interface ReviewEntry {
@@ -164,6 +166,15 @@ const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[]
         if (typeof dateKey === 'number' && typeof wlValue === 'number' && dateKey > 10000) {
             const sales = salesMap.get(dateKey) || 0;
             
+            let frequency: EntryFrequency = 'Diário';
+            const marker = item.__EMPTY_1 || item.__EMPTY_10 || '';
+            
+            if (marker.includes('MENSAL')) {
+                 frequency = 'Mensal';
+            } else if (marker.includes('Semanal')) {
+                 frequency = 'Semanal';
+            }
+
             wlSales.push({
                 id: generateUniqueId('wl'),
                 date: excelSerialDateToJSDate(dateKey),
@@ -172,6 +183,7 @@ const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[]
                 sales: sales,
                 variation: Number(variation) || 0,
                 saleType: 'Padrão', // Defaulting imported data to Padrão
+                frequency: frequency, // Set frequency
             });
         }
     });
