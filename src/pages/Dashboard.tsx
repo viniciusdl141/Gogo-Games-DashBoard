@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff } from 'lucide-react'; // Importar EyeOff
+import { DollarSign, Eye, List, Plus, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -16,7 +16,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { ThemeToggle } from '@/components/ThemeToggle'; // Importar ThemeToggle
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
@@ -38,7 +38,7 @@ import ExportDataButton from '@/components/dashboard/ExportDataButton';
 import { formatCurrency, formatNumber, generateUniqueId } from '@/lib/utils';
 import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
-import LaunchCountdownCard from '@/components/dashboard/LaunchCountdownCard'; // Importar o novo componente
+import LaunchCountdownCard from '../components/dashboard/LaunchCountdownCard'; // Alterado para caminho relativo
 
 // Initialize data once
 const initialData = getTrackingData();
@@ -471,7 +471,7 @@ const Dashboard = () => {
                     </h1>
                     <p className="text-lg text-muted-foreground mt-2">Análise de Performance de Jogos</p>
                 </div>
-                <ThemeToggle /> {/* Adicionar o ThemeToggle aqui */}
+                <ThemeToggle />
             </header>
 
             {filteredData && (
