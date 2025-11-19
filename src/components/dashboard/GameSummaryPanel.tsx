@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, List, TrendingUp, Info } from 'lucide-react';
+import { DollarSign, List, TrendingUp, Info, Calendar, Eye } from 'lucide-react'; // Adicionado Eye e Calendar
 import KpiCard from './KpiCard';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { differenceInDays, isPast, isFuture } from 'date-fns'; // Importar funções de data
 
 interface GameSummaryPanelProps {
     gameName: string;
@@ -22,6 +23,9 @@ interface GameSummaryPanelProps {
     totalWishlists: number;
     totalInvestment: number;
     investmentSources: { influencers: number, events: number, paidTraffic: number };
+    totalMarketingViews: number; // Novo prop
+    totalPaidImpressions: number; // Novo prop
+    launchDate: Date | null; // Novo prop
 }
 
 const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({ 
@@ -29,7 +33,10 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     totalSales, 
     totalWishlists, 
     totalInvestment,
-    investmentSources
+    investmentSources,
+    totalMarketingViews, // Novo
+    totalPaidImpressions, // Novo
+    launchDate // Novo
 }) => {
     const [gamePrice, setGamePrice] = React.useState(19.99); // Preço padrão em R$
     const [revenueShare, setRevenueShare] = React.useState(0.70); // 70% (Steam/Epic geralmente 70/30)
@@ -59,6 +66,33 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     const netManualProfit = netManualRevenue - totalInvestment;
     const roiManualPercentage = totalInvestment > 0 ? (netManualProfit / totalInvestment) * 100 : 0;
 
+    // Lógica do contador de dias para o lançamento
+    const today = new Date();
+    let launchStatus = null;
+    if (launchDate) {
+        const daysDiff = differenceInDays(launchDate, today);
+        if (isFuture(launchDate, { additionalDigits: 0 })) { // Use additionalDigits para evitar problemas de precisão
+            launchStatus = {
+                text: `Lançamento em ${daysDiff} dias!`,
+                color: 'text-gogo-orange', 
+                description: `Faltam ${daysDiff} dias para o lançamento.`
+            };
+        } else if (isPast(launchDate, { additionalDigits: 0 })) {
+            const daysSinceLaunch = Math.abs(daysDiff);
+            launchStatus = {
+                text: `Lançado há ${daysSinceLaunch} dias!`,
+                color: 'text-gogo-cyan', 
+                description: `O jogo foi lançado há ${daysSinceLaunch} dias.`
+            };
+        } else { // Hoje
+            launchStatus = {
+                text: `Lançamento HOJE!`,
+                color: 'text-green-500',
+                description: `O jogo está sendo lançado hoje!`
+            };
+        }
+    }
+
 
     return (
         <Card>
@@ -68,7 +102,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
             <CardContent className="space-y-6">
                 
                 {/* KPIs de Vendas e WL */}
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-4"> {/* Ajustado para 4 colunas */}
                     <KpiCard 
                         title="Vendas Totais (Registradas)" 
                         value={formatNumber(totalSales)} 
@@ -95,6 +129,14 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                             </Tooltip>
                         } 
                     />
+                    {launchStatus && (
+                        <KpiCard 
+                            title="Status de Lançamento" 
+                            value={launchStatus.text} 
+                            description={launchStatus.description}
+                            icon={<Calendar className={`h-4 w-4 ${launchStatus.color}`} />}
+                        />
+                    )}
                 </div>
 
                 <Separator />
