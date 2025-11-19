@@ -16,6 +16,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
+import { ThemeToggle } from '@/components/ThemeToggle'; // Importar ThemeToggle
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
@@ -460,11 +461,14 @@ const Dashboard = () => {
         <ResizableHandle withHandle className="bg-gray-200 dark:bg-gray-700 w-2 hover:bg-gogo-cyan transition-colors" />
         <ResizablePanel defaultSize={80} className="p-6">
           <div className="space-y-8">
-            <header className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
-                <h1 className="text-4xl font-extrabold text-gogo-cyan dark:text-gogo-cyan">
-                    Gogo Games Dashboard
-                </h1>
-                <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">Análise de Performance de Jogos</p>
+            <header className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col">
+                    <h1 className="text-4xl font-extrabold text-gogo-cyan dark:text-gogo-cyan">
+                        Gogo Games Dashboard
+                    </h1>
+                    <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">Análise de Performance de Jogos</p>
+                </div>
+                <ThemeToggle /> {/* Adicionar o ThemeToggle aqui */}
             </header>
 
             {filteredData && (
