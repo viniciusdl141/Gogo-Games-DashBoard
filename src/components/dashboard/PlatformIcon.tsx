@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Steam, Xbox, Playstation, Nintendo, Android, Apple, Store, Globe } from 'lucide-react';
+import { Steam, Gamepad, Smartphone, Apple, Store, Globe, Gamepad2 } from 'lucide-react'; // Importando ícones disponíveis
 import { Platform } from '@/data/trackingData';
 
 interface PlatformIconProps {
@@ -17,13 +17,13 @@ const PlatformIcon: React.FC<PlatformIconProps> = ({ platform, className = "h-4 
         case 'steam':
             return <Steam className={className} color={color || '#1B2838'} />;
         case 'xbox':
-            return <Xbox className={className} color={color || '#107C10'} />;
+            return <Gamepad className={className} color={color || '#107C10'} />; // Usando Gamepad para Xbox
         case 'playstation':
-            return <Playstation className={className} color={color || '#003791'} />;
+            return <Gamepad2 className={className} color={color || '#003791'} />; // Usando Gamepad2 para Playstation
         case 'nintendo':
-            return <Nintendo className={className} color={color || '#E4000F'} />;
+            return <Gamepad className={className} color={color || '#E4000F'} />; // Usando Gamepad para Nintendo
         case 'android':
-            return <Android className={className} color={color || '#3DDC84'} />;
+            return <Smartphone className={className} color={color || '#3DDC84'} />; // Usando Smartphone para Android
         case 'ios':
             return <Apple className={className} color={color || '#000000'} />;
         case 'epicgames':
