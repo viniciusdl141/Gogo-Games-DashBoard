@@ -111,3 +111,7 @@ export function convertToCSV<T extends Record<string, any>>(data: T[], filename:
         document.body.removeChild(link);
     }
 }
+
+// Centralized unique ID generation
+let uniqueIdCounter = 0;
+export const generateUniqueId = (prefix: string = 'id') => `${prefix}-${uniqueIdCounter++}`;

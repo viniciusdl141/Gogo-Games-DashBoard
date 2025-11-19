@@ -35,7 +35,7 @@ import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm';
 import EditWLSalesForm from '@/components/dashboard/EditWLSalesForm';
 import GameSummaryPanel from '@/components/dashboard/GameSummaryPanel';
 import ExportDataButton from '@/components/dashboard/ExportDataButton';
-import { formatCurrency, formatNumber } from '@/lib/utils';
+import { formatCurrency, formatNumber, generateUniqueId } from '@/lib/utils'; // Importar generateUniqueId
 import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
 // import GameCapsule3D from '@/components/dashboard/GameCapsule3D'; // Importar o novo componente 3D
@@ -44,8 +44,8 @@ import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
 const initialData = getTrackingData();
 
 // Helper to generate unique IDs locally
-let localIdCounter = initialData.influencerTracking.length + initialData.eventTracking.length + initialData.paidTraffic.length + initialData.wlSales.length;
-const generateLocalUniqueId = (prefix: string) => `${prefix}-${localIdCounter++}`;
+// let localIdCounter = initialData.influencerTracking.length + initialData.eventTracking.length + initialData.paidTraffic.length + initialData.wlSales.length;
+// const generateLocalUniqueId = (prefix: string) => `${prefix}-${localIdCounter++}`;
 
 const ALL_PLATFORMS: Platform[] = ['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra'];
 
@@ -123,7 +123,7 @@ const Dashboard = () => {
     setTrackingData(prevData => {
         const entryToAdd: WLSalesPlatformEntry = {
             ...newEntry,
-            id: generateLocalUniqueId('wl'),
+            id: generateUniqueId('wl'),
             date: dateObject,
             variation: 0, // Will be recalculated
         };
@@ -187,7 +187,7 @@ const Dashboard = () => {
     const roiValue = newEntry.estimatedWL > 0 ? newEntry.investment / newEntry.estimatedWL : '-';
     const entryToAdd: InfluencerTrackingEntry = {
         ...newEntry,
-        id: generateLocalUniqueId('influencer'),
+        id: generateUniqueId('influencer'),
         date: dateObject,
         roi: roiValue,
     };
@@ -222,7 +222,7 @@ const Dashboard = () => {
     const costPerViewValue = newEntry.views > 0 ? newEntry.cost / newEntry.views : '-';
     const entryToAdd: EventTrackingEntry = {
         ...newEntry,
-        id: generateLocalUniqueId('event'),
+        id: generateUniqueId('event'),
         startDate: startDateObject,
         endDate: endDateObject,
         roi: roiValue,
@@ -259,7 +259,7 @@ const Dashboard = () => {
     const estimatedCostPerWL = newEntry.estimatedWishlists > 0 ? newEntry.investedValue / newEntry.estimatedWishlists : '-';
     const entryToAdd: PaidTrafficEntry = {
         ...newEntry,
-        id: generateLocalUniqueId('paid'),
+        id: generateUniqueId('paid'),
         startDate: startDateObject,
         endDate: endDateObject,
         networkConversion: networkConversion,

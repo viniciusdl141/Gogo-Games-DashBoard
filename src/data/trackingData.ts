@@ -1,5 +1,5 @@
 import { rawData } from './rawTrackingData';
-import { excelSerialDateToJSDate } from '@/lib/utils';
+import { excelSerialDateToJSDate, generateUniqueId } from '@/lib/utils'; // Importar generateUniqueId
 
 // --- Interfaces for Normalized Data ---
 
@@ -132,9 +132,6 @@ export interface TrackingData {
     resultSummary: ResultSummaryEntry[];
     wlDetails: WlDetails[];
 }
-
-let uniqueIdCounter = 0;
-const generateUniqueId = (prefix: string = 'track') => `${prefix}-${uniqueIdCounter++}`;
 
 const cleanValue = (value: any): number | string => {
     if (value === undefined || value === null || value === '-' || value === '#DIV/0!') {
@@ -370,7 +367,7 @@ const processResultSummary = (data: any[]): ResultSummaryEntry[] => {
 
 export const getTrackingData = (): TrackingData => {
     // Reset counter for consistent IDs if data is reloaded
-    uniqueIdCounter = 0; 
+    // uniqueIdCounter = 0; // This is now managed in utils.ts
     
     const influencerTracking = processInfluencerTracking(rawData['Tracking Semanal Influencers']);
     const influencerSummary = processInfluencerSummary(rawData['Resumo por Influencer']);
