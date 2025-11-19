@@ -419,7 +419,7 @@ const Dashboard = () => {
 
   // Renderização principal
   return (
-    <React.Fragment>
+    <>
       <div className="min-h-screen p-4 md:p-8 font-sans gaming-background">
         <ResizablePanelGroup
           direction="horizontal"
@@ -770,7 +770,7 @@ const Dashboard = () => {
         </ResizablePanelGroup>
         <MadeWithDyad />
       </div>
-    </React.Fragment>
+    </>
   );
 };
 
