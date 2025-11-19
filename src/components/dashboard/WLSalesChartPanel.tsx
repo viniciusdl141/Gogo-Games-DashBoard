@@ -53,6 +53,10 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data }) => {
         Vendas: item.sales,
     })).filter(item => item.date !== null);
 
+    // Cores Gogo Games: Verde para Wishlists, Roxo para Vendas
+    const WL_COLOR = "#10b981"; // Emerald 500
+    const SALES_COLOR = "#8b5cf6"; // Violet 500
+
     return (
         <Card>
             <CardHeader>
@@ -79,14 +83,14 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data }) => {
                         <Line 
                             type="monotone" 
                             dataKey="Wishlists" 
-                            stroke="hsl(var(--primary))" // Cor primária (Azul escuro/Preto)
+                            stroke={WL_COLOR}
                             strokeWidth={2}
                             dot={false}
                         />
                         <Line 
                             type="monotone" 
                             dataKey="Vendas" 
-                            stroke="hsl(var(--destructive))" // Cor destrutiva (Vermelho) para contraste
+                            stroke={SALES_COLOR}
                             strokeWidth={2}
                             dot={false}
                         />
