@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { WLSalesEntry } from '@/data/trackingData';
+import { WLSalesPlatformEntry } from '@/data/trackingData'; // Changed from WLSalesEntry to WLSalesPlatformEntry
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     BarChart,
@@ -12,11 +12,12 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
+    Cell, // Importar Cell para aplicar cores dinâmicas
 } from 'recharts';
 import { formatNumber } from '@/lib/utils';
 
 interface SalesByTypeChartProps {
-    data: WLSalesEntry[];
+    data: WLSalesPlatformEntry[]; // Changed from WLSalesEntry to WLSalesPlatformEntry
 }
 
 const SalesByTypeChart: React.FC<SalesByTypeChartProps> = ({ data }) => {
@@ -63,7 +64,7 @@ const SalesByTypeChart: React.FC<SalesByTypeChartProps> = ({ data }) => {
                         <Tooltip formatter={(value) => formatNumber(value as number)} />
                         <Bar dataKey="Vendas" name="Vendas" >
                             {salesSummary.map((entry, index) => (
-                                <Bar key={`bar-${index}`} dataKey="Vendas" fill={COLORS[entry.name] || '#6b7280'} />
+                                <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#6b7280'} />
                             ))}
                         </Bar>
                     </BarChart>
