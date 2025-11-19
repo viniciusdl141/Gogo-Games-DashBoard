@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, List, TrendingUp, Info, Eye } from 'lucide-react'; // Adicionado Eye
+import { DollarSign, List, TrendingUp, Info, Eye } from 'lucide-react';
 import KpiCard from './KpiCard';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -22,8 +22,8 @@ interface GameSummaryPanelProps {
     totalWishlists: number;
     totalInvestment: number;
     investmentSources: { influencers: number, events: number, paidTraffic: number };
-    totalMarketingViews: number; // Novo prop
-    totalPaidImpressions: number; // Novo prop
+    totalMarketingViews: number;
+    totalPaidImpressions: number;
 }
 
 const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({ 
@@ -32,8 +32,8 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     totalWishlists, 
     totalInvestment,
     investmentSources,
-    totalMarketingViews, // Novo
-    totalPaidImpressions // Novo
+    totalMarketingViews,
+    totalPaidImpressions
 }) => {
     const [gamePrice, setGamePrice] = React.useState(19.99); // Preço padrão em R$
     const [revenueShare, setRevenueShare] = React.useState(0.70); // 70% (Steam/Epic geralmente 70/30)
@@ -71,7 +71,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
             <CardContent className="space-y-6">
                 
                 {/* KPIs de Vendas e WL */}
-                <div className="grid gap-4 md:grid-cols-4"> {/* Ajustado para 4 colunas */}
+                <div className="grid gap-4 md:grid-cols-4">
                     <KpiCard 
                         title="Vendas Totais (Registradas)" 
                         value={formatNumber(totalSales)} 

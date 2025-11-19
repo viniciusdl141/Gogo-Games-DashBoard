@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff } from 'lucide-react'; // Importar EyeOff
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -378,8 +378,8 @@ const Dashboard = () => {
       wlDetails: wlDetailsForGame, // Passar os detalhes completos, incluindo launchDate
       kpis: {
           totalInvestment,
-          totalMarketingViews, // Novo KPI
-          totalPaidImpressions, // Novo KPI
+          totalMarketingViews,
+          totalPaidImpressions,
           totalWLGenerated,
           totalSales,
           totalWishlists,
@@ -497,12 +497,12 @@ const Dashboard = () => {
                                 totalMarketingViews={filteredData.kpis.totalMarketingViews}
                                 totalPaidImpressions={filteredData.kpis.totalPaidImpressions}
                             />
-                            <div className="grid gap-4 md:grid-cols-4"> {/* Ajustado para 4 colunas */}
+                            <div className="grid gap-4 md:grid-cols-4">
                                 <KpiCard title="Investimento Total" value={formatCurrency(filteredData.kpis.totalInvestment)} icon={<DollarSign className="h-4 w-4 text-gogo-orange" />} />
                                 <KpiCard title="Visualizações Marketing" value={formatNumber(filteredData.kpis.totalMarketingViews)} icon={<Eye className="h-4 w-4 text-gogo-cyan" />} />
                                 <KpiCard title="Impressões Tráfego Pago" value={formatNumber(filteredData.kpis.totalPaidImpressions)} icon={<Eye className="h-4 w-4 text-gogo-orange" />} />
                                 <KpiCard title="Wishlists Geradas (Est.)" value={formatNumber(filteredData.kpis.totalWLGenerated)} description="Estimativa baseada em ações de marketing." icon={<List className="h-4 w-4 text-gogo-orange" />} />
-                                <LaunchCountdownCard launchDate={filteredData.wlDetails?.launchDate || null} /> {/* Novo componente */}
+                                <LaunchCountdownCard launchDate={filteredData.wlDetails?.launchDate || null} />
                             </div>
                             <ResultSummaryPanel data={filteredData.resultSummary} />
                         </TabsContent>
@@ -527,7 +527,7 @@ const Dashboard = () => {
 
                             <div className="flex justify-end mb-4 space-x-2">
                                 <Button variant="outline" size="sm" onClick={() => setIsHistoryVisible(!isHistoryVisible)} className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10">
-                                    {isHistoryVisible ? <Eye className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                                    {isHistoryVisible ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
                                     {isHistoryVisible ? 'Ocultar Histórico' : 'Mostrar Histórico'}
                                 </Button>
                                 <ExportDataButton 
