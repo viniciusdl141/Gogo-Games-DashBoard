@@ -20,13 +20,14 @@ import EventPanel from '@/components/dashboard/EventPanel';
 import PaidTrafficPanel from '@/components/dashboard/PaidTrafficPanel';
 import DemoTrackingPanel from '@/components/dashboard/DemoTrackingPanel';
 import KpiCard from '@/components/dashboard/KpiCard';
-import WlDetailsManager from '@/components/dashboard/WlDetailsManager'; // Novo Import
+import WlDetailsManager from '@/components/dashboard/WlDetailsManager';
 import AddInfluencerForm from '@/components/dashboard/AddInfluencerForm';
 import AddEventForm from '@/components/dashboard/AddEventForm';
 import AddPaidTrafficForm from '@/components/dashboard/AddPaidTrafficForm';
 import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm';
 import EditWLSalesForm from '@/components/dashboard/EditWLSalesForm';
 import GameSummaryPanel from '@/components/dashboard/GameSummaryPanel';
+import ExportDataButton from '@/components/dashboard/ExportDataButton';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
 // Initialize data once
@@ -412,7 +413,12 @@ const Dashboard = () => {
                 </TabsContent>
 
                 <TabsContent value="wl-sales" className="space-y-4 mt-4">
-                    <div className="flex justify-end mb-4">
+                    <div className="flex justify-end mb-4 space-x-2">
+                        <ExportDataButton 
+                            data={filteredData.wlSales} 
+                            filename={`${selectedGame}_WL_Vendas.csv`} 
+                            label="WL/Vendas"
+                        />
                         <Dialog open={isAddWLSalesFormOpen} onOpenChange={setIsAddWLSalesFormOpen}>
                             <DialogTrigger asChild>
                                 <Button onClick={() => setIsAddWLSalesFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
@@ -447,7 +453,12 @@ const Dashboard = () => {
                 </TabsContent>
 
                 <TabsContent value="influencers" className="mt-4">
-                    <div className="flex justify-end mb-4">
+                    <div className="flex justify-end mb-4 space-x-2">
+                        <ExportDataButton 
+                            data={filteredData.influencerTracking} 
+                            filename={`${selectedGame}_Influencers_Tracking.csv`} 
+                            label="Tracking Detalhado"
+                        />
                         <Dialog open={isAddInfluencerFormOpen} onOpenChange={setIsAddInfluencerFormOpen}>
                             <DialogTrigger asChild>
                                 <Button onClick={() => setIsAddInfluencerFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
@@ -476,7 +487,12 @@ const Dashboard = () => {
                 </TabsContent>
 
                 <TabsContent value="events" className="mt-4">
-                    <div className="flex justify-end mb-4">
+                    <div className="flex justify-end mb-4 space-x-2">
+                        <ExportDataButton 
+                            data={filteredData.eventTracking} 
+                            filename={`${selectedGame}_Eventos_Tracking.csv`} 
+                            label="Eventos"
+                        />
                         <Dialog open={isAddEventFormOpen} onOpenChange={setIsAddEventFormOpen}>
                             <DialogTrigger asChild>
                                 <Button onClick={() => setIsAddEventFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
@@ -504,7 +520,12 @@ const Dashboard = () => {
                 </TabsContent>
 
                 <TabsContent value="paid-traffic" className="mt-4">
-                    <div className="flex justify-end mb-4">
+                    <div className="flex justify-end mb-4 space-x-2">
+                        <ExportDataButton 
+                            data={filteredData.paidTraffic} 
+                            filename={`${selectedGame}_Trafego_Pago.csv`} 
+                            label="Tráfego Pago"
+                        />
                         <Dialog open={isAddPaidTrafficFormOpen} onOpenChange={setIsAddPaidTrafficFormOpen}>
                             <DialogTrigger asChild>
                                 <Button onClick={() => setIsAddPaidTrafficFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
@@ -532,6 +553,13 @@ const Dashboard = () => {
                 </TabsContent>
 
                 <TabsContent value="demo" className="mt-4">
+                    <div className="flex justify-end mb-4 space-x-2">
+                        <ExportDataButton 
+                            data={filteredData.demoTracking} 
+                            filename={`${selectedGame}_Demo_Tracking.csv`} 
+                            label="Demo Tracking"
+                        />
+                    </div>
                     <DemoTrackingPanel data={filteredData.demoTracking} />
                 </TabsContent>
             </Tabs>
