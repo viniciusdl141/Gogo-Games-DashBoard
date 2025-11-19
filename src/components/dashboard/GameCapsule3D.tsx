@@ -39,4 +39,4 @@ const GameCapsule3D: React.FC<GameCapsule3DProps> = (props) => {
     );
 };
 
-export default GameCapsule3
+export default GameCapsule3D
