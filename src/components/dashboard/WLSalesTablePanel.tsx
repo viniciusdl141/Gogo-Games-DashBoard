@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { WLSalesEntry } from '@/data/trackingData';
+import { WLSalesPlatformEntry } from '@/data/trackingData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Table,
@@ -30,9 +30,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import EditWLSalesForm from './EditWLSalesForm';
 
 interface WLSalesTablePanelProps {
-    data: WLSalesEntry[];
+    data: WLSalesPlatformEntry[];
     onDelete: (id: string) => void;
-    onEdit: (entry: WLSalesEntry) => void;
+    onEdit: (entry: WLSalesPlatformEntry) => void;
     games: string[];
 }
 
@@ -54,6 +54,7 @@ const WLSalesTablePanel: React.FC<WLSalesTablePanelProps> = ({ data, onDelete, o
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Data</TableHead>
+                                <TableHead className="text-center">Plataforma</TableHead>
                                 <TableHead className="text-center">Frequência</TableHead>
                                 <TableHead className="text-center">Tipo de Venda</TableHead>
                                 <TableHead className="text-right">WL Totais</TableHead>
@@ -66,6 +67,9 @@ const WLSalesTablePanel: React.FC<WLSalesTablePanelProps> = ({ data, onDelete, o
                             {data.map((item) => (
                                 <TableRow key={item.id}>
                                     <TableCell className="font-medium">{formatDate(item.date)}</TableCell>
+                                    <TableCell className="text-center">
+                                        <Badge variant="default" className="bg-gogo-orange hover:bg-gogo-orange/90">{item.platform}</Badge>
+                                    </TableCell>
                                     <TableCell className="text-center">
                                         <Badge variant="outline">{item.frequency}</Badge>
                                     </TableCell>

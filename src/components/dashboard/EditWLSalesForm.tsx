@@ -15,30 +15,32 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { WLSalesEntry, SaleType, EntryFrequency } from '@/data/trackingData';
+import { WLSalesPlatformEntry, SaleType, EntryFrequency, Platform } from '@/data/trackingData';
 import { toast } from 'sonner';
 
 // Definindo o tipo de venda
 const SaleTypeEnum = z.enum(['Padrão', 'Bundle', 'DLC']);
 const FrequencyEnum = z.enum(['Diário', 'Semanal', 'Mensal']);
+const PlatformEnum = z.enum(['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra']);
 
 // Schema de validação
 const formSchema = z.object({
     id: z.string(),
     game: z.string().min(1, "O jogo é obrigatório."),
+    platform: PlatformEnum.default('Steam'), // Novo campo
     date: z.string().min(1, "A data é obrigatória (formato YYYY-MM-DD)."),
     wishlists: z.number().min(0, "Wishlists deve ser um número positivo.").default(0),
     sales: z.number().min(0, "Vendas deve ser um número positivo.").default(0),
     saleType: SaleTypeEnum.default('Padrão'),
-    frequency: FrequencyEnum.default('Diário'), // Novo campo
+    frequency: FrequencyEnum.default('Diário'),
 });
 
 type WLSalesFormValues = z.infer<typeof formSchema>;
 
 interface EditWLSalesFormProps {
     games: string[];
-    entry: WLSalesEntry;
-    onSave: (data: WLSalesEntry) => void;
+    entry: WLSalesPlatformEntry;
+    onSave: (data: WLSalesPlatformEntry) => void;
     onClose: () => void;
 }
 
@@ -50,11 +52,12 @@ const EditWLSalesForm: React.FC<EditWLSalesFormProps> = ({ games, entry, onSave,
         defaultValues: {
             id: entry.id,
             game: entry.game,
+            platform: entry.platform,
             date: defaultDate,
             wishlists: entry.wishlists,
             sales: entry.sales,
             saleType: entry.saleType,
-            frequency: entry.frequency, // Default
+            frequency: entry.frequency,
         },
     });
 
@@ -65,7 +68,7 @@ const EditWLSalesForm: React.FC<EditWLSalesFormProps> = ({ games, entry, onSave,
             ...values,
             date: dateObject,
             variation: entry.variation, // Placeholder, will be recalculated in Dashboard
-        } as WLSalesEntry); 
+        } as WLSalesPlatformEntry); 
         
         toast.success("Entrada de Wishlist/Vendas atualizada.");
         onClose();
@@ -97,7 +100,29 @@ const EditWLSalesForm: React.FC<EditWLSalesFormProps> = ({ games, entry, onSave,
                     )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="platform"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Plataforma</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione a Plataforma" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {PlatformEnum.options.map(p => (
+                                            <SelectItem key={p} value={p}>{p}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                     <FormField
                         control={form.control}
                         name="date"
@@ -111,6 +136,9 @@ const EditWLSalesForm: React.FC<EditWLSalesFormProps> = ({ games, entry, onSave,
                             </FormItem>
                         )}
                     />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name="saleType"
@@ -181,7 +209,7 @@ const EditWLSalesForm: React.FC<EditWLSalesFormProps> = ({ games, entry, onSave,
                         name="sales"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Vendas Diárias</FormLabel>
+                                <FormLabel>Vendas Diárias (Unidades)</FormLabel>
                                 <FormControl>
                                     <Input 
                                         type="number" 

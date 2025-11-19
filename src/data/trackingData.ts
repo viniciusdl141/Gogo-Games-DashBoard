@@ -8,7 +8,7 @@ export interface InfluencerTrackingEntry {
     date: Date | null;
     game: string;
     influencer: string;
-    platform: string;
+    platform: string; // Influencer platform (Youtube, Tiktok, etc.)
     action: string;
     contentType: string;
     views: number;
@@ -67,16 +67,18 @@ export interface DemoTrackingEntry {
 
 export type SaleType = 'Padrão' | 'Bundle' | 'DLC';
 export type EntryFrequency = 'Diário' | 'Semanal' | 'Mensal';
+export type Platform = 'Steam' | 'Xbox' | 'Playstation' | 'Nintendo' | 'Android' | 'iOS' | 'Epic Games' | 'Outra';
 
-export interface WLSalesEntry {
-    id: string; // Added unique ID for manipulation
+export interface WLSalesPlatformEntry {
+    id: string; // Unique ID for this entry
     date: Date | null;
     game: string;
+    platform: Platform; // New: Platform identifier
     wishlists: number;
-    sales: number;
-    variation: number;
-    saleType: SaleType; // New field
-    frequency: EntryFrequency; // New field
+    sales: number; // Total sales units for this date/platform
+    variation: number; // WL variation from previous entry
+    saleType: SaleType; 
+    frequency: EntryFrequency;
 }
 
 export interface ReviewEntry {
@@ -125,7 +127,7 @@ export interface TrackingData {
     eventTracking: EventTrackingEntry[];
     paidTraffic: PaidTrafficEntry[];
     demoTracking: DemoTrackingEntry[];
-    wlSales: WLSalesEntry[];
+    wlSales: WLSalesPlatformEntry[]; // Updated type
     resultSummary: ResultSummaryEntry[];
     wlDetails: WlDetails[];
 }
@@ -146,10 +148,11 @@ const cleanValue = (value: any): number | string => {
     return value;
 };
 
-const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[] => {
-    const wlSales: WLSalesEntry[] = [];
+const processWLSalesSheet = (sheetData: any[], gameName: string, platform: Platform): WLSalesPlatformEntry[] => {
+    const wlSales: WLSalesPlatformEntry[] = [];
     const salesMap = new Map<number, number>();
     
+    // Map sales data (Vendas) to dates
     sheetData.forEach(item => {
         const dateKey = item.Data_2 ?? item.__EMPTY_17;
         const salesValue = item.Vendas ?? item.__EMPTY_18;
@@ -158,6 +161,7 @@ const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[]
         }
     });
 
+    // Process WL data
     sheetData.forEach(item => {
         const dateKey = item.Data ?? item.__EMPTY;
         const wlValue = item.WL ?? item.__EMPTY_1;
@@ -180,23 +184,24 @@ const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[]
                 id: generateUniqueId('wl'),
                 date: excelSerialDateToJSDate(dateKey),
                 game: gameName,
+                platform: platform, // Set platform
                 wishlists: wlValue,
                 sales: sales,
                 variation: Number(variation) || 0,
-                saleType: 'Padrão', // Defaulting imported data to Padrão
-                frequency: frequency, // Set frequency
+                saleType: 'Padrão', 
+                frequency: frequency, 
             });
         }
     });
 
-    return wlSales.filter(entry => entry.wishlists > 0).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
+    return wlSales.filter(entry => entry.wishlists > 0 || entry.sales > 0).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
 };
 
 const processInfluencerTracking = (data: any[]): InfluencerTrackingEntry[] => {
     return data
         .filter(item => item.Game && item.Influencer)
         .map(item => ({
-            id: generateUniqueId('influencer'), // Assign unique ID
+            id: generateUniqueId('influencer'), 
             date: excelSerialDateToJSDate(item.Data as number),
             game: item.Game.replace('Legavy of Evil', 'Legacy of Evil').replace('HellBrella', 'Hellbrella'),
             influencer: item.Influencer,
@@ -228,7 +233,7 @@ const processEventTracking = (data: any[]): EventTrackingEntry[] => {
     return data
         .filter(item => item.Jogo && item.Evento && item.Começo && item.Final)
         .map(item => ({
-            id: generateUniqueId('event'), // Assign unique ID
+            id: generateUniqueId('event'), 
             startDate: excelSerialDateToJSDate(item.Começo as number),
             endDate: excelSerialDateToJSDate(item.Final as number),
             event: item.Evento,
@@ -246,7 +251,7 @@ const processPaidTraffic = (data: any[]): PaidTrafficEntry[] => {
     return data
         .filter(item => item.Game && item.Rede)
         .map(item => ({
-            id: generateUniqueId('paid'), // Assign unique ID
+            id: generateUniqueId('paid'), 
             game: item.Game,
             network: item.Rede,
             impressions: Number(item['Impressões']) || 0,
@@ -282,7 +287,7 @@ const processWlDetails = (sheetData: any[], gameName: string): WlDetails => {
         details.reviews = sheetData.slice(reviewHeaderIndex + 1)
             .filter(r => r.__EMPTY_19 && !isNaN(Number(r.__EMPTY_19)))
             .map(r => ({
-                id: generateUniqueId('review'), // Assign unique ID
+                id: generateUniqueId('review'), 
                 reviews: r.__EMPTY_19,
                 positive: r.__EMPTY_20,
                 negative: r.__EMPTY_21,
@@ -297,7 +302,7 @@ const processWlDetails = (sheetData: any[], gameName: string): WlDetails => {
         details.bundles = sheetData.slice(bundleHeaderIndex + 1)
             .filter(r => r.__EMPTY_19)
             .map(r => ({
-                id: generateUniqueId('bundle'), // Assign unique ID
+                id: generateUniqueId('bundle'), 
                 name: r.__EMPTY_19,
                 bundleUnits: r.__EMPTY_20,
                 packageUnits: r.__EMPTY_21,
@@ -352,11 +357,17 @@ export const getTrackingData = (): TrackingData => {
     const demoTracking = processDemoTracking(rawData['Tracking da demo']);
     const resultSummary = processResultSummary(rawData['RESUMO DE RESULTADOS']);
 
-    const wlSales: WLSalesEntry[] = [
-        ...processWLSalesSheet(rawData['Total WL - Legacy of Evil'], 'Legacy of Evil'),
-        ...processWLSalesSheet(rawData['Total WL - Hellbrella'], 'Hellbrella'),
-        ...processWLSalesSheet(rawData['Total WL - The Mare Show'], 'The Mare Show'),
-        ...processWLSalesSheet(rawData['Total WL - Dreadstone Keep'], 'DREADSTONE KEEP'),
+    // Process WL Sales by Platform (assuming Steam for existing data)
+    const wlSales: WLSalesPlatformEntry[] = [
+        ...processWLSalesSheet(rawData['Total WL - Legacy of Evil'], 'Legacy of Evil', 'Steam'),
+        ...processWLSalesSheet(rawData['Total WL - Hellbrella'], 'Hellbrella', 'Steam'),
+        ...processWLSalesSheet(rawData['Total WL - The Mare Show'], 'The Mare Show', 'Steam'),
+        ...processWLSalesSheet(rawData['Total WL - Dreadstone Keep'], 'DREADSTONE KEEP', 'Steam'),
+        // Add other platforms from rawData, assuming 0 sales/WL for now if data is sparse
+        ...processWLSalesSheet(rawData['TOTAL WL NINTENDO - LIA HACKING'], 'LIA HACKING DESTINY', 'Nintendo'),
+        ...processWLSalesSheet(rawData['TOTAL WL ANDROID - LIA HACKING '], 'LIA HACKING DESTINY', 'Android'),
+        ...processWLSalesSheet(rawData['TOTAL WL IOS - LIA HACKING DEST'], 'LIA HACKING DESTINY', 'iOS'),
+        ...processWLSalesSheet(rawData['TOTAL WL XBOX- LIA HACKING DEST'], 'LIA HACKING DESTINY', 'Xbox'),
     ];
 
     const wlDetails: WlDetails[] = [

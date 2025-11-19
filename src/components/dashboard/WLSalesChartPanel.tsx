@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { WLSalesEntry, EntryFrequency } from '@/data/trackingData';
+import { WLSalesPlatformEntry, EntryFrequency } from '@/data/trackingData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     LineChart,
@@ -14,10 +14,11 @@ import {
     ResponsiveContainer,
     Dot,
 } from 'recharts';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatNumber } from '@/lib/utils';
+import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 
 interface WLSalesChartPanelProps {
-    data: WLSalesEntry[];
+    data: WLSalesPlatformEntry[];
 }
 
 // Cores Gogo Games
@@ -35,30 +36,58 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         const dateLabel = formatDate(label);
         
-        // Group data by frequency for the tooltip
-        const dataByFrequency = payload.reduce((acc: Record<string, any[]>, entry: any) => {
-            const frequency = entry.payload.frequency || 'Diário';
-            if (!acc[frequency]) {
-                acc[frequency] = [];
+        // Group data by platform and frequency for the tooltip
+        const dataByPlatform = payload.reduce((acc: Record<string, any[]>, entry: any) => {
+            const platform = entry.payload.platform || 'Steam';
+            if (!acc[platform]) {
+                acc[platform] = [];
             }
-            acc[frequency].push(entry);
+            acc[platform].push(entry);
             return acc;
         }, {});
 
         return (
-            <div className="bg-white/90 dark:bg-gray-800/90 p-3 border rounded-md shadow-lg text-sm">
-                <p className="font-bold mb-1">{dateLabel}</p>
+            <div className="bg-white/90 dark:bg-gray-800/90 p-3 border rounded-md shadow-lg text-sm backdrop-blur-sm">
+                <p className="font-bold mb-2 text-base">{dateLabel}</p>
                 
-                {Object.keys(dataByFrequency).sort().map(frequency => (
-                    <div key={frequency} className="mt-2 border-t pt-1 border-muted-foreground/20">
-                        <p className="font-semibold text-xs text-muted-foreground">{frequency}</p>
-                        {dataByFrequency[frequency].map((entry: any, index: number) => (
-                            <p key={index} style={{ color: entry.color }}>
-                                {entry.name}: {entry.value.toLocaleString('pt-BR')}
+                {Object.keys(dataByPlatform).sort().map(platform => {
+                    const platformData = dataByPlatform[platform];
+                    const wlEntry = platformData.find((e: any) => e.dataKey === 'Wishlists')?.payload;
+                    const salesEntry = platformData.find((e: any) => e.dataKey === 'Vendas')?.payload;
+
+                    const variation = wlEntry?.variation || 0;
+                    const totalWishlists = wlEntry?.Wishlists || 0;
+                    const totalSales = salesEntry?.Vendas || 0;
+                    const frequency = wlEntry?.frequency || 'Diário';
+
+                    const VariationIcon = variation > 0 ? ArrowUp : variation < 0 ? ArrowDown : Minus;
+                    const variationColor = variation > 0 ? 'text-green-500' : variation < 0 ? 'text-red-500' : 'text-muted-foreground';
+
+                    return (
+                        <div key={platform} className="mt-2 border-t pt-2 border-muted-foreground/20">
+                            <p className="font-semibold text-sm mb-1 flex items-center justify-between">
+                                <span>{platform} ({frequency})</span>
+                                <span className="text-xs text-muted-foreground">WL: {formatNumber(totalWishlists)}</span>
                             </p>
-                        ))}
-                    </div>
-                ))}
+                            
+                            <div className="space-y-1">
+                                <p className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">Variação WL:</span>
+                                    <span className={`font-medium flex items-center ${variationColor}`}>
+                                        <VariationIcon className="h-3 w-3 mr-1" />
+                                        {formatNumber(Math.abs(variation))}
+                                    </span>
+                                </p>
+                                <p className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">Vendas (Unidades):</span>
+                                    <span className="font-medium text-gogo-cyan">
+                                        {formatNumber(totalSales)}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         );
     }
@@ -122,20 +151,18 @@ const CustomDot = (props: any) => {
 };
 
 const CustomLegend = (props: any) => {
-    const { payload } = props;
-
     // Define os itens fixos da legenda
     const fixedItems = [
         { value: 'Vendas', color: SALES_COLOR, type: 'line' },
-        { value: 'Wishlists (Diário)', color: WL_COLOR, type: 'circle' },
-        { value: 'Wishlists (Semanal)', color: WL_COLOR, type: 'triangle' },
-        { value: 'Wishlists (Mensal)', color: WL_COLOR, type: 'square' },
+        { value: 'Wishlists (Diário)', color: WL_COLOR, shape: 'circle' },
+        { value: 'Wishlists (Semanal)', color: WL_COLOR, shape: 'triangle' },
+        { value: 'Wishlists (Mensal)', color: WL_COLOR, shape: 'square' },
     ];
 
     return (
         <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 p-2 text-sm">
             {fixedItems.map((entry, index) => {
-                const style = FREQUENCY_STYLES[entry.value.includes('Diário') ? 'Diário' : entry.value.includes('Semanal') ? 'Semanal' : entry.value.includes('Mensal') ? 'Mensal' : 'Diário'];
+                const style = FREQUENCY_STYLES[entry.shape === 'circle' ? 'Diário' : entry.shape === 'triangle' ? 'Semanal' : 'Mensal'];
                 
                 return (
                     <li key={`item-${index}`} className="flex items-center space-x-1 cursor-pointer">
@@ -162,7 +189,7 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data }) => {
         return (
             <Card>
                 <CardHeader><CardTitle>Evolução Diária de Wishlists e Vendas</CardTitle></CardHeader>
-                <CardContent><p className="text-muted-foreground">Nenhum dado de WL/Vendas disponível para este jogo.</p></CardContent>
+                <CardContent><p className="text-muted-foreground">Nenhum dado de WL/Vendas disponível para esta plataforma/jogo.</p></CardContent>
             </Card>
         );
     }
@@ -172,7 +199,9 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data }) => {
         date: item.date ? item.date.getTime() : null, // Use timestamp for sorting/keying
         Wishlists: item.wishlists,
         Vendas: item.sales,
+        variation: item.variation,
         frequency: item.frequency, // Pass frequency data
+        platform: item.platform, // Pass platform data
     })).filter(item => item.date !== null);
 
     return (

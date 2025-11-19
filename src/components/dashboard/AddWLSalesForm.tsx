@@ -15,28 +15,30 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { WLSalesEntry, SaleType, EntryFrequency } from '@/data/trackingData';
+import { WLSalesPlatformEntry, SaleType, EntryFrequency, Platform } from '@/data/trackingData';
 import { toast } from 'sonner';
 
 // Definindo o tipo de venda
 const SaleTypeEnum = z.enum(['Padrão', 'Bundle', 'DLC']);
 const FrequencyEnum = z.enum(['Diário', 'Semanal', 'Mensal']);
+const PlatformEnum = z.enum(['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra']);
 
 // Schema de validação
 const formSchema = z.object({
     game: z.string().min(1, "O jogo é obrigatório."),
+    platform: PlatformEnum.default('Steam'), // Novo campo
     date: z.string().min(1, "A data é obrigatória (formato YYYY-MM-DD)."),
     wishlists: z.number().min(0, "Wishlists deve ser um número positivo.").default(0),
     sales: z.number().min(0, "Vendas deve ser um número positivo.").default(0),
     saleType: SaleTypeEnum.default('Padrão'),
-    frequency: FrequencyEnum.default('Diário'), // Novo campo
+    frequency: FrequencyEnum.default('Diário'),
 });
 
 type WLSalesFormValues = z.infer<typeof formSchema>;
 
 interface AddWLSalesFormProps {
     games: string[];
-    onSave: (data: Omit<WLSalesEntry, 'date' | 'variation' | 'id'> & { date: string, saleType: z.infer<typeof SaleTypeEnum>, frequency: z.infer<typeof FrequencyEnum> }) => void;
+    onSave: (data: Omit<WLSalesPlatformEntry, 'date' | 'variation' | 'id'> & { date: string, saleType: z.infer<typeof SaleTypeEnum>, frequency: z.infer<typeof FrequencyEnum>, platform: z.infer<typeof PlatformEnum> }) => void;
     onClose: () => void;
 }
 
@@ -45,11 +47,12 @@ const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ games, onSave, onClose 
         resolver: zodResolver(formSchema),
         defaultValues: {
             game: games[0] || '',
+            platform: 'Steam',
             date: new Date().toISOString().split('T')[0],
             wishlists: 0,
             sales: 0,
             saleType: 'Padrão',
-            frequency: 'Diário', // Default
+            frequency: 'Diário',
         },
     });
 
@@ -85,7 +88,29 @@ const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ games, onSave, onClose 
                     )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="platform"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Plataforma</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione a Plataforma" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {PlatformEnum.options.map(p => (
+                                            <SelectItem key={p} value={p}>{p}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                     <FormField
                         control={form.control}
                         name="date"
@@ -99,6 +124,9 @@ const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ games, onSave, onClose 
                             </FormItem>
                         )}
                     />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name="saleType"
@@ -169,7 +197,7 @@ const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ games, onSave, onClose 
                         name="sales"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Vendas Diárias</FormLabel>
+                                <FormLabel>Vendas Diárias (Unidades)</FormLabel>
                                 <FormControl>
                                     <Input 
                                         type="number" 
