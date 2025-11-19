@@ -6,8 +6,9 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List } from 'lucide-react';
+import { DollarSign, Eye, List, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
@@ -17,15 +18,20 @@ import PaidTrafficPanel from '@/components/dashboard/PaidTrafficPanel';
 import DemoTrackingPanel from '@/components/dashboard/DemoTrackingPanel';
 import KpiCard from '@/components/dashboard/KpiCard';
 import WlDetailsPanel from '@/components/dashboard/WlDetailsPanel';
+import AddInfluencerForm from '@/components/dashboard/AddInfluencerForm';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
 // Initialize data once
 const initialData = getTrackingData();
 
+// Helper to generate unique IDs locally
+let localIdCounter = initialData.influencerTracking.length;
+const generateLocalUniqueId = () => `local-track-${localIdCounter++}`;
+
 const Dashboard = () => {
-  // Use state to manage data that might be modified (e.g., deletions)
   const [trackingData, setTrackingData] = useState(initialData);
   const [selectedGame, setSelectedGame] = useState<string>(trackingData.games[0] || '');
+  const [isAddFormOpen, setIsAddFormOpen] = useState(false);
 
   // Handler for deleting an influencer tracking entry
   const handleDeleteInfluencerEntry = useCallback((id: string) => {
@@ -36,6 +42,32 @@ const Dashboard = () => {
     toast.success("Entrada de influencer removida com sucesso.");
   }, []);
 
+  // Handler for adding a new influencer tracking entry
+  const handleAddInfluencerEntry = useCallback((newEntry: Omit<InfluencerTrackingEntry, 'id' | 'roi'> & { date: string }) => {
+    const dateObject = new Date(newEntry.date);
+    
+    // Calculate ROI: Real/WL. If WL is 0, ROI is '-'.
+    const roiValue = newEntry.estimatedWL > 0 
+        ? newEntry.investment / newEntry.estimatedWL 
+        : '-';
+
+    const entryToAdd: InfluencerTrackingEntry = {
+        ...newEntry,
+        id: generateLocalUniqueId(),
+        date: dateObject,
+        roi: roiValue,
+    };
+
+    setTrackingData(prevData => ({
+        ...prevData,
+        influencerTracking: [...prevData.influencerTracking, entryToAdd].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)),
+    }));
+    
+    // Note: We don't recalculate influencerSummary here, as that would require complex aggregation logic 
+    // which is typically done server-side or in a dedicated data layer. We focus on displaying the raw tracking data.
+  }, []);
+
+
   const filteredData = useMemo(() => {
     if (!selectedGame) return null;
     
@@ -44,8 +76,33 @@ const Dashboard = () => {
     const influencerTracking = trackingData.influencerTracking.filter(d => d.game.trim() === game);
     const eventTracking = trackingData.eventTracking.filter(d => d.game.trim() === game);
     const paidTraffic = trackingData.paidTraffic.filter(d => d.game.trim() === game);
-    const influencerSummary = trackingData.influencerSummary.filter(d => d.game.trim() === game);
+    
+    // Recalculate Influencer Summary based on current tracking data
+    const influencerSummaryMap = new Map<string, { totalActions: number, totalInvestment: number, wishlistsGenerated: number }>();
 
+    influencerTracking.forEach(item => {
+        const influencer = item.influencer;
+        const current = influencerSummaryMap.get(influencer) || { totalActions: 0, totalInvestment: 0, wishlistsGenerated: 0 };
+        
+        current.totalActions += 1;
+        current.totalInvestment += item.investment;
+        // Use estimatedWL for summary calculation
+        current.wishlistsGenerated += item.estimatedWL; 
+        
+        influencerSummaryMap.set(influencer, current);
+    });
+
+    const influencerSummary: InfluencerSummaryEntry[] = Array.from(influencerSummaryMap.entries()).map(([influencer, data]) => ({
+        game: game,
+        influencer: influencer,
+        totalActions: data.totalActions,
+        totalInvestment: data.totalInvestment,
+        wishlistsGenerated: data.wishlistsGenerated,
+        avgROI: data.wishlistsGenerated > 0 ? data.totalInvestment / data.wishlistsGenerated : '-',
+    }));
+
+
+    // KPI Calculations
     const totalInvestment = 
         influencerTracking.reduce((sum, item) => sum + item.investment, 0) +
         eventTracking.reduce((sum, item) => sum + item.cost, 0) +
@@ -56,15 +113,16 @@ const Dashboard = () => {
         eventTracking.reduce((sum, item) => sum + item.views, 0) +
         paidTraffic.reduce((sum, item) => sum + item.impressions, 0);
     
+    // WL Generated KPI should use the estimated WL from influencer tracking and actual WL from events
     const totalWLGenerated = 
-        influencerSummary.reduce((sum, item) => sum + item.wishlistsGenerated, 0) +
+        influencerTracking.reduce((sum, item) => sum + item.estimatedWL, 0) +
         eventTracking.reduce((sum, item) => sum + item.wlGenerated, 0);
 
 
     return {
       resultSummary: trackingData.resultSummary.filter(d => d.game.trim() === game),
       wlSales: trackingData.wlSales.filter(d => d.game.trim() === game),
-      influencerSummary,
+      influencerSummary, // Use recalculated summary
       influencerTracking,
       eventTracking,
       paidTraffic,
@@ -130,7 +188,7 @@ const Dashboard = () => {
                     <div className="grid gap-4 md:grid-cols-3">
                         <KpiCard title="Investimento Total" value={formatCurrency(filteredData.kpis.totalInvestment)} icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} />
                         <KpiCard title="Views + Impressões" value={formatNumber(filteredData.kpis.totalViews)} icon={<Eye className="h-4 w-4 text-muted-foreground" />} />
-                        <KpiCard title="Wishlists Geradas (Eventos + Influencers)" value={formatNumber(filteredData.kpis.totalWLGenerated)} icon={<List className="h-4 w-4 text-muted-foreground" />} />
+                        <KpiCard title="Wishlists Geradas (Est.)" value={formatNumber(filteredData.kpis.totalWLGenerated)} icon={<List className="h-4 w-4 text-muted-foreground" />} />
                     </div>
                     <ResultSummaryPanel data={filteredData.resultSummary} />
                 </TabsContent>
@@ -141,6 +199,25 @@ const Dashboard = () => {
                 </TabsContent>
 
                 <TabsContent value="influencers" className="mt-4">
+                    <div className="flex justify-end mb-4">
+                        <Dialog open={isAddFormOpen} onOpenChange={setIsAddFormOpen}>
+                            <DialogTrigger asChild>
+                                <Button onClick={() => setIsAddFormOpen(true)}>
+                                    <Plus className="h-4 w-4 mr-2" /> Adicionar Entrada
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[600px]">
+                                <DialogHeader>
+                                    <DialogTitle>Adicionar Novo Tracking de Influencer</DialogTitle>
+                                </DialogHeader>
+                                <AddInfluencerForm 
+                                    games={trackingData.games} 
+                                    onSave={handleAddInfluencerEntry} 
+                                    onClose={() => setIsAddFormOpen(false)} 
+                                />
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                     <InfluencerPanel 
                         summary={filteredData.influencerSummary} 
                         tracking={filteredData.influencerTracking} 
