@@ -38,7 +38,7 @@ import ExportDataButton from '@/components/dashboard/ExportDataButton';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
-import GameCapsule3D from '@/components/dashboard/GameCapsule3D'; // Importar o novo componente 3D
+// import GameCapsule3D from '@/components/dashboard/GameCapsule3D'; // Importar o novo componente 3D
 
 // Initialize data once
 const initialData = getTrackingData();
@@ -441,9 +441,9 @@ const Dashboard = () => {
                           onClick={() => setSelectedGame(game)}
                       >
                           <span className="flex items-center gap-2">
-                              {selectedGame === game && (
+                              {/* {selectedGame === game && (
                                   <GameCapsule3D color="#00BFFF" size={[0.08, 0.2, 4]} rotationSpeed={0.02} />
-                              )}
+                              )} */}
                               {game}
                           </span>
                       </Button>
