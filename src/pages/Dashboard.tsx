@@ -580,7 +580,7 @@ const Dashboard = () => {
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-[600px]">
                                 <DialogHeader>
-                                    <DialogTitle>Adicionar Novo Tracking de Evento</Title>
+                                    <DialogTitle>Adicionar Novo Tracking de Evento</DialogTitle>
                                 </DialogHeader>
                                 <AddEventForm 
                                     games={trackingData.games} 
