@@ -21,14 +21,15 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import WlDetailsPanel from '@/components/dashboard/WlDetailsPanel';
 import AddInfluencerForm from '@/components/dashboard/AddInfluencerForm';
 import AddEventForm from '@/components/dashboard/AddEventForm';
-import AddPaidTrafficForm from '@/components/dashboard/AddPaidTrafficForm'; // <-- Novo Import
+import AddPaidTrafficForm from '@/components/dashboard/AddPaidTrafficForm';
+import GameSummaryPanel from '@/components/dashboard/GameSummaryPanel'; // <-- Novo Import
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
 // Initialize data once
 const initialData = getTrackingData();
 
 // Helper to generate unique IDs locally
-let localIdCounter = initialData.influencerTracking.length + initialData.eventTracking.length + initialData.paidTraffic.length;
+let localIdCounter = initialData.influencerTracking.length + initialData.eventTracking.length + initialData.paidTraffic.length + initialData.wlSales.length;
 const generateLocalUniqueId = (prefix: string) => `${prefix}-${localIdCounter++}`;
 
 const Dashboard = () => {
@@ -36,7 +37,7 @@ const Dashboard = () => {
   const [selectedGame, setSelectedGame] = useState<string>(trackingData.games[0] || '');
   const [isAddInfluencerFormOpen, setIsAddInfluencerFormOpen] = useState(false);
   const [isAddEventFormOpen, setIsAddEventFormOpen] = useState(false);
-  const [isAddPaidTrafficFormOpen, setIsAddPaidTrafficFormOpen] = useState(false); // <-- Novo Estado
+  const [isAddPaidTrafficFormOpen, setIsAddPaidTrafficFormOpen] = useState(false);
 
   // --- Influencer Handlers ---
 
@@ -51,7 +52,6 @@ const Dashboard = () => {
   const handleAddInfluencerEntry = useCallback((newEntry: Omit<InfluencerTrackingEntry, 'id' | 'roi' | 'date'> & { date: string }) => {
     const dateObject = new Date(newEntry.date);
     
-    // Calculate ROI: Real/WL. If WL is 0, ROI is '-'.
     const roiValue = newEntry.estimatedWL > 0 
         ? newEntry.investment / newEntry.estimatedWL 
         : '-';
@@ -85,12 +85,10 @@ const Dashboard = () => {
     const startDateObject = new Date(newEntry.startDate);
     const endDateObject = new Date(newEntry.endDate);
 
-    // Calculate ROI (R$/WL)
     const roiValue = newEntry.wlGenerated > 0 
         ? newEntry.cost / newEntry.wlGenerated 
         : '-';
 
-    // Calculate Cost Per View (R$/View)
     const costPerViewValue = newEntry.views > 0 
         ? newEntry.cost / newEntry.views 
         : '-';
@@ -126,12 +124,10 @@ const Dashboard = () => {
     const startDateObject = new Date(newEntry.startDate);
     const endDateObject = new Date(newEntry.endDate);
 
-    // Calculate Network Conversion (Clicks / Impressions)
     const networkConversion = newEntry.impressions > 0 
         ? newEntry.clicks / newEntry.impressions 
         : 0;
 
-    // Calculate Estimated Cost Per WL (Invested Value / Estimated WL)
     const estimatedCostPerWL = newEntry.estimatedWishlists > 0 
         ? newEntry.investedValue / newEntry.estimatedWishlists 
         : '-';
@@ -143,7 +139,7 @@ const Dashboard = () => {
         endDate: endDateObject,
         networkConversion: networkConversion,
         estimatedCostPerWL: estimatedCostPerWL,
-        validatedCostPerWL: '-', // Placeholder, as validation is external
+        validatedCostPerWL: '-',
     };
 
     setTrackingData(prevData => ({
@@ -160,7 +156,7 @@ const Dashboard = () => {
     
     const game = selectedGame.trim();
 
-    // Filter and enhance data, recalculating dynamic fields
+    // 1. Filter and enhance data, recalculating dynamic fields
     const influencerTracking = trackingData.influencerTracking
         .filter(d => d.game.trim() === game)
         .map(item => ({
@@ -184,7 +180,9 @@ const Dashboard = () => {
             estimatedCostPerWL: item.estimatedWishlists > 0 ? item.investedValue / item.estimatedWishlists : '-',
         }));
     
-    // Recalculate Influencer Summary based on current tracking data
+    const wlSales = trackingData.wlSales.filter(d => d.game.trim() === game);
+
+    // 2. Recalculate Influencer Summary
     const influencerSummaryMap = new Map<string, { totalActions: number, totalInvestment: number, wishlistsGenerated: number }>();
 
     influencerTracking.forEach(item => {
@@ -208,7 +206,7 @@ const Dashboard = () => {
     }));
 
 
-    // KPI Calculations
+    // 3. KPI Calculations
     const totalInvestment = 
         influencerTracking.reduce((sum, item) => sum + item.investment, 0) +
         eventTracking.reduce((sum, item) => sum + item.cost, 0) +
@@ -219,15 +217,18 @@ const Dashboard = () => {
         eventTracking.reduce((sum, item) => sum + item.views, 0) +
         paidTraffic.reduce((sum, item) => sum + item.impressions, 0);
     
-    // WL Generated KPI should use the estimated WL from influencer tracking and actual WL from events
     const totalWLGenerated = 
         influencerTracking.reduce((sum, item) => sum + item.estimatedWL, 0) +
         eventTracking.reduce((sum, item) => sum + item.wlGenerated, 0);
+    
+    // Total Sales and Wishlists (for Game Summary Panel)
+    const totalSales = wlSales.reduce((sum, item) => sum + item.sales, 0);
+    const totalWishlists = wlSales.length > 0 ? wlSales[wlSales.length - 1].wishlists : 0;
 
 
     return {
       resultSummary: trackingData.resultSummary.filter(d => d.game.trim() === game),
-      wlSales: trackingData.wlSales.filter(d => d.game.trim() === game),
+      wlSales,
       influencerSummary, 
       influencerTracking,
       eventTracking,
@@ -238,6 +239,8 @@ const Dashboard = () => {
           totalInvestment,
           totalViews,
           totalWLGenerated,
+          totalSales,
+          totalWishlists,
       }
     };
   }, [selectedGame, trackingData]);
@@ -291,6 +294,12 @@ const Dashboard = () => {
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4 mt-4">
+                    <GameSummaryPanel 
+                        gameName={selectedGame}
+                        totalSales={filteredData.kpis.totalSales}
+                        totalWishlists={filteredData.kpis.totalWishlists}
+                        totalInvestment={filteredData.kpis.totalInvestment}
+                    />
                     <div className="grid gap-4 md:grid-cols-3">
                         <KpiCard title="Investimento Total" value={formatCurrency(filteredData.kpis.totalInvestment)} icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} />
                         <KpiCard title="Views + Impressões" value={formatNumber(filteredData.kpis.totalViews)} icon={<Eye className="h-4 w-4 text-muted-foreground" />} />
