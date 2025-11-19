@@ -422,7 +422,7 @@ const Dashboard = () => {
         direction="horizontal"
         className="min-h-[calc(100vh-64px)] w-full rounded-lg border border-border bg-card text-card-foreground shadow-2xl"
       >
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-muted/20 border-r border-border">
+        <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-muted/20 border-r border-border shadow-inner">
           <div className="flex flex-col h-full">
             <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">Selecione um Jogo</h2>
             <div className="flex-grow space-y-4">
