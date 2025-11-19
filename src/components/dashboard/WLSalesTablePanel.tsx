@@ -28,6 +28,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import EditWLSalesForm from './EditWLSalesForm';
+import PlatformIcon from './PlatformIcon'; // Importar o novo componente
 
 interface WLSalesTablePanelProps {
     data: WLSalesPlatformEntry[];
@@ -35,6 +36,21 @@ interface WLSalesTablePanelProps {
     onEdit: (entry: WLSalesPlatformEntry) => void;
     games: string[];
 }
+
+const getPlatformColorClass = (platform: string) => {
+    const normalizedPlatform = platform.toLowerCase().replace(/\s/g, '');
+    switch (normalizedPlatform) {
+        case 'steam': return 'bg-platform-steam hover:bg-platform-steam/90';
+        case 'xbox': return 'bg-platform-xbox hover:bg-platform-xbox/90';
+        case 'playstation': return 'bg-platform-playstation hover:bg-platform-playstation/90';
+        case 'nintendo': return 'bg-platform-nintendo hover:bg-platform-nintendo/90';
+        case 'android': return 'bg-platform-android hover:bg-platform-android/90';
+        case 'ios': return 'bg-platform-ios hover:bg-platform-ios/90';
+        case 'epicgames': return 'bg-platform-epicgames hover:bg-platform-epicgames/90';
+        case 'outra':
+        default: return 'bg-platform-outra hover:bg-platform-outra/90';
+    }
+};
 
 const WLSalesTablePanel: React.FC<WLSalesTablePanelProps> = ({ data, onDelete, onEdit, games }) => {
     const [openDialogId, setOpenDialogId] = useState<string | null>(null);
@@ -68,7 +84,10 @@ const WLSalesTablePanel: React.FC<WLSalesTablePanelProps> = ({ data, onDelete, o
                                 <TableRow key={item.id}>
                                     <TableCell className="font-medium">{formatDate(item.date)}</TableCell>
                                     <TableCell className="text-center">
-                                        <Badge variant="default" className="bg-gogo-orange hover:bg-gogo-orange/90">{item.platform}</Badge>
+                                        <Badge variant="default" className={`flex items-center justify-center space-x-1 ${getPlatformColorClass(item.platform)}`}>
+                                            <PlatformIcon platform={item.platform} className="h-3 w-3" color="white" />
+                                            <span>{item.platform}</span>
+                                        </Badge>
                                     </TableCell>
                                     <TableCell className="text-center">
                                         <Badge variant="outline">{item.frequency}</Badge>

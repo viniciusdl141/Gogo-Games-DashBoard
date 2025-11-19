@@ -17,11 +17,16 @@ import {
 } from 'recharts';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import resolveConfig from 'tailwindcss/resolveConfig';
+import tailwindConfig from '../../../tailwind.config'; // Adjust path as necessary
 
 interface WlComparisonsPanelProps {
     data: WLSalesPlatformEntry[];
     allPlatforms: Platform[];
 }
+
+const fullConfig = resolveConfig(tailwindConfig);
+const platformColors: Record<string, string> = (fullConfig.theme?.colors as any)?.platform || {};
 
 const WL_COLOR = "#10b981"; // Emerald 500 (Wishlists)
 const SALES_COLOR = "#8b5cf6"; // Violet 500 (Vendas)

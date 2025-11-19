@@ -65,6 +65,17 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Platform specific colors
+        platform: {
+          steam: '#1B2838',
+          xbox: '#107C10',
+          playstation: '#003791',
+          nintendo: '#E4000F',
+          android: '#3DDC84',
+          ios: '#000000',
+          epicgames: '#313131',
+          outra: '#6B7280', // Gray
+        }
       },
       borderRadius: {
         lg: "var(--radius)",

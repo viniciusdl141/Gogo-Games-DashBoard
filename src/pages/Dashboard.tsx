@@ -412,14 +412,11 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="flex items-center justify-between mb-8">
-            <div className="flex items-center">
-                <img src="/gogo-games-logo.png" alt="Gogo Games Logo" className="h-12 w-auto mr-4" />
-                <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">
-                    Dashboard de Performance Geral
-                </h1>
-            </div>
-            <p className="text-muted-foreground hidden md:block">Análise de campanhas e resultados de jogos</p>
+        <header className="flex items-center mb-8"> {/* Removed justify-between */}
+            <img src="/gogo-games-logo.png" alt="Gogo Games Logo" className="h-12 w-auto mr-4" />
+            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">
+                Dashboard de Performance Geral
+            </h1>
         </header>
 
         <Card>
@@ -458,14 +455,14 @@ const Dashboard = () => {
         {filteredData && (
             <>
                 <Tabs defaultValue="overview" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 md:grid-cols-7"> {/* Adjusted grid-cols for new tab */}
-                        <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-                        <TabsTrigger value="wl-sales">Wishlists</TabsTrigger>
-                        <TabsTrigger value="comparisons">Comparações</TabsTrigger> {/* New tab trigger */}
-                        <TabsTrigger value="influencers">Influencers</TabsTrigger>
-                        <TabsTrigger value="events">Eventos</TabsTrigger>
-                        <TabsTrigger value="paid-traffic">Tráfego Pago</TabsTrigger>
-                        <TabsTrigger value="demo">Demo</TabsTrigger>
+                    <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b bg-muted text-muted-foreground"> {/* Adjusted for scrolling */}
+                        <TabsTrigger value="overview" className="min-w-fit">Visão Geral</TabsTrigger>
+                        <TabsTrigger value="wl-sales" className="min-w-fit">Wishlists</TabsTrigger>
+                        <TabsTrigger value="comparisons" className="min-w-fit">Comparações</TabsTrigger>
+                        <TabsTrigger value="influencers" className="min-w-fit">Influencers</TabsTrigger>
+                        <TabsTrigger value="events" className="min-w-fit">Eventos</TabsTrigger>
+                        <TabsTrigger value="paid-traffic" className="min-w-fit">Tráfego Pago</TabsTrigger>
+                        <TabsTrigger value="demo" className="min-w-fit">Demo</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="overview" className="space-y-4 mt-4">
