@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, List, TrendingUp, Info, Eye } from 'lucide-react';
+import { DollarSign, List, TrendingUp, Info } from 'lucide-react';
 import KpiCard from './KpiCard';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -22,8 +22,6 @@ interface GameSummaryPanelProps {
     totalWishlists: number;
     totalInvestment: number;
     investmentSources: { influencers: number, events: number, paidTraffic: number };
-    totalMarketingViews: number;
-    totalPaidImpressions: number;
 }
 
 const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({ 
@@ -31,9 +29,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     totalSales, 
     totalWishlists, 
     totalInvestment,
-    investmentSources,
-    totalMarketingViews,
-    totalPaidImpressions
+    investmentSources
 }) => {
     const [gamePrice, setGamePrice] = React.useState(19.99); // Preço padrão em R$
     const [revenueShare, setRevenueShare] = React.useState(0.70); // 70% (Steam/Epic geralmente 70/30)
@@ -63,6 +59,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     const netManualProfit = netManualRevenue - totalInvestment;
     const roiManualPercentage = totalInvestment > 0 ? (netManualProfit / totalInvestment) * 100 : 0;
 
+
     return (
         <Card>
             <CardHeader>
@@ -71,7 +68,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
             <CardContent className="space-y-6">
                 
                 {/* KPIs de Vendas e WL */}
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-3">
                     <KpiCard 
                         title="Vendas Totais (Registradas)" 
                         value={formatNumber(totalSales)} 
@@ -98,8 +95,6 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                             </Tooltip>
                         } 
                     />
-                    <KpiCard title="Visualizações Marketing" value={formatNumber(totalMarketingViews)} icon={<Eye className="h-4 w-4 text-gogo-cyan" />} />
-                    <KpiCard title="Impressões Tráfego Pago" value={formatNumber(totalPaidImpressions)} icon={<Eye className="h-4 w-4 text-gogo-orange" />} />
                 </div>
 
                 <Separator />
