@@ -48,7 +48,6 @@
     /* Gogo Games Custom Colors */
     --gogo-cyan: 195 100% 50%; /* #00BFFF */
     --gogo-orange: 24 100% 50%; /* #FF6600 */
-    --gogo-purple: 270 80% 50%; /* New: for Monthly */
     --gogo-cyan-glow: 195 100% 50%; /* Para o efeito de glow */
     --gogo-orange-glow: 24 100% 50%; /* Para o efeito de glow */
 
@@ -111,7 +110,6 @@
     /* Gogo Games Custom Colors (Dark Mode) */
     --gogo-cyan: 195 100% 60%; /* Slightly lighter for dark mode */
     --gogo-orange: 24 100% 60%; /* Slightly lighter for dark mode */
-    --gogo-purple: 270 80% 60%; /* New: for Monthly */
     --gogo-cyan-glow: 195 100% 60%; /* Para o efeito de glow */
     --gogo-orange-glow: 24 100% 60%; /* Para o efeito de glow */
 

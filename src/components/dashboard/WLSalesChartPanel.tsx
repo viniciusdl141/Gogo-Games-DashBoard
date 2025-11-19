@@ -23,18 +23,14 @@ interface WLSalesChartPanelProps {
 }
 
 // Cores Gogo Games
-const SALES_COLOR = "hsl(var(--gogo-orange))"; // Gogo Orange
-
-// Novas cores para as frequências de Wishlists
-const DAILY_WL_COLOR = "hsl(var(--gogo-cyan))"; // Ciano para Diário
-const WEEKLY_WL_COLOR = "hsl(var(--gogo-orange))"; // Laranja para Semanal
-const MONTHLY_WL_COLOR = "hsl(var(--gogo-purple))"; // Roxo para Mensal
+const WL_COLOR = "#00BFFF"; // Gogo Cyan
+const SALES_COLOR = "#FF6600"; // Gogo Orange
 
 // Mapeamento de cores e formas para a frequência
 const FREQUENCY_STYLES: Record<EntryFrequency, { fill: string, stroke: string, shape: 'circle' | 'triangle' | 'square' }> = {
-    'Diário': { fill: DAILY_WL_COLOR, stroke: DAILY_WL_COLOR, shape: 'circle' },
-    'Semanal': { fill: WEEKLY_WL_COLOR, stroke: WEEKLY_WL_COLOR, shape: 'triangle' },
-    'Mensal': { fill: MONTHLY_WL_COLOR, stroke: MONTHLY_WL_COLOR, shape: 'square' },
+    'Diário': { fill: WL_COLOR, stroke: WL_COLOR, shape: 'circle' },
+    'Semanal': { fill: WL_COLOR, stroke: WL_COLOR, shape: 'triangle' },
+    'Mensal': { fill: WL_COLOR, stroke: WL_COLOR, shape: 'square' },
 };
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -159,9 +155,9 @@ const CustomLegend = (props: any) => {
     // Define os itens fixos da legenda
     const fixedItems = [
         { value: 'Vendas', color: SALES_COLOR, type: 'line' },
-        { value: 'Wishlists (Diário)', color: DAILY_WL_COLOR, shape: 'circle' },
-        { value: 'Wishlists (Semanal)', color: WEEKLY_WL_COLOR, shape: 'triangle' },
-        { value: 'Wishlists (Mensal)', color: MONTHLY_WL_COLOR, shape: 'square' },
+        { value: 'Wishlists (Diário)', color: WL_COLOR, shape: 'circle' },
+        { value: 'Wishlists (Semanal)', color: WL_COLOR, shape: 'triangle' },
+        { value: 'Wishlists (Mensal)', color: WL_COLOR, shape: 'square' },
     ];
 
     return (
@@ -246,7 +242,7 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
                         <Line 
                             type="monotone" 
                             dataKey="Wishlists" 
-                            stroke={DAILY_WL_COLOR} // Default line color, dots will override
+                            stroke={WL_COLOR}
                             strokeWidth={2}
                             dot={<CustomDot dataKey="Wishlists" />} // Use CustomDot for Wishlists
                             activeDot={{ r: 8, className: 'cursor-pointer' }}
