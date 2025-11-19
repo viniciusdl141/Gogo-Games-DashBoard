@@ -12,9 +12,24 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { formatDate, formatCurrency, formatNumber } from '@/lib/utils';
+import NetworkIcon from './NetworkIcon';
+import { Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface PaidTrafficPanelProps {
     data: PaidTrafficEntry[];
+    onDeleteTracking: (id: string) => void;
 }
 
 const formatConversion = (value: number | string): string => {
@@ -27,7 +42,7 @@ const formatCost = (value: number | string): string => {
     return formatCurrency(Number(value));
 };
 
-const PaidTrafficPanel: React.FC<PaidTrafficPanelProps> = ({ data }) => {
+const PaidTrafficPanel: React.FC<PaidTrafficPanelProps> = ({ data, onDeleteTracking }) => {
     if (data.length === 0) {
         return (
             <Card>
@@ -55,12 +70,16 @@ const PaidTrafficPanel: React.FC<PaidTrafficPanelProps> = ({ data }) => {
                                 <TableHead className="text-right">Investido (R$)</TableHead>
                                 <TableHead className="text-center">WL Est.</TableHead>
                                 <TableHead className="text-right">Custo/WL Est.</TableHead>
+                                <TableHead className="w-[50px] text-center">Ações</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {data.map((item, index) => (
-                                <TableRow key={index}>
-                                    <TableCell className="font-medium">{item.network}</TableCell>
+                                <TableRow key={item.id || index}>
+                                    <TableCell className="font-medium flex items-center space-x-2">
+                                        <NetworkIcon network={item.network} className="h-4 w-4" />
+                                        <span>{item.network}</span>
+                                    </TableCell>
                                     <TableCell>
                                         {formatDate(item.startDate)} - {formatDate(item.endDate)}
                                     </TableCell>
@@ -70,6 +89,29 @@ const PaidTrafficPanel: React.FC<PaidTrafficPanelProps> = ({ data }) => {
                                     <TableCell className="text-right">{formatCurrency(item.investedValue)}</TableCell>
                                     <TableCell className="text-center">{formatNumber(item.estimatedWishlists)}</TableCell>
                                     <TableCell className="text-right">{formatCost(item.estimatedCostPerWL)}</TableCell>
+                                    <TableCell className="text-center">
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Esta ação removerá permanentemente o registro de tráfego pago para "{item.network}" ({item.game}).
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => onDeleteTracking(item.id)} className="bg-destructive hover:bg-destructive/90">
+                                                        Remover
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

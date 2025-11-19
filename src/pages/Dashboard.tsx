@@ -21,13 +21,14 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import WlDetailsPanel from '@/components/dashboard/WlDetailsPanel';
 import AddInfluencerForm from '@/components/dashboard/AddInfluencerForm';
 import AddEventForm from '@/components/dashboard/AddEventForm';
+import AddPaidTrafficForm from '@/components/dashboard/AddPaidTrafficForm'; // <-- Novo Import
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
 // Initialize data once
 const initialData = getTrackingData();
 
 // Helper to generate unique IDs locally
-let localIdCounter = initialData.influencerTracking.length + initialData.eventTracking.length;
+let localIdCounter = initialData.influencerTracking.length + initialData.eventTracking.length + initialData.paidTraffic.length;
 const generateLocalUniqueId = (prefix: string) => `${prefix}-${localIdCounter++}`;
 
 const Dashboard = () => {
@@ -35,6 +36,7 @@ const Dashboard = () => {
   const [selectedGame, setSelectedGame] = useState<string>(trackingData.games[0] || '');
   const [isAddInfluencerFormOpen, setIsAddInfluencerFormOpen] = useState(false);
   const [isAddEventFormOpen, setIsAddEventFormOpen] = useState(false);
+  const [isAddPaidTrafficFormOpen, setIsAddPaidTrafficFormOpen] = useState(false); // <-- Novo Estado
 
   // --- Influencer Handlers ---
 
@@ -110,32 +112,77 @@ const Dashboard = () => {
     setIsAddEventFormOpen(false);
   }, []);
 
+  // --- Paid Traffic Handlers ---
+
+  const handleDeletePaidTrafficEntry = useCallback((id: string) => {
+    setTrackingData(prevData => ({
+      ...prevData,
+      paidTraffic: prevData.paidTraffic.filter(entry => entry.id !== id),
+    }));
+    toast.success("Entrada de tráfego pago removida com sucesso.");
+  }, []);
+
+  const handleAddPaidTrafficEntry = useCallback((newEntry: Omit<PaidTrafficEntry, 'startDate' | 'endDate' | 'networkConversion' | 'estimatedCostPerWL' | 'validatedCostPerWL'> & { startDate: string, endDate: string }) => {
+    const startDateObject = new Date(newEntry.startDate);
+    const endDateObject = new Date(newEntry.endDate);
+
+    // Calculate Network Conversion (Clicks / Impressions)
+    const networkConversion = newEntry.impressions > 0 
+        ? newEntry.clicks / newEntry.impressions 
+        : 0;
+
+    // Calculate Estimated Cost Per WL (Invested Value / Estimated WL)
+    const estimatedCostPerWL = newEntry.estimatedWishlists > 0 
+        ? newEntry.investedValue / newEntry.estimatedWishlists 
+        : '-';
+
+    const entryToAdd: PaidTrafficEntry = {
+        ...newEntry,
+        id: generateLocalUniqueId('paid'),
+        startDate: startDateObject,
+        endDate: endDateObject,
+        networkConversion: networkConversion,
+        estimatedCostPerWL: estimatedCostPerWL,
+        validatedCostPerWL: '-', // Placeholder, as validation is external
+    };
+
+    setTrackingData(prevData => ({
+        ...prevData,
+        paidTraffic: [...prevData.paidTraffic, entryToAdd].sort((a, b) => (a.startDate?.getTime() || 0) - (b.startDate?.getTime() || 0)),
+    }));
+    
+    setIsAddPaidTrafficFormOpen(false);
+  }, []);
+
 
   const filteredData = useMemo(() => {
     if (!selectedGame) return null;
     
     const game = selectedGame.trim();
 
-    // Filter and enhance Influencer Data
+    // Filter and enhance data, recalculating dynamic fields
     const influencerTracking = trackingData.influencerTracking
         .filter(d => d.game.trim() === game)
         .map(item => ({
             ...item,
-            // Recalculate ROI in case investment/WL was manually updated (future feature)
             roi: item.estimatedWL > 0 ? item.investment / item.estimatedWL : '-',
         }));
     
-    // Filter and enhance Event Data
     const eventTracking = trackingData.eventTracking
         .filter(d => d.game.trim() === game)
         .map(item => ({
             ...item,
-            id: item.id || generateLocalUniqueId('event'), // Ensure existing data has IDs for deletion
             roi: item.wlGenerated > 0 ? item.cost / item.wlGenerated : '-',
             costPerView: item.views > 0 ? item.cost / item.views : '-',
         }));
 
-    const paidTraffic = trackingData.paidTraffic.filter(d => d.game.trim() === game);
+    const paidTraffic = trackingData.paidTraffic
+        .filter(d => d.game.trim() === game)
+        .map(item => ({
+            ...item,
+            networkConversion: item.impressions > 0 ? item.clicks / item.impressions : 0,
+            estimatedCostPerWL: item.estimatedWishlists > 0 ? item.investedValue / item.estimatedWishlists : '-',
+        }));
     
     // Recalculate Influencer Summary based on current tracking data
     const influencerSummaryMap = new Map<string, { totalActions: number, totalInvestment: number, wishlistsGenerated: number }>();
@@ -308,7 +355,26 @@ const Dashboard = () => {
                 </TabsContent>
 
                 <TabsContent value="paid-traffic" className="mt-4">
-                    <PaidTrafficPanel data={filteredData.paidTraffic} />
+                    <div className="flex justify-end mb-4">
+                        <Dialog open={isAddPaidTrafficFormOpen} onOpenChange={setIsAddPaidTrafficFormOpen}>
+                            <DialogTrigger asChild>
+                                <Button onClick={() => setIsAddPaidTrafficFormOpen(true)}>
+                                    <Plus className="h-4 w-4 mr-2" /> Adicionar Tráfego Pago
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[600px]">
+                                <DialogHeader>
+                                    <DialogTitle>Adicionar Novo Tracking de Tráfego Pago</DialogTitle>
+                                </DialogHeader>
+                                <AddPaidTrafficForm 
+                                    games={trackingData.games} 
+                                    onSave={handleAddPaidTrafficEntry} 
+                                    onClose={() => setIsAddPaidTrafficFormOpen(false)} 
+                                />
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                    <PaidTrafficPanel data={filteredData.paidTraffic} onDeleteTracking={handleDeletePaidTrafficEntry} />
                 </TabsContent>
 
                 <TabsContent value="demo" className="mt-4">

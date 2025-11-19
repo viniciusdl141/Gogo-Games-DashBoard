@@ -42,6 +42,7 @@ export interface EventTrackingEntry {
 }
 
 export interface PaidTrafficEntry {
+    id: string; // Added unique ID for manipulation
     game: string;
     network: string;
     impressions: number;
@@ -174,6 +175,7 @@ const processPaidTraffic = (data: any[]): PaidTrafficEntry[] => {
     return data
         .filter(item => item.Game && item.Rede)
         .map(item => ({
+            id: generateUniqueId('paid'), // Assign unique ID
             game: item.Game,
             network: item.Rede,
             impressions: Number(item['Impressões']) || 0,
