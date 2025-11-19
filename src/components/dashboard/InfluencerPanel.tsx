@@ -76,7 +76,7 @@ const InfluencerSummaryTable: React.FC<{ data: InfluencerSummaryEntry[] }> = ({ 
                 {data.map((item, index) => (
                     <TableRow key={index}>
                         <TableCell className="font-medium">{item.influencer}</TableCell>
-                        <TableCell className="text-center">{item.totalActions}</TableCell>
+                        <TableCell className="text-center">{formatNumber(item.totalActions)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(item.totalInvestment)}</TableCell>
                         <TableCell className="text-center">{formatNumber(item.wishlistsGenerated)}</TableCell>
                         <TableCell className="text-right">{formatROI(item.avgROI)}</TableCell>
@@ -226,7 +226,7 @@ const InfluencerBarChart: React.FC<{ data: InfluencerSummaryEntry[] }> = ({ data
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="influencer" angle={-15} textAnchor="end" height={50} stroke="hsl(var(--foreground))" />
                     <YAxis yAxisId="left" orientation="left" stroke={INVESTMENT_COLOR} tickFormatter={(value) => formatCurrency(value)} />
-                    <YAxis yAxisId="right" orientation="right" stroke={WL_COLOR} />
+                    <YAxis yAxisId="right" orientation="right" stroke={WL_COLOR} tickFormatter={(value) => formatNumber(value)} />
                     <Tooltip formatter={(value, name) => [name === 'Investimento' ? formatCurrency(value as number) : formatNumber(value as number), name]} />
                     <Legend />
                     <Bar yAxisId="left" dataKey="Investimento" fill={INVESTMENT_COLOR} />

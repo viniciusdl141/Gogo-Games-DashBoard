@@ -30,6 +30,7 @@ import GameSummaryPanel from '@/components/dashboard/GameSummaryPanel';
 import ExportDataButton from '@/components/dashboard/ExportDataButton';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import AddGameForm from '@/components/dashboard/AddGameForm';
+import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel'; // Importar o novo painel
 
 // Initialize data once
 const initialData = getTrackingData();
@@ -411,12 +412,14 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="text-center flex flex-col items-center">
-            <img src="/gogo-games-logo.png" alt="Gogo Games Logo" className="h-16 w-auto mb-4" />
-            <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-50">
-            Dashboard de Performance Geral
-            </h1>
-            <p className="text-muted-foreground mt-2">Análise de campanhas e resultados de jogos</p>
+        <header className="flex items-center justify-between mb-8">
+            <div className="flex items-center">
+                <img src="/gogo-games-logo.png" alt="Gogo Games Logo" className="h-12 w-auto mr-4" />
+                <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">
+                    Dashboard de Performance Geral
+                </h1>
+            </div>
+            <p className="text-muted-foreground hidden md:block">Análise de campanhas e resultados de jogos</p>
         </header>
 
         <Card>
@@ -455,9 +458,10 @@ const Dashboard = () => {
         {filteredData && (
             <>
                 <Tabs defaultValue="overview" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
+                    <TabsList className="grid w-full grid-cols-3 md:grid-cols-7"> {/* Adjusted grid-cols for new tab */}
                         <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                         <TabsTrigger value="wl-sales">Wishlists</TabsTrigger>
+                        <TabsTrigger value="comparisons">Comparações</TabsTrigger> {/* New tab trigger */}
                         <TabsTrigger value="influencers">Influencers</TabsTrigger>
                         <TabsTrigger value="events">Eventos</TabsTrigger>
                         <TabsTrigger value="paid-traffic">Tráfego Pago</TabsTrigger>
@@ -543,6 +547,11 @@ const Dashboard = () => {
                                 onUpdateDetails={handleUpdateWlDetails}
                             />
                         )}
+                    </TabsContent>
+
+                    {/* New Comparisons Tab Content */}
+                    <TabsContent value="comparisons" className="space-y-4 mt-4">
+                        <WlComparisonsPanel data={filteredData.wlSales} allPlatforms={ALL_PLATFORMS} />
                     </TabsContent>
 
                     <TabsContent value="influencers" className="mt-4">

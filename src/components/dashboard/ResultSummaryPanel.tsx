@@ -11,7 +11,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -22,26 +22,35 @@ interface ResultSummaryPanelProps {
 const formatValue = (key: keyof ResultSummaryEntry, value: number | string | undefined): string => {
     if (value === undefined || value === null || value === '' || value === '#DIV/0!' || (typeof value === 'number' && isNaN(value))) return '-';
     
-    const numValue = Number(value);
+    // Clean the value if it's a string that might contain currency symbols or commas
+    let cleanedValue: number | string = value;
+    if (typeof value === 'string') {
+        const temp = value.replace(/R\$/, '').replace(/\./g, '').replace(/,/g, '.').trim();
+        const num = parseFloat(temp);
+        if (!isNaN(num)) {
+            cleanedValue = num;
+        } else {
+            cleanedValue = value; // Keep as string if not a valid number
+        }
+    }
 
-    if (typeof value === 'string' && value.startsWith('R$')) return value;
+    const numValue = Number(cleanedValue);
+
+    if (typeof cleanedValue === 'string' && cleanedValue.startsWith('R$')) return cleanedValue;
 
     if (key.includes('Custo') || key.includes('Real/')) {
-        // Se for um custo ou valor monetário, formatar como moeda
         return formatCurrency(numValue);
     }
     if (key.includes('Conversão') || key.includes('WL/Real')) {
-        // Se for uma taxa de conversão ou WL/Real
         if (key === 'Conversão vendas/wl') {
              return `${(numValue * 100).toFixed(2)}%`;
         }
-        // Se for WL/Real, mostrar 2 casas decimais
         return numValue.toFixed(2);
     }
     if (key.includes('Visualizações') || key.includes('Visitas')) {
-        return numValue.toFixed(2);
+        return formatNumber(numValue); // Use formatNumber for large view counts
     }
-    return String(value);
+    return String(cleanedValue);
 };
 
 const getColumnTitle = (key: keyof ResultSummaryEntry) => {
@@ -75,7 +84,7 @@ const ResultSummaryPanel: React.FC<ResultSummaryPanelProps> = ({ data }) => {
     
     // Determine which columns actually have data across all rows
     const columnsToShow = allKeys.filter(key => 
-        data.some(row => row[key] !== undefined && row[key] !== null && row[key] !== '' && row[key] !== '#DIV/0!' && !(typeof row[key] === 'number' && isNaN(row[key])))
+        data.some(row => row[key] !== undefined && row[key] !== null && row[key] !== '' && row[key] !== '#DIV/0!' && !(typeof row[key] === 'number' && isNaN(Number(row[key]))))
     );
 
     return (
