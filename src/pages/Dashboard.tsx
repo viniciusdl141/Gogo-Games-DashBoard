@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff } from 'lucide-react';
+import { DollarSign, Eye, List, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -35,16 +35,13 @@ import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm';
 import EditWLSalesForm from '@/components/dashboard/EditWLSalesForm';
 import GameSummaryPanel from '@/components/dashboard/GameSummaryPanel';
 import ExportDataButton from '@/components/dashboard/ExportDataButton';
-import { formatCurrency, formatNumber } from '@/lib/utils';
+import { formatCurrency, formatNumber, generateUniqueId } from '@/lib/utils';
 import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
+import LaunchCountdownCard from '@/components/dashboard/LaunchCountdownCard'; // Importar o novo componente
 
 // Initialize data once
 const initialData = getTrackingData();
-
-// Helper to generate unique IDs locally
-let localIdCounter = initialData.influencerTracking.length + initialData.eventTracking.length + initialData.paidTraffic.length + initialData.wlSales.length;
-const generateLocalUniqueId = (prefix: string) => `${prefix}-${localIdCounter++}`;
 
 const ALL_PLATFORMS: Platform[] = ['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra'];
 
@@ -90,7 +87,7 @@ const Dashboard = () => {
         ...prevData,
         games: [...prevData.games, gameName].sort(),
         // Initialize WL details for the new game (empty)
-        wlDetails: [...prevData.wlDetails, { game: gameName, reviews: [], bundles: [], traffic: [] }],
+        wlDetails: [...prevData.wlDetails, { game: gameName, reviews: [], bundles: [], traffic: [], launchDate: null }],
     }));
     setSelectedGame(gameName);
     toast.success(`Jogo "${gameName}" adicionado com sucesso!`);
@@ -122,7 +119,7 @@ const Dashboard = () => {
     setTrackingData(prevData => {
         const entryToAdd: WLSalesPlatformEntry = {
             ...newEntry,
-            id: generateLocalUniqueId('wl'),
+            id: generateUniqueId('wl'),
             date: dateObject,
             variation: 0, // Will be recalculated
         };
@@ -186,7 +183,7 @@ const Dashboard = () => {
     const roiValue = newEntry.estimatedWL > 0 ? newEntry.investment / newEntry.estimatedWL : '-';
     const entryToAdd: InfluencerTrackingEntry = {
         ...newEntry,
-        id: generateLocalUniqueId('influencer'),
+        id: generateUniqueId('influencer'),
         date: dateObject,
         roi: roiValue,
     };
@@ -221,7 +218,7 @@ const Dashboard = () => {
     const costPerViewValue = newEntry.views > 0 ? newEntry.cost / newEntry.views : '-';
     const entryToAdd: EventTrackingEntry = {
         ...newEntry,
-        id: generateLocalUniqueId('event'),
+        id: generateUniqueId('event'),
         startDate: startDateObject,
         endDate: endDateObject,
         roi: roiValue,
@@ -258,7 +255,7 @@ const Dashboard = () => {
     const estimatedCostPerWL = newEntry.estimatedWishlists > 0 ? newEntry.investedValue / newEntry.estimatedWishlists : '-';
     const entryToAdd: PaidTrafficEntry = {
         ...newEntry,
-        id: generateLocalUniqueId('paid'),
+        id: generateUniqueId('paid'),
         startDate: startDateObject,
         endDate: endDateObject,
         networkConversion: networkConversion,
@@ -353,10 +350,12 @@ const Dashboard = () => {
 
     const totalInvestment = investmentSources.influencers + investmentSources.events + investmentSources.paidTraffic;
 
-    const totalViews = 
+    // Separar Views e Impressões
+    const totalMarketingViews = 
         influencerTracking.reduce((sum, item) => sum + item.views, 0) +
-        eventTracking.reduce((sum, item) => sum + item.views, 0) +
-        paidTraffic.reduce((sum, item) => sum + item.impressions, 0);
+        eventTracking.reduce((sum, item) => sum + item.views, 0);
+    
+    const totalPaidImpressions = paidTraffic.reduce((sum, item) => sum + item.impressions, 0);
     
     const totalWLGenerated = 
         influencerTracking.reduce((sum, item) => sum + item.estimatedWL, 0) +
@@ -366,6 +365,7 @@ const Dashboard = () => {
     const totalSales = wlSales.reduce((sum, item) => sum + item.sales, 0);
     const totalWishlists = wlSales.length > 0 ? wlSales[wlSales.length - 1].wishlists : 0;
 
+    const wlDetailsForGame = trackingData.wlDetails.find(d => d.game.trim() === game);
 
     return {
       resultSummary: trackingData.resultSummary.filter(d => d.game.trim() === game),
@@ -375,10 +375,11 @@ const Dashboard = () => {
       eventTracking,
       paidTraffic,
       demoTracking: trackingData.demoTracking.filter(d => d.game.trim() === game),
-      wlDetails: trackingData.wlDetails.find(d => d.game.trim() === game),
+      wlDetails: wlDetailsForGame, // Passar os detalhes completos, incluindo launchDate
       kpis: {
           totalInvestment,
-          totalViews,
+          totalMarketingViews, // Novo KPI
+          totalPaidImpressions, // Novo KPI
           totalWLGenerated,
           totalSales,
           totalWishlists,
@@ -426,18 +427,20 @@ const Dashboard = () => {
           <div className="flex flex-col h-full">
             <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">Selecione um Jogo</h2>
             <div className="flex-grow space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="game-select" className="font-semibold text-foreground">Jogo:</Label>
-                <Select onValueChange={setSelectedGame} defaultValue={selectedGame}>
-                  <SelectTrigger id="game-select" className="w-full bg-background">
-                    <SelectValue placeholder="Selecione um jogo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {trackingData.games.map(game => (
-                      <SelectItem key={game} value={game}>{game}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <Label className="font-semibold text-foreground mb-2 block">Jogo:</Label>
+              <div className="space-y-1">
+                  {trackingData.games.map(game => (
+                      <Button
+                          key={game}
+                          variant={selectedGame === game ? "secondary" : "ghost"}
+                          className={`w-full justify-start text-left ${selectedGame === game ? 'bg-gogo-cyan/20 text-gogo-cyan hover:bg-gogo-cyan/30' : 'hover:bg-muted/50'}`}
+                          onClick={() => setSelectedGame(game)}
+                      >
+                          <span className="flex items-center gap-2">
+                              {game}
+                          </span>
+                      </Button>
+                  ))}
               </div>
               <Dialog open={isAddGameFormOpen} onOpenChange={setIsAddGameFormOpen}>
                 <DialogTrigger asChild>
@@ -491,11 +494,15 @@ const Dashboard = () => {
                                 totalWishlists={filteredData.kpis.totalWishlists}
                                 totalInvestment={filteredData.kpis.totalInvestment}
                                 investmentSources={filteredData.kpis.investmentSources}
+                                totalMarketingViews={filteredData.kpis.totalMarketingViews}
+                                totalPaidImpressions={filteredData.kpis.totalPaidImpressions}
                             />
-                            <div className="grid gap-4 md:grid-cols-3">
+                            <div className="grid gap-4 md:grid-cols-4"> {/* Ajustado para 4 colunas */}
                                 <KpiCard title="Investimento Total" value={formatCurrency(filteredData.kpis.totalInvestment)} icon={<DollarSign className="h-4 w-4 text-gogo-orange" />} />
-                                <KpiCard title="Views + Impressões" value={formatNumber(filteredData.kpis.totalViews)} icon={<Eye className="h-4 w-4 text-gogo-cyan" />} />
+                                <KpiCard title="Visualizações Marketing" value={formatNumber(filteredData.kpis.totalMarketingViews)} icon={<Eye className="h-4 w-4 text-gogo-cyan" />} />
+                                <KpiCard title="Impressões Tráfego Pago" value={formatNumber(filteredData.kpis.totalPaidImpressions)} icon={<Eye className="h-4 w-4 text-gogo-orange" />} />
                                 <KpiCard title="Wishlists Geradas (Est.)" value={formatNumber(filteredData.kpis.totalWLGenerated)} description="Estimativa baseada em ações de marketing." icon={<List className="h-4 w-4 text-gogo-orange" />} />
+                                <LaunchCountdownCard launchDate={filteredData.wlDetails?.launchDate || null} /> {/* Novo componente */}
                             </div>
                             <ResultSummaryPanel data={filteredData.resultSummary} />
                         </TabsContent>
@@ -520,7 +527,7 @@ const Dashboard = () => {
 
                             <div className="flex justify-end mb-4 space-x-2">
                                 <Button variant="outline" size="sm" onClick={() => setIsHistoryVisible(!isHistoryVisible)} className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10">
-                                    {isHistoryVisible ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                                    {isHistoryVisible ? <Eye className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
                                     {isHistoryVisible ? 'Ocultar Histórico' : 'Mostrar Histórico'}
                                 </Button>
                                 <ExportDataButton 
