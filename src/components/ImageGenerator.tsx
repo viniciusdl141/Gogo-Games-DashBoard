@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Loader2, Image as ImageIcon } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
+import { Skeleton } from "@/components/ui/skeleton"; // Importando Skeleton
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState<string>("");
@@ -27,19 +28,6 @@ const ImageGenerator = () => {
 
     try {
       // Simulate an API call to an AI image generation service
-      // In a real application, you would replace this with an actual API call
-      // For example:
-      // const response = await fetch('/api/generate-image', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ prompt }),
-      // });
-      // if (!response.ok) {
-      //   throw new Error('Failed to generate image');
-      // }
-      // const data = await response.json();
-      // setImageUrl(data.imageUrl);
-
       await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate network delay
 
       // Placeholder image URL - replace with actual generated image URL
@@ -57,14 +45,16 @@ const ImageGenerator = () => {
 
   return (
     <div className="container mx-auto p-4 max-w-2xl">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">AI Image Generator</CardTitle>
+      <Card className="w-full shadow-lg border-none">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-3xl font-extrabold text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+            AI Image Generator
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleGenerateImage} className="space-y-4">
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="prompt">Image Prompt</Label>
+          <form onSubmit={handleGenerateImage} className="space-y-6">
+            <div className="grid w-full items-center gap-2">
+              <Label htmlFor="prompt" className="text-lg font-medium">Image Prompt</Label>
               <Input
                 id="prompt"
                 type="text"
@@ -72,12 +62,13 @@ const ImageGenerator = () => {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 disabled={isLoading}
+                className="h-10 text-base focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full py-2 text-lg font-semibold transition-all duration-300 ease-in-out transform hover:scale-105" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Generating...
                 </>
               ) : (
@@ -87,24 +78,32 @@ const ImageGenerator = () => {
           </form>
 
           {error && (
-            <p className="text-red-500 text-center mt-4">{error}</p>
+            <p className="text-destructive text-center mt-6 text-sm">{error}</p>
+          )}
+
+          {isLoading && !imageUrl && (
+            <div className="mt-8 text-center">
+              <Skeleton className="w-full h-64 rounded-md mx-auto" />
+              <p className="text-muted-foreground mt-4 animate-pulse">Generating your masterpiece...</p>
+            </div>
           )}
 
           {imageUrl && (
-            <div className="mt-6 text-center">
-              <h3 className="text-lg font-semibold mb-2">Generated Image:</h3>
+            <div className="mt-8 text-center animate-fade-in">
+              <h3 className="text-xl font-semibold mb-4">Generated Image:</h3>
               <img
                 src={imageUrl}
                 alt="Generated AI Image"
-                className="max-w-full h-auto rounded-md shadow-lg mx-auto"
+                className="max-w-full h-auto rounded-lg shadow-xl mx-auto border-2 border-border"
               />
             </div>
           )}
 
           {!imageUrl && !isLoading && !error && (
-            <div className="mt-6 text-center text-muted-foreground flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-md">
-              <ImageIcon className="h-12 w-12 mb-2" />
-              <p>Your generated image will appear here.</p>
+            <div className="mt-8 text-center text-muted-foreground flex flex-col items-center justify-center h-64 border-2 border-dashed border-border rounded-lg bg-muted/20 p-4">
+              <ImageIcon className="h-16 w-16 mb-4 text-muted-foreground/60" />
+              <p className="text-lg font-medium">Your generated image will appear here.</p>
+              <p className="text-sm mt-1">Enter a prompt above and click "Generate Image".</p>
             </div>
           )}
         </CardContent>
