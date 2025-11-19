@@ -372,6 +372,7 @@ const Dashboard = () => {
     };
   }, [selectedGame, selectedPlatform, trackingData, recalculateWLSales]);
 
+  // Renderização condicional para quando não há jogos
   if (trackingData.games.length === 0) {
     return (
         <div className="min-h-screen flex items-center justify-center p-8">
@@ -399,6 +400,7 @@ const Dashboard = () => {
     );
   }
 
+  // Renderização principal
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
