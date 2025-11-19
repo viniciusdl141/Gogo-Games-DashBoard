@@ -156,12 +156,12 @@ const InfluencerBarChart: React.FC<{ data: InfluencerSummaryEntry[] }> = ({ data
                 >
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="influencer" angle={-15} textAnchor="end" height={50} stroke="hsl(var(--foreground))" />
-                    <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--primary))" tickFormatter={(value) => formatCurrency(value)} />
-                    <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--accent-foreground))" />
+                    <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--gogo-primary))" tickFormatter={(value) => formatCurrency(value)} />
+                    <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--gogo-secondary))" />
                     <Tooltip formatter={(value, name) => [name === 'Investimento' ? formatCurrency(value as number) : formatNumber(value as number), name]} />
                     <Legend />
-                    <Bar yAxisId="left" dataKey="Investimento" fill="hsl(var(--primary))" />
-                    <Bar yAxisId="right" dataKey="Wishlists" fill="hsl(var(--accent-foreground))" />
+                    <Bar yAxisId="left" dataKey="Investimento" fill="hsl(var(--gogo-primary))" />
+                    <Bar yAxisId="right" dataKey="Wishlists" fill="hsl(var(--gogo-secondary))" />
                 </BarChart>
             </ResponsiveContainer>
         </div>
