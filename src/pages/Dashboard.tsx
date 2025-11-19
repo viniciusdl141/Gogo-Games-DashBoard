@@ -410,20 +410,19 @@ const Dashboard = () => {
 
   // Renderização principal
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gogo-cyan/5 to-gogo-orange/5 dark:from-gray-950 dark:to-gray-900 font-sans p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="flex items-center mb-8"> {/* Removed justify-between */}
-            <img src="/gogo-games-logo.png" alt="Gogo Games Logo" className="h-12 w-auto mr-4" />
-            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">
-                Dashboard de Performance Geral
-            </h1>
-        </header>
-
-        <Card>
-            <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
-                <label htmlFor="game-select" className="font-semibold text-lg min-w-[150px]">Selecionar Jogo:</label>
+        <header className="flex flex-col sm:flex-row items-center justify-between mb-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+            <div className="flex items-center mb-4 sm:mb-0">
+                <img src="/gogo-games-logo.png" alt="Gogo Games Logo" className="h-14 w-auto mr-4" />
+                <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">
+                    Dashboard de Performance
+                </h1>
+            </div>
+            <div className="flex items-center gap-4">
+                <label htmlFor="game-select" className="font-semibold text-lg text-gray-700 dark:text-gray-200">Jogo:</label>
                 <Select onValueChange={setSelectedGame} defaultValue={selectedGame}>
-                    <SelectTrigger id="game-select" className="w-full md:w-[300px]">
+                    <SelectTrigger id="game-select" className="w-full md:w-[200px] bg-background">
                         <SelectValue placeholder="Selecione um jogo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -436,7 +435,7 @@ const Dashboard = () => {
                 <Dialog open={isAddGameFormOpen} onOpenChange={setIsAddGameFormOpen}>
                     <DialogTrigger asChild>
                         <Button variant="outline" size="sm" className="bg-gogo-orange hover:bg-gogo-orange/90 text-white">
-                            <Gamepad2 className="h-4 w-4 mr-2" /> Novo Jogo
+                            <Plus className="h-4 w-4 mr-2" /> Novo Jogo
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[400px]">
@@ -449,23 +448,23 @@ const Dashboard = () => {
                         />
                     </DialogContent>
                 </Dialog>
-            </CardContent>
-        </Card>
+            </div>
+        </header>
 
         {filteredData && (
             <>
                 <Tabs defaultValue="overview" className="w-full">
-                    <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b bg-muted text-muted-foreground"> {/* Adjusted for scrolling */}
-                        <TabsTrigger value="overview" className="min-w-fit">Visão Geral</TabsTrigger>
-                        <TabsTrigger value="wl-sales" className="min-w-fit">Wishlists</TabsTrigger>
-                        <TabsTrigger value="comparisons" className="min-w-fit">Comparações</TabsTrigger>
-                        <TabsTrigger value="influencers" className="min-w-fit">Influencers</TabsTrigger>
-                        <TabsTrigger value="events" className="min-w-fit">Eventos</TabsTrigger>
-                        <TabsTrigger value="paid-traffic" className="min-w-fit">Tráfego Pago</TabsTrigger>
-                        <TabsTrigger value="demo" className="min-w-fit">Demo</TabsTrigger>
+                    <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b bg-white dark:bg-gray-800 text-muted-foreground rounded-t-lg p-0 h-auto">
+                        <TabsTrigger value="overview" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Visão Geral</TabsTrigger>
+                        <TabsTrigger value="wl-sales" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Wishlists</TabsTrigger>
+                        <TabsTrigger value="comparisons" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Comparações</TabsTrigger>
+                        <TabsTrigger value="influencers" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Influencers</TabsTrigger>
+                        <TabsTrigger value="events" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Eventos</TabsTrigger>
+                        <TabsTrigger value="paid-traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Tráfego Pago</TabsTrigger>
+                        <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Demo</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="overview" className="space-y-4 mt-4">
+                    <TabsContent value="overview" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                         <GameSummaryPanel 
                             gameName={selectedGame}
                             totalSales={filteredData.kpis.totalSales}
@@ -474,19 +473,19 @@ const Dashboard = () => {
                             investmentSources={filteredData.kpis.investmentSources}
                         />
                         <div className="grid gap-4 md:grid-cols-3">
-                            <KpiCard title="Investimento Total" value={formatCurrency(filteredData.kpis.totalInvestment)} icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} />
-                            <KpiCard title="Views + Impressões" value={formatNumber(filteredData.kpis.totalViews)} icon={<Eye className="h-4 w-4 text-muted-foreground" />} />
-                            <KpiCard title="Wishlists Geradas (Est.)" value={formatNumber(filteredData.kpis.totalWLGenerated)} description="Estimativa baseada em ações de marketing." icon={<List className="h-4 w-4 text-muted-foreground" />} />
+                            <KpiCard title="Investimento Total" value={formatCurrency(filteredData.kpis.totalInvestment)} icon={<DollarSign className="h-4 w-4 text-gogo-orange" />} />
+                            <KpiCard title="Views + Impressões" value={formatNumber(filteredData.kpis.totalViews)} icon={<Eye className="h-4 w-4 text-gogo-cyan" />} />
+                            <KpiCard title="Wishlists Geradas (Est.)" value={formatNumber(filteredData.kpis.totalWLGenerated)} description="Estimativa baseada em ações de marketing." icon={<List className="h-4 w-4 text-gogo-orange" />} />
                         </div>
                         <ResultSummaryPanel data={filteredData.resultSummary} />
                     </TabsContent>
 
-                    <TabsContent value="wl-sales" className="space-y-4 mt-4">
-                        <Card>
+                    <TabsContent value="wl-sales" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <Card className="bg-muted/50 dark:bg-gray-700 border-none shadow-none">
                             <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
-                                <label htmlFor="platform-select" className="font-semibold text-md min-w-[150px]">Filtrar por Plataforma:</label>
+                                <label htmlFor="platform-select" className="font-semibold text-md min-w-[150px] text-gray-700 dark:text-gray-200">Filtrar por Plataforma:</label>
                                 <Select onValueChange={(value: Platform | 'All') => setSelectedPlatform(value)} defaultValue={selectedPlatform}>
-                                    <SelectTrigger id="platform-select" className="w-full md:w-[200px]">
+                                    <SelectTrigger id="platform-select" className="w-full md:w-[200px] bg-background">
                                         <SelectValue placeholder="Todas as Plataformas" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -500,7 +499,7 @@ const Dashboard = () => {
                         </Card>
 
                         <div className="flex justify-end mb-4 space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => setIsHistoryVisible(!isHistoryVisible)}>
+                            <Button variant="outline" size="sm" onClick={() => setIsHistoryVisible(!isHistoryVisible)} className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10">
                                 {isHistoryVisible ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
                                 {isHistoryVisible ? 'Ocultar Histórico' : 'Mostrar Histórico'}
                             </Button>
@@ -511,7 +510,7 @@ const Dashboard = () => {
                             />
                             <Dialog open={isAddWLSalesFormOpen} onOpenChange={setIsAddWLSalesFormOpen}>
                                 <DialogTrigger asChild>
-                                    <Button onClick={() => setIsAddWLSalesFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
+                                    <Button onClick={() => setIsAddWLSalesFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
                                         <Plus className="h-4 w-4 mr-2" /> Adicionar WL/Venda
                                     </Button>
                                 </DialogTrigger>
@@ -547,11 +546,11 @@ const Dashboard = () => {
                     </TabsContent>
 
                     {/* New Comparisons Tab Content */}
-                    <TabsContent value="comparisons" className="space-y-4 mt-4">
+                    <TabsContent value="comparisons" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                         <WlComparisonsPanel data={filteredData.wlSales} allPlatforms={ALL_PLATFORMS} />
                     </TabsContent>
 
-                    <TabsContent value="influencers" className="mt-4">
+                    <TabsContent value="influencers" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                         <div className="flex justify-end mb-4 space-x-2">
                             <ExportDataButton 
                                 data={filteredData.influencerTracking} 
@@ -560,7 +559,7 @@ const Dashboard = () => {
                             />
                             <Dialog open={isAddInfluencerFormOpen} onOpenChange={setIsAddInfluencerFormOpen}>
                                 <DialogTrigger asChild>
-                                    <Button onClick={() => setIsAddInfluencerFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
+                                    <Button onClick={() => setIsAddInfluencerFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
                                         <Plus className="h-4 w-4 mr-2" /> Adicionar Entrada
                                     </Button>
                                 </DialogTrigger>
@@ -585,7 +584,7 @@ const Dashboard = () => {
                         />
                     </TabsContent>
 
-                    <TabsContent value="events" className="mt-4">
+                    <TabsContent value="events" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                         <div className="flex justify-end mb-4 space-x-2">
                             <ExportDataButton 
                                 data={filteredData.eventTracking} 
@@ -594,7 +593,7 @@ const Dashboard = () => {
                             />
                             <Dialog open={isAddEventFormOpen} onOpenChange={setIsAddEventFormOpen}>
                                 <DialogTrigger asChild>
-                                    <Button onClick={() => setIsAddEventFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
+                                    <Button onClick={() => setIsAddEventFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
                                         <Plus className="h-4 w-4 mr-2" /> Adicionar Evento
                                     </Button>
                                 </DialogTrigger>
@@ -618,7 +617,7 @@ const Dashboard = () => {
                         />
                     </TabsContent>
 
-                    <TabsContent value="paid-traffic" className="mt-4">
+                    <TabsContent value="paid-traffic" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                         <div className="flex justify-end mb-4 space-x-2">
                             <ExportDataButton 
                                 data={filteredData.paidTraffic} 
@@ -627,7 +626,7 @@ const Dashboard = () => {
                             />
                             <Dialog open={isAddPaidTrafficFormOpen} onOpenChange={setIsAddPaidTrafficFormOpen}>
                                 <DialogTrigger asChild>
-                                    <Button onClick={() => setIsAddPaidTrafficFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
+                                    <Button onClick={() => setIsAddPaidTrafficFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
                                         <Plus className="h-4 w-4 mr-2" /> Adicionar Tráfego Pago
                                     </Button>
                                 </DialogTrigger>
@@ -651,7 +650,7 @@ const Dashboard = () => {
                         />
                     </TabsContent>
 
-                    <TabsContent value="demo" className="mt-4">
+                    <TabsContent value="demo" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                         <div className="flex justify-end mb-4 space-x-2">
                             <ExportDataButton 
                                 data={filteredData.demoTracking} 
