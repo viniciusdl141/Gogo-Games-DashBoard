@@ -107,7 +107,7 @@ const EditWLSalesForm: React.FC<EditWLSalesFormProps> = ({ games, entry, onSave,
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Plataforma</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Selecione a Plataforma" />

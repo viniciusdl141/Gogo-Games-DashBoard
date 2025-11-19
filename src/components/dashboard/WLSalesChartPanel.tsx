@@ -19,6 +19,7 @@ import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 
 interface WLSalesChartPanelProps {
     data: WLSalesPlatformEntry[];
+    onPointClick: (entry: WLSalesPlatformEntry) => void;
 }
 
 // Cores Gogo Games
@@ -184,7 +185,7 @@ const CustomLegend = (props: any) => {
 };
 
 
-const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data }) => {
+const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClick }) => {
     if (data.length === 0) {
         return (
             <Card>
@@ -204,6 +205,16 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data }) => {
         platform: item.platform, // Pass platform data
     })).filter(item => item.date !== null);
 
+    const handleChartClick = (e: any) => {
+        if (e && e.activePayload && e.activePayload.length > 0) {
+            const clickedTimestamp = e.activePayload[0].payload.date;
+            const originalEntry = data.find(d => d.date?.getTime() === clickedTimestamp);
+            if (originalEntry) {
+                onPointClick(originalEntry);
+            }
+        }
+    };
+
     return (
         <Card>
             <CardHeader>
@@ -214,6 +225,7 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data }) => {
                     <LineChart
                         data={chartData}
                         margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                        onClick={handleChartClick}
                     >
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                         <XAxis 
@@ -233,13 +245,14 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data }) => {
                             stroke={WL_COLOR}
                             strokeWidth={2}
                             dot={<CustomDot dataKey="Wishlists" />} // Use CustomDot for Wishlists
-                            activeDot={{ r: 8 }}
+                            activeDot={{ r: 8, className: 'cursor-pointer' }}
                         />
                         <Line 
                             type="monotone" 
                             dataKey="Vendas" 
                             stroke={SALES_COLOR}
                             strokeWidth={2}
+                            activeDot={{ r: 8, className: 'cursor-pointer' }}
                             dot={false} // Keep sales line simple
                         />
                     </LineChart>
