@@ -109,7 +109,7 @@ const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ games, onSave, onClose 
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Tipo de Venda" />
-                                        </SelectTrigger>
+                                    </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
                                         {SaleTypeEnum.options.map(type => (

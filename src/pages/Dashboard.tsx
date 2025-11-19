@@ -362,7 +362,8 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="text-center">
+        <header className="text-center flex flex-col items-center">
+            <img src="/gogo-games-logo.png" alt="Gogo Games Logo" className="h-16 w-auto mb-4" />
             <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-50">
             Dashboard de Performance Geral
             </h1>

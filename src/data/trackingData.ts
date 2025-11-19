@@ -167,7 +167,8 @@ const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[]
             const sales = salesMap.get(dateKey) || 0;
             
             let frequency: EntryFrequency = 'Diário';
-            const marker = item.__EMPTY_1 || item.__EMPTY_10 || '';
+            // FIX: Ensure marker is converted to string before calling includes
+            const marker = String(item.__EMPTY_1 || item.__EMPTY_10 || '');
             
             if (marker.includes('MENSAL')) {
                  frequency = 'Mensal';
