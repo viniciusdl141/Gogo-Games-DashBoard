@@ -12,30 +12,52 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { formatCurrency } from '@/lib/utils';
+import { Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ResultSummaryPanelProps {
     data: ResultSummaryEntry[];
 }
 
 const formatValue = (key: keyof ResultSummaryEntry, value: number | string | undefined): string => {
-    if (value === undefined || value === null || value === '' || value === '#DIV/0!') return '-';
+    if (value === undefined || value === null || value === '' || value === '#DIV/0!' || (typeof value === 'number' && isNaN(value))) return '-';
     
     const numValue = Number(value);
 
     if (typeof value === 'string' && value.startsWith('R$')) return value;
 
     if (key.includes('Custo') || key.includes('Real/')) {
+        // Se for um custo ou valor monetário, formatar como moeda
         return formatCurrency(numValue);
     }
     if (key.includes('Conversão') || key.includes('WL/Real')) {
-        // Assuming these are ratios/percentages
-        if (typeof value === 'string' && value.includes('%')) return value;
-        return `${(numValue * 100).toFixed(2)}%`;
+        // Se for uma taxa de conversão ou WL/Real
+        if (key === 'Conversão vendas/wl') {
+             return `${(numValue * 100).toFixed(2)}%`;
+        }
+        // Se for WL/Real, mostrar 2 casas decimais
+        return numValue.toFixed(2);
     }
     if (key.includes('Visualizações') || key.includes('Visitas')) {
         return numValue.toFixed(2);
     }
     return String(value);
+};
+
+const getColumnTitle = (key: keyof ResultSummaryEntry) => {
+    const titleMap: Record<keyof ResultSummaryEntry, string> = {
+        type: 'Tipo',
+        game: 'Jogo',
+        'Visualizações/Real': 'Views / R$',
+        'Visitas/Real': 'Visitas / R$',
+        'WL/Real': 'WL / R$',
+        'Real/Visualizações': 'R$ / View',
+        'Real/Visitas': 'R$ / Visita',
+        'Real/WL': 'R$ / WL',
+        'Custo por venda': 'Custo / Venda',
+        'Conversão vendas/wl': 'Conversão Vendas/WL',
+    };
+    return titleMap[key] || key.replace('/', ' / ');
 };
 
 const ResultSummaryPanel: React.FC<ResultSummaryPanelProps> = ({ data }) => {
@@ -53,7 +75,7 @@ const ResultSummaryPanel: React.FC<ResultSummaryPanelProps> = ({ data }) => {
     
     // Determine which columns actually have data across all rows
     const columnsToShow = allKeys.filter(key => 
-        data.some(row => row[key] !== undefined && row[key] !== null && row[key] !== '' && row[key] !== '#DIV/0!')
+        data.some(row => row[key] !== undefined && row[key] !== null && row[key] !== '' && row[key] !== '#DIV/0!' && !(typeof row[key] === 'number' && isNaN(row[key])))
     );
 
     return (
@@ -68,7 +90,21 @@ const ResultSummaryPanel: React.FC<ResultSummaryPanelProps> = ({ data }) => {
                             <TableRow>
                                 <TableHead className="w-[150px]">Tipo</TableHead>
                                 {columnsToShow.map(key => (
-                                    <TableHead key={key} className="text-center min-w-[100px]">{key.replace('/', ' / ')}</TableHead>
+                                    <TableHead key={key} className="text-center min-w-[100px]">
+                                        <div className="flex items-center justify-center space-x-1">
+                                            <span>{getColumnTitle(key)}</span>
+                                            {key === 'WL/Real' && (
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Wishlists geradas por Real investido.</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
+                                        </div>
+                                    </TableHead>
                                 ))}
                             </TableRow>
                         </TableHeader>

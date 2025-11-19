@@ -12,6 +12,8 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Edit } from 'lucide-react';
 
 interface WlDetailsPanelProps {
     details: WlDetails | undefined;
@@ -25,8 +27,8 @@ const ReviewTable: React.FC<{ reviews: any[] }> = ({ reviews }) => (
                 <TableHead className="text-center">Total</TableHead>
                 <TableHead className="text-center">Positivas</TableHead>
                 <TableHead className="text-center">Negativas</TableHead>
-                <TableHead className="text-center">%</TableHead>
-                <TableHead>Classificação</TableHead>
+                <TableHead className="text-center">% Positivas</TableHead>
+                <TableHead>Classificação Steam</TableHead>
             </TableRow>
         </TableHeader>
         <TableBody>
@@ -36,7 +38,7 @@ const ReviewTable: React.FC<{ reviews: any[] }> = ({ reviews }) => (
                     <TableCell className="text-center">{r.reviews}</TableCell>
                     <TableCell className="text-center">{r.positive}</TableCell>
                     <TableCell className="text-center">{r.negative}</TableCell>
-                    <TableCell className="text-center">{`${(r.percentage * 100).toFixed(0)}%`}</TableCell>
+                    <TableCell className="text-center">{`${(Number(r.percentage) * 100).toFixed(0)}%`}</TableCell>
                     <TableCell>{r.rating}</TableCell>
                 </TableRow>
             ))}
@@ -48,10 +50,10 @@ const BundleTable: React.FC<{ bundles: any[] }> = ({ bundles }) => (
     <Table>
         <TableHeader>
             <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead className="text-right">Bundle Units</TableHead>
-                <TableHead className="text-right">Package Units</TableHead>
-                <TableHead className="text-right">Sales</TableHead>
+                <TableHead>Nome do Bundle/DLC</TableHead>
+                <TableHead className="text-right">Unidades Bundle</TableHead>
+                <TableHead className="text-right">Unidades Package</TableHead>
+                <TableHead className="text-right">Vendas ($)</TableHead>
             </TableRow>
         </TableHeader>
         <TableBody>
@@ -76,15 +78,19 @@ const WlDetailsPanel: React.FC<WlDetailsPanelProps> = ({ details }) => {
 
     return (
         <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Detalhes Adicionais da Página Steam</CardTitle>
+                {/* Placeholder for future Edit button */}
+                <Button variant="outline" size="sm" disabled>
+                    <Edit className="h-4 w-4 mr-2" /> Editar Detalhes
+                </Button>
             </CardHeader>
             <CardContent className="space-y-4">
                 {latestReview && (
                     <div className="mb-4 p-4 border rounded-md bg-muted/50">
                         <h3 className="text-md font-semibold mb-2">Última Análise de Reviews ({formatDate(latestReview.date)})</h3>
-                        <div className="flex items-center space-x-4 text-sm">
-                            <Badge variant="secondary">{latestReview.rating}</Badge>
+                        <div className="flex flex-wrap items-center gap-4 text-sm">
+                            <Badge className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">{latestReview.rating}</Badge>
                             <p>Total: <span className="font-medium">{latestReview.reviews}</span></p>
                             <p>Positivas: <span className="font-medium text-green-600">{latestReview.positive}</span></p>
                             <p>Negativas: <span className="font-medium text-red-600">{latestReview.negative}</span></p>

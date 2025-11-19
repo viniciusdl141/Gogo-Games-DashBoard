@@ -24,6 +24,9 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        // Gogo Games Custom Colors
+        'gogo-cyan': '#00BFFF', // Base Cyan/Light Blue
+        'gogo-orange': '#FF6600', // Base Orange/Copper
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

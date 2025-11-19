@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { InfluencerTrackingEntry, InfluencerSummaryEntry } from '@/data/trackingData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency, formatDate, formatNumber } from '@/lib/utils';
-import { Trash2, BarChart3 } from 'lucide-react';
+import { Trash2, BarChart3, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     AlertDialog,
@@ -36,6 +36,12 @@ import {
     Legend,
     ResponsiveContainer,
 } from 'recharts';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface InfluencerPanelProps {
     summary: InfluencerSummaryEntry[];
@@ -77,65 +83,91 @@ const InfluencerSummaryTable: React.FC<{ data: InfluencerSummaryEntry[] }> = ({ 
     </div>
 );
 
-const InfluencerTrackingTable: React.FC<{ data: InfluencerTrackingEntry[], onDelete: (id: string) => void }> = ({ data, onDelete }) => (
-    <div className="overflow-x-auto">
-        <h3 className="text-lg font-semibold mb-2 mt-6">Tracking Semanal Detalhado</h3>
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Influencer</TableHead>
-                    <TableHead>Plataforma</TableHead>
-                    <TableHead>Ação</TableHead>
-                    <TableHead className="text-right">Views</TableHead>
-                    <TableHead className="text-right">Investimento</TableHead>
-                    <TableHead className="text-center">WL Est.</TableHead>
-                    <TableHead className="text-right">ROI (R$/WL)</TableHead>
-                    <TableHead>Obs.</TableHead>
-                    <TableHead className="w-[50px] text-center">Ações</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {data.map((item) => (
-                    <TableRow key={item.id}>
-                        <TableCell>{formatDate(item.date)}</TableCell>
-                        <TableCell className="font-medium">{item.influencer}</TableCell>
-                        <TableCell>{item.platform}</TableCell>
-                        <TableCell>{item.action}</TableCell>
-                        <TableCell className="text-right">{formatNumber(item.views)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(item.investment)}</TableCell>
-                        <TableCell className="text-center">{formatNumber(item.estimatedWL)}</TableCell>
-                        <TableCell className="text-right">{formatROI(item.roi)}</TableCell>
-                        <TableCell className="text-sm max-w-[150px] truncate">{item.observations || '-'}</TableCell>
-                        <TableCell className="text-center">
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Esta ação removerá permanentemente o registro de tracking do influencer {item.influencer} na data {formatDate(item.date)}.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => onDelete(item.id)} className="bg-destructive hover:bg-destructive/90">
-                                            Remover
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </TableCell>
-                    </TableRow>
+const InfluencerTrackingAccordion: React.FC<{ data: InfluencerTrackingEntry[], onDelete: (id: string) => void }> = ({ data, onDelete }) => {
+    const groupedData = useMemo(() => {
+        return data.reduce((acc, item) => {
+            const influencer = item.influencer;
+            if (!acc[influencer]) {
+                acc[influencer] = [];
+            }
+            acc[influencer].push(item);
+            return acc;
+        }, {} as Record<string, InfluencerTrackingEntry[]>);
+    }, [data]);
+
+    const influencerNames = Object.keys(groupedData).sort();
+
+    return (
+        <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-2">Ações Detalhadas por Influencer</h3>
+            <Accordion type="multiple" className="w-full">
+                {influencerNames.map(influencer => (
+                    <AccordionItem key={influencer} value={influencer}>
+                        <AccordionTrigger className="font-medium text-base hover:no-underline">
+                            {influencer} ({groupedData[influencer].length} Ações)
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0">
+                            <div className="overflow-x-auto border rounded-md">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-muted/50">
+                                            <TableHead>Data</TableHead>
+                                            <TableHead>Plataforma</TableHead>
+                                            <TableHead>Ação</TableHead>
+                                            <TableHead className="text-right">Views</TableHead>
+                                            <TableHead className="text-right">Investimento</TableHead>
+                                            <TableHead className="text-center">WL Est.</TableHead>
+                                            <TableHead className="text-right">ROI (R$/WL)</TableHead>
+                                            <TableHead>Obs.</TableHead>
+                                            <TableHead className="w-[50px] text-center">Ações</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {groupedData[influencer].map((item) => (
+                                            <TableRow key={item.id}>
+                                                <TableCell>{formatDate(item.date)}</TableCell>
+                                                <TableCell>{item.platform}</TableCell>
+                                                <TableCell>{item.action}</TableCell>
+                                                <TableCell className="text-right">{formatNumber(item.views)}</TableCell>
+                                                <TableCell className="text-right">{formatCurrency(item.investment)}</TableCell>
+                                                <TableCell className="text-center">{formatNumber(item.estimatedWL)}</TableCell>
+                                                <TableCell className="text-right">{formatROI(item.roi)}</TableCell>
+                                                <TableCell className="text-sm max-w-[150px] truncate">{item.observations || '-'}</TableCell>
+                                                <TableCell className="text-center">
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    Esta ação removerá permanentemente o registro de tracking do influencer {item.influencer} na data {formatDate(item.date)}.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => onDelete(item.id)} className="bg-destructive hover:bg-destructive/90">
+                                                                    Remover
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
                 ))}
-            </TableBody>
-        </Table>
-    </div>
-);
+            </Accordion>
+        </div>
+    );
+};
 
 const InfluencerBarChart: React.FC<{ data: InfluencerSummaryEntry[] }> = ({ data }) => {
     const chartData = data.map(item => ({
@@ -199,7 +231,7 @@ const InfluencerPanel: React.FC<InfluencerPanelProps> = ({ summary, tracking, on
                 {tracking.length > 0 && <Separator className="my-6" />}
                 
                 {tracking.length > 0 && (
-                    <InfluencerTrackingTable data={tracking} onDelete={onDeleteTracking} />
+                    <InfluencerTrackingAccordion data={tracking} onDelete={onDeleteTracking} />
                 )}
             </CardContent>
         </Card>

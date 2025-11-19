@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
+import WLSalesTablePanel from '@/components/dashboard/WLSalesTablePanel'; // <-- Novo Import
+import SalesByTypeChart from '@/components/dashboard/SalesByTypeChart'; // <-- Novo Import
 import InfluencerPanel from '@/components/dashboard/InfluencerPanel';
 import EventPanel from '@/components/dashboard/EventPanel';
 import PaidTrafficPanel from '@/components/dashboard/PaidTrafficPanel';
@@ -22,7 +24,7 @@ import WlDetailsPanel from '@/components/dashboard/WlDetailsPanel';
 import AddInfluencerForm from '@/components/dashboard/AddInfluencerForm';
 import AddEventForm from '@/components/dashboard/AddEventForm';
 import AddPaidTrafficForm from '@/components/dashboard/AddPaidTrafficForm';
-import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm'; // <-- Novo Import
+import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm';
 import GameSummaryPanel from '@/components/dashboard/GameSummaryPanel';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
@@ -39,41 +41,25 @@ const Dashboard = () => {
   const [isAddInfluencerFormOpen, setIsAddInfluencerFormOpen] = useState(false);
   const [isAddEventFormOpen, setIsAddEventFormOpen] = useState(false);
   const [isAddPaidTrafficFormOpen, setIsAddPaidTrafficFormOpen] = useState(false);
-  const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false); // <-- Novo Estado
+  const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
 
   // --- WL/Sales Handlers ---
 
   const handleAddWLSalesEntry = useCallback((newEntry: Omit<WLSalesEntry, 'date' | 'variation' | 'id'> & { date: string, saleType: SaleType }) => {
     const dateObject = new Date(newEntry.date);
     
-    // We need the previous day's WL count for the variation calculation.
-    // This is complex to do perfectly in a simple state management, but we can approximate:
-    // 1. Find all existing WL entries for the game.
-    const existingWLSales = trackingData.wlSales.filter(d => d.game === newEntry.game);
-    
-    // 2. Sort them by date (oldest first).
-    const sortedWLSales = existingWLSales.sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
-    
-    // 3. Find the last entry before the new date.
-    const previousEntry = sortedWLSales.filter(d => d.date && d.date.getTime() < dateObject.getTime()).pop();
-    
-    const previousWL = previousEntry ? previousEntry.wishlists : 0;
-    const variation = newEntry.wishlists - previousWL;
-
-    const entryToAdd: WLSalesEntry = {
-        ...newEntry,
-        id: generateLocalUniqueId('wl'),
-        date: dateObject,
-        variation: variation,
-    };
-
     setTrackingData(prevData => {
-        const updatedWLSales = [...prevData.wlSales, entryToAdd];
+        const updatedWLSales = [...prevData.wlSales, {
+            ...newEntry,
+            id: generateLocalUniqueId('wl'),
+            date: dateObject,
+            variation: 0, // Temporary, will be recalculated below
+        }];
         
-        // Re-sort the entire list to ensure chart order is correct
+        // Sort all WL entries for the game
         updatedWLSales.sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
 
-        // Recalculate variations for all entries of this game after the new entry date
+        // Recalculate variations for all entries of this game
         let lastWL = 0;
         const recalculatedWLSales = updatedWLSales.map(entry => {
             if (entry.game === newEntry.game) {
@@ -92,15 +78,14 @@ const Dashboard = () => {
     });
     
     setIsAddWLSalesFormOpen(false);
-  }, [trackingData.wlSales]);
+  }, []);
 
   const handleDeleteWLSalesEntry = useCallback((id: string) => {
     setTrackingData(prevData => {
         const updatedWLSales = prevData.wlSales.filter(entry => entry.id !== id);
         
-        // Re-sort and recalculate variations for the affected game (complex, but necessary for accuracy)
-        // For simplicity here, we just filter, relying on the useMemo to handle the final display aggregation.
-        // A full recalculation of all subsequent variations would be needed in a production environment.
+        // Note: A full recalculation of subsequent variations is complex here, 
+        // but the useMemo below will handle sorting and filtering for display.
         
         return {
             ...prevData,
@@ -254,10 +239,13 @@ const Dashboard = () => {
 
 
     // 3. KPI Calculations
-    const totalInvestment = 
-        influencerTracking.reduce((sum, item) => sum + item.investment, 0) +
-        eventTracking.reduce((sum, item) => sum + item.cost, 0) +
-        paidTraffic.reduce((sum, item) => sum + item.investedValue, 0);
+    const investmentSources = {
+        influencers: influencerTracking.reduce((sum, item) => sum + item.investment, 0),
+        events: eventTracking.reduce((sum, item) => sum + item.cost, 0),
+        paidTraffic: paidTraffic.reduce((sum, item) => sum + item.investedValue, 0),
+    };
+
+    const totalInvestment = investmentSources.influencers + investmentSources.events + investmentSources.paidTraffic;
 
     const totalViews = 
         influencerTracking.reduce((sum, item) => sum + item.views, 0) +
@@ -288,6 +276,7 @@ const Dashboard = () => {
           totalWLGenerated,
           totalSales,
           totalWishlists,
+          investmentSources,
       }
     };
   }, [selectedGame, trackingData]);
@@ -308,7 +297,7 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="text-center">
             <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-50">
-            Dashboard de Performance de Marketing
+            Dashboard de Performance Geral
             </h1>
             <p className="text-muted-foreground mt-2">Análise de campanhas e resultados de jogos</p>
         </header>
@@ -346,11 +335,12 @@ const Dashboard = () => {
                         totalSales={filteredData.kpis.totalSales}
                         totalWishlists={filteredData.kpis.totalWishlists}
                         totalInvestment={filteredData.kpis.totalInvestment}
+                        investmentSources={filteredData.kpis.investmentSources}
                     />
                     <div className="grid gap-4 md:grid-cols-3">
                         <KpiCard title="Investimento Total" value={formatCurrency(filteredData.kpis.totalInvestment)} icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} />
                         <KpiCard title="Views + Impressões" value={formatNumber(filteredData.kpis.totalViews)} icon={<Eye className="h-4 w-4 text-muted-foreground" />} />
-                        <KpiCard title="Wishlists Geradas (Est.)" value={formatNumber(filteredData.kpis.totalWLGenerated)} icon={<List className="h-4 w-4 text-muted-foreground" />} />
+                        <KpiCard title="Wishlists Geradas (Est.)" value={formatNumber(filteredData.kpis.totalWLGenerated)} description="Estimativa baseada em ações de marketing." icon={<List className="h-4 w-4 text-muted-foreground" />} />
                     </div>
                     <ResultSummaryPanel data={filteredData.resultSummary} />
                 </TabsContent>
@@ -376,6 +366,8 @@ const Dashboard = () => {
                         </Dialog>
                     </div>
                     <WLSalesChartPanel data={filteredData.wlSales} />
+                    <SalesByTypeChart data={filteredData.wlSales} />
+                    <WLSalesTablePanel data={filteredData.wlSales} onDelete={handleDeleteWLSalesEntry} />
                     <WlDetailsPanel details={filteredData.wlDetails} />
                 </TabsContent>
 
