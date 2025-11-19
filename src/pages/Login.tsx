@@ -22,9 +22,9 @@ const Login = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
-      <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-gray-50">Entrar no Dashboard</h2>
+    <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-4">
+      <div className="w-full max-w-md bg-card p-8 rounded-lg shadow-md border border-border">
+        <h2 className="text-2xl font-bold text-center mb-6 text-foreground">Entrar no Dashboard</h2>
         <Auth
           supabaseClient={supabase}
           providers={[]} // Removendo provedores de terceiros para simplificar
@@ -35,11 +35,34 @@ const Login = () => {
                 colors: {
                   brand: 'hsl(var(--gogo-cyan))',
                   brandAccent: 'hsl(var(--gogo-orange))',
+                  // Ajustar cores para o tema claro/escuro
+                  defaultButtonBackground: 'hsl(var(--primary))',
+                  defaultButtonBackgroundHover: 'hsl(var(--primary-foreground))',
+                  defaultButtonBorder: 'hsl(var(--border))',
+                  defaultButtonText: 'hsl(var(--primary-foreground))',
+                  inputBackground: 'hsl(var(--input))',
+                  inputBorder: 'hsl(var(--border))',
+                  inputText: 'hsl(var(--foreground))',
+                  inputLabelText: 'hsl(var(--muted-foreground))',
+                },
+              },
+              dark: {
+                colors: {
+                  brand: 'hsl(var(--gogo-cyan))',
+                  brandAccent: 'hsl(var(--gogo-orange))',
+                  defaultButtonBackground: 'hsl(var(--primary))',
+                  defaultButtonBackgroundHover: 'hsl(var(--primary-foreground))',
+                  defaultButtonBorder: 'hsl(var(--border))',
+                  defaultButtonText: 'hsl(var(--primary-foreground))',
+                  inputBackground: 'hsl(var(--input))',
+                  inputBorder: 'hsl(var(--border))',
+                  inputText: 'hsl(var(--foreground))',
+                  inputLabelText: 'hsl(var(--muted-foreground))',
                 },
               },
             },
           }}
-          theme="light"
+          theme="dark" // Definir tema inicial como dark para melhor contraste com o fundo claro do Auth UI
           redirectTo={window.location.origin}
         />
       </div>

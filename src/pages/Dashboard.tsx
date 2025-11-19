@@ -390,9 +390,9 @@ const Dashboard = () => {
   // Renderização condicional para quando não há jogos
   if (trackingData.games.length === 0) {
     return (
-        <div className="min-h-screen flex items-center justify-center p-8">
-            <Card className="p-6">
-                <h1 className="text-2xl font-bold mb-4">Dashboard de Rastreamento</h1>
+        <div className="min-h-screen flex items-center justify-center p-8 bg-background text-foreground">
+            <Card className="p-6 shadow-lg">
+                <h1 className="text-2xl font-bold mb-4 text-gogo-cyan">Dashboard de Rastreamento</h1>
                 <p className="text-muted-foreground">Nenhum dado de rastreamento encontrado.</p>
                 <Dialog open={isAddGameFormOpen} onOpenChange={setIsAddGameFormOpen}>
                     <DialogTrigger asChild>
@@ -417,17 +417,17 @@ const Dashboard = () => {
 
   // Renderização principal
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gogo-cyan/5 to-gogo-orange/5 dark:from-gray-950 dark:to-gray-900 font-sans p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8 bg-background text-foreground font-sans">
       <ResizablePanelGroup
         direction="horizontal"
-        className="min-h-[calc(100vh-64px)] w-full rounded-lg border bg-white dark:bg-gray-800 shadow-lg"
+        className="min-h-[calc(100vh-64px)] w-full rounded-lg border bg-card text-card-foreground shadow-lg"
       >
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-gray-50 dark:bg-gray-900 border-r">
+        <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-muted/20 border-r">
           <div className="flex flex-col h-full">
-            <h2 className="text-2xl font-bold mb-6 text-gogo-cyan dark:text-gogo-cyan">Selecione um Jogo</h2>
+            <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">Selecione um Jogo</h2>
             <div className="flex-grow space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="game-select" className="font-semibold text-gray-700 dark:text-gray-200">Jogo:</Label>
+                <Label htmlFor="game-select" className="font-semibold text-foreground">Jogo:</Label>
                 <Select onValueChange={setSelectedGame} defaultValue={selectedGame}>
                   <SelectTrigger id="game-select" className="w-full bg-background">
                     <SelectValue placeholder="Selecione um jogo" />
@@ -458,15 +458,15 @@ const Dashboard = () => {
             </div>
           </div>
         </ResizablePanel>
-        <ResizableHandle withHandle className="bg-gray-200 dark:bg-gray-700 w-2 hover:bg-gogo-cyan transition-colors" />
-        <ResizablePanel defaultSize={80} className="p-6">
+        <ResizableHandle withHandle className="bg-border w-2 hover:bg-gogo-cyan transition-colors" />
+        <ResizablePanel defaultSize={80} className="p-6 bg-background">
           <div className="space-y-8">
-            <header className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <header className="flex items-center justify-between mb-8 pb-4 border-b border-border">
                 <div className="flex flex-col">
-                    <h1 className="text-4xl font-extrabold text-gogo-cyan dark:text-gogo-cyan">
+                    <h1 className="text-4xl font-extrabold text-gogo-cyan">
                         Gogo Games Dashboard
                     </h1>
-                    <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">Análise de Performance de Jogos</p>
+                    <p className="text-lg text-muted-foreground mt-2">Análise de Performance de Jogos</p>
                 </div>
                 <ThemeToggle /> {/* Adicionar o ThemeToggle aqui */}
             </header>
@@ -474,7 +474,7 @@ const Dashboard = () => {
             {filteredData && (
                 <>
                     <Tabs defaultValue="overview" className="w-full">
-                        <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b bg-white dark:bg-gray-800 text-muted-foreground rounded-t-lg p-0 h-auto shadow-sm">
+                        <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b bg-card text-muted-foreground rounded-t-lg p-0 h-auto shadow-sm">
                             <TabsTrigger value="overview" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Visão Geral</TabsTrigger>
                             <TabsTrigger value="wl-sales" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Wishlists</TabsTrigger>
                             <TabsTrigger value="comparisons" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Comparações</TabsTrigger>
@@ -484,7 +484,7 @@ const Dashboard = () => {
                             <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Demo</TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="overview" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="overview" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
                             <GameSummaryPanel 
                                 gameName={selectedGame}
                                 totalSales={filteredData.kpis.totalSales}
@@ -500,10 +500,10 @@ const Dashboard = () => {
                             <ResultSummaryPanel data={filteredData.resultSummary} />
                         </TabsContent>
 
-                        <TabsContent value="wl-sales" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
-                            <Card className="bg-muted/50 dark:bg-gray-700 border-none shadow-none">
+                        <TabsContent value="wl-sales" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
+                            <Card className="bg-muted/50 border-none shadow-none">
                                 <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
-                                    <label htmlFor="platform-select" className="font-semibold text-md min-w-[150px] text-gray-700 dark:text-gray-200">Filtrar por Plataforma:</label>
+                                    <Label htmlFor="platform-select" className="font-semibold text-foreground min-w-[150px]">Filtrar por Plataforma:</Label>
                                     <Select onValueChange={(value: Platform | 'All') => setSelectedPlatform(value)} defaultValue={selectedPlatform}>
                                         <SelectTrigger id="platform-select" className="w-full md:w-[200px] bg-background">
                                             <SelectValue placeholder="Todas as Plataformas" />
@@ -565,11 +565,11 @@ const Dashboard = () => {
                             )}
                         </TabsContent>
 
-                        <TabsContent value="comparisons" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="comparisons" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
                             <WlComparisonsPanel data={filteredData.wlSales} allPlatforms={ALL_PLATFORMS} />
                         </TabsContent>
 
-                        <TabsContent value="influencers" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="influencers" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.influencerTracking} 
@@ -603,7 +603,7 @@ const Dashboard = () => {
                             />
                         </TabsContent>
 
-                        <TabsContent value="events" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="events" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.eventTracking} 
@@ -636,7 +636,7 @@ const Dashboard = () => {
                             />
                         </TabsContent>
 
-                        <TabsContent value="paid-traffic" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="paid-traffic" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.paidTraffic} 
@@ -669,7 +669,7 @@ const Dashboard = () => {
                             />
                         </TabsContent>
 
-                        <TabsContent value="demo" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="demo" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-md">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.demoTracking} 
