@@ -68,7 +68,6 @@ export interface WLSalesEntry {
     wishlists: number;
     sales: number;
     variation: number;
-    conversionRate: number | string;
 }
 
 export interface ResultSummaryEntry {
@@ -84,6 +83,13 @@ export interface ResultSummaryEntry {
     'Conversão vendas/wl'?: number | string;
 }
 
+export interface WlDetails {
+    game: string;
+    reviews: any[];
+    bundles: any[];
+    traffic: any[];
+}
+
 export interface TrackingData {
     games: string[];
     influencerTracking: InfluencerTrackingEntry[];
@@ -93,6 +99,7 @@ export interface TrackingData {
     demoTracking: DemoTrackingEntry[];
     wlSales: WLSalesEntry[];
     resultSummary: ResultSummaryEntry[];
+    wlDetails: WlDetails[];
 }
 
 // --- Data Processing Functions ---
@@ -102,8 +109,7 @@ const cleanValue = (value: any): number | string => {
         return '-';
     }
     if (typeof value === 'string') {
-        // Remove R$ and commas for currency parsing
-        const cleaned = value.replace(/R\$/, '').replace(/,/g, '.').trim();
+        const cleaned = value.replace(/R\$/, '').replace(/\./g, '').replace(/,/g, '.').trim();
         const num = parseFloat(cleaned);
         if (!isNaN(num)) return num;
         return value;
@@ -144,7 +150,7 @@ const processInfluencerSummary = (data: any[]): InfluencerSummaryEntry[] => {
 
 const processEventTracking = (data: any[]): EventTrackingEntry[] => {
     return data
-        .filter(item => item.Jogo && item.Evento && item.Começo && item.Final)
+        .filter(item => item.Jogo && item.Evento && typeof item.Começo === 'number' && typeof item.Final === 'number' && item.Começo > 10)
         .map(item => ({
             startDate: excelSerialDateToJSDate(item.Começo as number),
             endDate: excelSerialDateToJSDate(item.Final as number),
@@ -183,7 +189,7 @@ const processDemoTracking = (data: any[]): DemoTrackingEntry[] => {
         .map(item => ({
             game: item.Game,
             date: excelSerialDateToJSDate(item.Data as number),
-            downloads: Number(item['Numero de downloads da demo']) || 0,
+            downloads: Number(String(item['Numero de downloads da demo']).replace(/,/g, '')) || 0,
             avgPlaytime: item['Tempo medio de jogo demo'] || '-',
             totalDemoTime: item['Tempo total de demo'] || '-',
             totalGameTime: item['Tempo total do jogo'] || '-',
@@ -192,49 +198,29 @@ const processDemoTracking = (data: any[]): DemoTrackingEntry[] => {
 
 const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[] => {
     const wlSales: WLSalesEntry[] = [];
-    
-    // The WL data is in the first columns (Data, WL, Variação)
-    // The Sales data is in later columns (Data_2, Vendas)
-    
     const salesMap = new Map<number, number>();
     
-    // 1. Extract Sales Data (Data_2 and Vendas)
     sheetData.forEach(item => {
-        const dateKey = item.Data_2;
-        const salesValue = item.Vendas;
+        const dateKey = item.Data_2 ?? item.__EMPTY_17;
+        const salesValue = item.Vendas ?? item.__EMPTY_18;
         if (typeof dateKey === 'number' && typeof salesValue === 'number' && salesValue > 0) {
             salesMap.set(dateKey, salesValue);
         }
     });
 
-    // 2. Extract WL Data and combine with Sales
     sheetData.forEach(item => {
-        const dateKey = item.Data;
-        const wlValue = item.WL;
-        const variation = item.Variação;
+        const dateKey = item.Data ?? item.__EMPTY;
+        const wlValue = item.WL ?? item.__EMPTY_1;
+        const variation = item.Variação ?? item.__EMPTY_9;
 
-        if (typeof dateKey === 'number' && typeof wlValue === 'number') {
+        if (typeof dateKey === 'number' && typeof wlValue === 'number' && dateKey > 10000) {
             const sales = salesMap.get(dateKey) || 0;
-            
-            // Attempt to find conversion rate if available (complex structure, usually in the last rows)
-            let conversionRate: number | string = '-';
-            const conversionRow = sheetData.find(row => 
-                (row.Data === 'Legacy of evil' || row.__EMPTY === gameName) && 
-                typeof row['VARIAÇÃO DIARIA'] === 'number' && 
-                row.Variação === dateKey
-            );
-
-            if (conversionRow) {
-                conversionRate = conversionRow['VARIAÇÃO DIARIA'];
-            }
-
             wlSales.push({
                 date: excelSerialDateToJSDate(dateKey),
                 game: gameName,
                 wishlists: wlValue,
                 sales: sales,
                 variation: Number(variation) || 0,
-                conversionRate: cleanValue(conversionRate),
             });
         }
     });
@@ -242,12 +228,58 @@ const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[]
     return wlSales.filter(entry => entry.wishlists > 0).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
 };
 
+const processWlDetails = (sheetData: any[], gameName: string): WlDetails => {
+    const details: WlDetails = { game: gameName, reviews: [], bundles: [], traffic: [] };
+    
+    let reviewHeaderIndex = sheetData.findIndex(r => r.__EMPTY_19 === 'Quantidade de Reviews');
+    if (reviewHeaderIndex !== -1) {
+        details.reviews = sheetData.slice(reviewHeaderIndex + 1)
+            .filter(r => r.__EMPTY_19 && !isNaN(Number(r.__EMPTY_19)))
+            .map(r => ({
+                reviews: r.__EMPTY_19,
+                positive: r.__EMPTY_20,
+                negative: r.__EMPTY_21,
+                percentage: r.__EMPTY_22,
+                rating: r.__EMPTY_23,
+                date: excelSerialDateToJSDate(r.__EMPTY_24)
+            }));
+    }
+
+    let bundleHeaderIndex = sheetData.findIndex(r => r.__EMPTY_19 === 'Bundle Name');
+     if (bundleHeaderIndex !== -1) {
+        details.bundles = sheetData.slice(bundleHeaderIndex + 1)
+            .filter(r => r.__EMPTY_19)
+            .map(r => ({
+                name: r.__EMPTY_19,
+                bundleUnits: r.__EMPTY_20,
+                packageUnits: r.__EMPTY_21,
+                sales: r.__EMPTY_22,
+                xsolla: r.__EMPTY_23
+            }));
+    }
+
+    let trafficHeaderIndex = sheetData.findIndex(r => r.__EMPTY === 'Trafego na pagina');
+    if (trafficHeaderIndex !== -1) {
+        details.traffic = sheetData.slice(trafficHeaderIndex + 1)
+            .filter(r => r.__EMPTY && (r.__EMPTY.includes(gameName) || r.__EMPTY.includes('Hellbrella')))
+            .map(r => ({
+                impressions: r.__EMPTY_1,
+                ctr: r.__EMPTY_2,
+                visits: r.__EMPTY_3,
+                totalVisits: r.__EMPTY_4,
+                date: excelSerialDateToJSDate(r.__EMPTY_5)
+            }));
+    }
+
+    return details;
+}
+
 const processResultSummary = (data: any[]): ResultSummaryEntry[] => {
     return data
         .filter(item => item.Jogo && item.Tipo)
         .map(item => ({
             type: item.Tipo,
-            game: item.Jogo,
+            game: item.Jogo.replace('The Mare sHow', 'The Mare Show'),
             'Visualizações/Real': cleanValue(item['Visualizações/Real']),
             'Visitas/Real': cleanValue(item['Visitas/Real']),
             'WL/Real': cleanValue(item['WL/Real']),
@@ -259,7 +291,6 @@ const processResultSummary = (data: any[]): ResultSummaryEntry[] => {
         }));
 };
 
-
 // --- Main Data Aggregation ---
 
 export const getTrackingData = (): TrackingData => {
@@ -270,15 +301,19 @@ export const getTrackingData = (): TrackingData => {
     const demoTracking = processDemoTracking(rawData['Tracking da demo']);
     const resultSummary = processResultSummary(rawData['RESUMO DE RESULTADOS']);
 
-    // Aggregate WL/Sales data from multiple sheets
     const wlSales: WLSalesEntry[] = [
         ...processWLSalesSheet(rawData['Total WL - Legacy of Evil'], 'Legacy of Evil'),
         ...processWLSalesSheet(rawData['Total WL - Hellbrella'], 'Hellbrella'),
         ...processWLSalesSheet(rawData['Total WL - The Mare Show'], 'The Mare Show'),
-        // Note: The other WL sheets (Dreadstone Keep, LIA Hacking Destiny variants) seem to contain mostly zero WL/Sales data or are incomplete in the provided JSON structure for daily tracking, so we rely on the main three for charting.
+        ...processWLSalesSheet(rawData['Total WL - Dreadstone Keep'], 'Dreadstone Keep'),
     ];
 
-    // Identify all unique game names
+    const wlDetails: WlDetails[] = [
+        processWlDetails(rawData['Total WL - Legacy of Evil'], 'Legacy of Evil'),
+        processWlDetails(rawData['Total WL - Hellbrella'], 'Hellbrella'),
+        processWlDetails(rawData['Total WL - The Mare Show'], 'The Mare Show'),
+    ];
+
     const allGames = new Set<string>();
     [...influencerTracking, ...eventTracking, ...paidTraffic, ...demoTracking, ...wlSales, ...resultSummary].forEach(item => {
         if (item.game) {
@@ -286,7 +321,7 @@ export const getTrackingData = (): TrackingData => {
         }
     });
     
-    const games = Array.from(allGames).sort();
+    const games = Array.from(allGames).filter(g => g).sort();
 
     return {
         games,
@@ -297,5 +332,6 @@ export const getTrackingData = (): TrackingData => {
         demoTracking,
         wlSales,
         resultSummary,
+        wlDetails,
     };
 };
