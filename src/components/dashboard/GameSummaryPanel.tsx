@@ -1,8 +1,8 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, List, TrendingUp, Info, Eye, Megaphone } from 'lucide-react'; // Adicionado Megaphone para Impressões
+import { DollarSign, List, TrendingUp, Info, Eye, Megaphone, CalendarDays } from 'lucide-react';
 import KpiCard from './KpiCard';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -15,33 +15,43 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import LaunchTimer from './LaunchTimer'; // Importar o novo componente
+import LaunchTimer from './LaunchTimer';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from '@/components/ui/button';
+import EditLaunchDateForm from './EditLaunchDateForm';
 
 interface GameSummaryPanelProps {
+    gameId: string; // Adicionado gameId
     gameName: string;
     totalSales: number;
     totalWishlists: number;
     totalInvestment: number;
-    totalViews: number; // Novo KPI
-    totalImpressions: number; // Novo KPI
-    launchDate: Date | null; // Nova prop
+    totalInfluencerViews: number; // KPI separado
+    totalEventViews: number; // KPI separado
+    totalImpressions: number; // KPI separado
+    launchDate: Date | null;
     investmentSources: { influencers: number, events: number, paidTraffic: number };
+    onUpdateLaunchDate: (gameId: string, launchDate: string | null) => void; // Nova prop
 }
 
 const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({ 
+    gameId,
     gameName, 
     totalSales, 
     totalWishlists, 
     totalInvestment,
-    totalViews, // Usar o novo KPI
-    totalImpressions, // Usar o novo KPI
-    launchDate, // Usar a nova prop
-    investmentSources
+    totalInfluencerViews,
+    totalEventViews,
+    totalImpressions,
+    launchDate,
+    investmentSources,
+    onUpdateLaunchDate
 }) => {
-    const [gamePrice, setGamePrice] = React.useState(19.99); // Preço padrão em R$
-    const [revenueShare, setRevenueShare] = React.useState(0.70); // 70% (Steam/Epic geralmente 70/30)
+    const [gamePrice, setGamePrice] = React.useState(19.99);
+    const [revenueShare, setRevenueShare] = React.useState(0.70);
     const [salesBRL, setSalesBRL] = React.useState(0);
     const [salesUSD, setSalesUSD] = React.useState(0);
+    const [isLaunchDateDialogOpen, setIsLaunchDateDialogOpen] = useState(false);
 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = parseFloat(e.target.value);
@@ -53,13 +63,11 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
         setRevenueShare(isNaN(value) ? 0 : value / 100);
     };
 
-    // Cálculos Financeiros (usando totalSales do tracking como base para a estimativa principal)
     const grossRevenue = totalSales * gamePrice;
     const netRevenue = grossRevenue * revenueShare;
     const netProfit = netRevenue - totalInvestment;
     const roiPercentage = totalInvestment > 0 ? (netProfit / totalInvestment) * 100 : 0;
 
-    // Cálculos da Calculadora (usando inputs manuais)
     const totalManualSales = salesBRL + salesUSD;
     const grossManualRevenue = totalManualSales * gamePrice;
     const netManualRevenue = grossManualRevenue * revenueShare;
@@ -74,12 +82,34 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
             </CardHeader>
             <CardContent className="space-y-6">
                 
-                {/* Contador de Lançamento */}
-                {launchDate && (
-                    <div className="flex justify-center mb-4">
-                        <LaunchTimer launchDate={launchDate} />
-                    </div>
-                )}
+                {/* Contador de Lançamento e Botão de Edição */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
+                    {launchDate && <LaunchTimer launchDate={launchDate} />}
+                    <Dialog open={isLaunchDateDialogOpen} onOpenChange={setIsLaunchDateDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="bg-gogo-orange hover:bg-gogo-orange/90 text-white"
+                                onClick={() => setIsLaunchDateDialogOpen(true)}
+                            >
+                                <CalendarDays className="h-4 w-4 mr-2" /> Editar Lançamento
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[400px]">
+                            <DialogHeader>
+                                <DialogTitle>Editar Data de Lançamento</DialogTitle>
+                            </DialogHeader>
+                            <EditLaunchDateForm 
+                                gameId={gameId}
+                                gameName={gameName}
+                                currentLaunchDate={launchDate}
+                                onSave={onUpdateLaunchDate}
+                                onClose={() => setIsLaunchDateDialogOpen(false)}
+                            />
+                        </DialogContent>
+                    </Dialog>
+                </div>
 
                 {/* KPIs de Vendas e WL */}
                 <div className="grid gap-4 md:grid-cols-3">
@@ -111,18 +141,24 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                     />
                 </div>
 
-                {/* Novos KPIs de Visualizações e Impressões */}
-                <div className="grid gap-4 md:grid-cols-2">
+                {/* Novos KPIs de Visualizações e Impressões Separadas */}
+                <div className="grid gap-4 md:grid-cols-3">
                     <KpiCard 
-                        title="Visualizações (Orgânicas/Eventos)" 
-                        value={formatNumber(totalViews)} 
+                        title="Visualizações (Influencers)" 
+                        value={formatNumber(totalInfluencerViews)} 
                         icon={<Eye className="h-4 w-4 text-gogo-cyan" />} 
-                        description="De influencers e eventos."
+                        description="De campanhas de influencers."
+                    />
+                    <KpiCard 
+                        title="Visualizações (Eventos)" 
+                        value={formatNumber(totalEventViews)} 
+                        icon={<Megaphone className="h-4 w-4 text-gogo-orange" />} 
+                        description="De participações em eventos."
                     />
                     <KpiCard 
                         title="Impressões (Tráfego Pago)" 
                         value={formatNumber(totalImpressions)} 
-                        icon={<Megaphone className="h-4 w-4 text-gogo-orange" />} 
+                        icon={<Megaphone className="h-4 w-4 text-gogo-cyan" />} 
                         description="De campanhas de tráfego pago."
                     />
                 </div>

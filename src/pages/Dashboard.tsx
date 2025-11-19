@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff, Megaphone } from 'lucide-react'; // Adicionado Megaphone
+import { DollarSign, Eye, List, Plus, EyeOff, Megaphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -16,7 +16,9 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { ThemeToggle } from '@/components/ThemeToggle'; // Importar ThemeToggle
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { useQuery } from '@tanstack/react-query';
+import { getGames, addGame as addGameToSupabase, updateGame as updateGameInSupabase, deleteGame as deleteGameFromSupabase, Game as SupabaseGame } from '@/integrations/supabase/games';
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
@@ -38,19 +40,21 @@ import ExportDataButton from '@/components/dashboard/ExportDataButton';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
+import AddDemoForm from '@/components/dashboard/AddDemoForm';
+import EditDemoForm from '@/components/dashboard/EditDemoForm';
 
 // Initialize data once
-const initialData = getTrackingData();
+const initialRawData = getTrackingData();
 
 // Helper to generate unique IDs locally
-let localIdCounter = initialData.influencerTracking.length + initialData.eventTracking.length + initialData.paidTraffic.length + initialData.wlSales.length;
+let localIdCounter = initialRawData.influencerTracking.length + initialRawData.eventTracking.length + initialRawData.paidTraffic.length + initialRawData.wlSales.length + initialRawData.demoTracking.length;
 const generateLocalUniqueId = (prefix: string) => `${prefix}-${localIdCounter++}`;
 
 const ALL_PLATFORMS: Platform[] = ['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra'];
 
 const Dashboard = () => {
-  const [trackingData, setTrackingData] = useState(initialData);
-  const [selectedGame, setSelectedGame] = useState<string>(trackingData.games[0] || '');
+  const [trackingData, setTrackingData] = useState(initialRawData);
+  const [selectedGameName, setSelectedGameName] = useState<string>(trackingData.games[0] || '');
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'All'>('All');
   
   const [isAddInfluencerFormOpen, setIsAddInfluencerFormOpen] = useState(false);
@@ -58,8 +62,53 @@ const Dashboard = () => {
   const [isAddPaidTrafficFormOpen, setIsAddPaidTrafficFormOpen] = useState(false);
   const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
+  const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false); // New state for Demo form
+  
   const [editingWLSalesEntry, setEditingWLSalesEntry] = useState<WLSalesPlatformEntry | null>(null);
+  const [editingDemoEntry, setEditingDemoEntry] = useState<DemoTrackingEntry | null>(null); // New state for editing Demo
+  
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
+
+  // Fetch games from Supabase
+  const { data: supabaseGames, refetch: refetchSupabaseGames } = useQuery<SupabaseGame[], Error>({
+    queryKey: ['supabaseGames'],
+    queryFn: getGames,
+    initialData: [],
+  });
+
+  // Combine local games with Supabase games, prioritizing Supabase for launch dates
+  const allAvailableGames = useMemo(() => {
+    const combinedGamesMap = new Map<string, SupabaseGame>();
+    
+    // Add games from Supabase
+    supabaseGames.forEach(game => {
+      combinedGamesMap.set(game.name, game);
+    });
+
+    // Add games from local data if not already in Supabase, without launch_date
+    trackingData.games.forEach(gameName => {
+      if (!combinedGamesMap.has(gameName)) {
+        combinedGamesMap.set(gameName, { id: generateLocalUniqueId('game'), name: gameName, launch_date: null, created_at: new Date().toISOString() });
+      }
+    });
+
+    return Array.from(combinedGamesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [supabaseGames, trackingData.games]);
+
+  // Set initial selected game based on combined list
+  React.useEffect(() => {
+    if (allAvailableGames.length > 0 && !selectedGameName) {
+      setSelectedGameName(allAvailableGames[0].name);
+    } else if (allAvailableGames.length > 0 && !allAvailableGames.some(g => g.name === selectedGameName)) {
+      // If the previously selected game is no longer in the list (e.g., deleted), select the first one
+      setSelectedGameName(allAvailableGames[0].name);
+    }
+  }, [allAvailableGames, selectedGameName]);
+
+  const selectedGame = useMemo(() => {
+    return allAvailableGames.find(game => game.name === selectedGameName);
+  }, [allAvailableGames, selectedGameName]);
+
 
   // Função auxiliar para recalcular variações de WL
   const recalculateWLSales = useCallback((wlSales: WLSalesPlatformEntry[], game: string, platform: Platform): WLSalesPlatformEntry[] => {
@@ -80,21 +129,33 @@ const Dashboard = () => {
     return [...otherEntries, ...recalculatedGamePlatformEntries].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
   }, []);
 
-  // --- Game Management Handler ---
-  const handleAddGame = useCallback((gameName: string) => {
-    if (trackingData.games.includes(gameName)) {
+  // --- Game Management Handlers ---
+  const handleAddGame = useCallback(async (gameName: string) => {
+    if (allAvailableGames.some(g => g.name === gameName)) {
         toast.error(`O jogo "${gameName}" já existe.`);
         return;
     }
-    setTrackingData(prevData => ({
-        ...prevData,
-        games: [...prevData.games, gameName].sort(),
-        // Initialize WL details for the new game (empty)
-        wlDetails: [...prevData.wlDetails, { game: gameName, reviews: [], bundles: [], traffic: [] }],
-    }));
-    setSelectedGame(gameName);
-    toast.success(`Jogo "${gameName}" adicionado com sucesso!`);
-  }, [trackingData.games]);
+    try {
+        await addGameToSupabase(gameName, null);
+        refetchSupabaseGames(); // Refresh games from Supabase
+        toast.success(`Jogo "${gameName}" adicionado com sucesso!`);
+        setSelectedGameName(gameName);
+    } catch (error) {
+        console.error("Error adding game:", error);
+        toast.error("Falha ao adicionar jogo.");
+    }
+  }, [allAvailableGames, refetchSupabaseGames]);
+
+  const handleUpdateLaunchDate = useCallback(async (gameId: string, launchDate: string | null) => {
+    try {
+        await updateGameInSupabase(gameId, { launch_date: launchDate });
+        refetchSupabaseGames();
+        toast.success("Data de lançamento atualizada com sucesso!");
+    } catch (error) {
+        console.error("Error updating launch date:", error);
+        toast.error("Falha ao atualizar data de lançamento.");
+    }
+  }, [refetchSupabaseGames]);
 
 
   // --- WL/Sales Handlers ---
@@ -162,7 +223,7 @@ const Dashboard = () => {
     setEditingWLSalesEntry(entry);
   }, []);
 
-  // --- Other Handlers ---
+  // --- Influencer Handlers ---
   
   const handleEditInfluencerEntry = useCallback((updatedEntry: InfluencerTrackingEntry) => {
     setTrackingData(prevData => ({
@@ -196,6 +257,8 @@ const Dashboard = () => {
     }));
     setIsAddInfluencerFormOpen(false);
   }, []);
+
+  // --- Event Handlers ---
 
   const handleEditEventEntry = useCallback((updatedEntry: EventTrackingEntry) => {
     setTrackingData(prevData => ({
@@ -233,6 +296,8 @@ const Dashboard = () => {
     }));
     setIsAddEventFormOpen(false);
   }, []);
+
+  // --- Paid Traffic Handlers ---
 
   const handleEditPaidTrafficEntry = useCallback((updatedEntry: PaidTrafficEntry) => {
     setTrackingData(prevData => ({
@@ -272,6 +337,8 @@ const Dashboard = () => {
     setIsAddPaidTrafficFormOpen(false);
   }, []);
 
+  // --- WL Details Handlers ---
+
   const handleUpdateWlDetails = useCallback((game: string, newDetails: Partial<WlDetails>) => {
     setTrackingData(prevData => {
         const updatedWlDetails = prevData.wlDetails.map(detail => {
@@ -284,32 +351,60 @@ const Dashboard = () => {
     });
   }, []);
 
+  // --- Demo Tracking Handlers ---
+  const handleAddDemoEntry = useCallback((newEntry: Omit<DemoTrackingEntry, 'id' | 'date'> & { date: string }) => {
+    const dateObject = new Date(newEntry.date);
+    const entryToAdd: DemoTrackingEntry = {
+        ...newEntry,
+        id: generateLocalUniqueId('demo'),
+        game: selectedGameName, // Associate with the currently selected game
+        date: dateObject,
+    };
+    setTrackingData(prevData => ({
+        ...prevData,
+        demoTracking: [...prevData.demoTracking, entryToAdd].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)),
+    }));
+    setIsAddDemoFormOpen(false);
+    toast.success("Entrada de Demo Tracking adicionada.");
+  }, [selectedGameName]);
+
+  const handleEditDemoEntry = useCallback((updatedEntry: DemoTrackingEntry) => {
+    setTrackingData(prevData => ({
+        ...prevData,
+        demoTracking: prevData.demoTracking.map(entry => 
+            entry.id === updatedEntry.id ? updatedEntry : entry
+        ).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)),
+    }));
+    setEditingDemoEntry(null); // Close dialog
+    toast.success("Entrada de Demo Tracking atualizada.");
+  }, []);
+
+  const handleDeleteDemoEntry = useCallback((id: string) => {
+    setTrackingData(prevData => ({
+      ...prevData,
+      demoTracking: prevData.demoTracking.filter(entry => entry.id !== id),
+    }));
+    toast.success("Entrada de Demo Tracking removida com sucesso.");
+  }, []);
+
 
   const filteredData = useMemo(() => {
-    if (!selectedGame) return null;
+    if (!selectedGameName) return null;
     
-    const game = selectedGame.trim();
-
-    // Hardcoded launch date for demonstration
-    const launchDates: Record<string, Date | null> = {
-        'Legacy of Evil': new Date('2024-12-25T00:00:00'), // Example: Future launch
-        'Hellbrella': new Date('2024-01-15T00:00:00'), // Example: Past launch
-        'The Mare Show': new Date('2024-07-20T00:00:00'), // Example: Recent launch
-        'DREADSTONE KEEP': null, // No launch date
-        'LIA HACKING DESTINY': null, // No launch date
-    };
-    const gameLaunchDate = launchDates[game] || null;
+    const gameName = selectedGameName.trim();
+    const gameId = selectedGame?.id || '';
+    const launchDate = selectedGame?.launch_date ? new Date(selectedGame.launch_date) : null;
 
     // 1. Filter and enhance data, recalculating dynamic fields
     const influencerTracking = trackingData.influencerTracking
-        .filter(d => d.game.trim() === game)
+        .filter(d => d.game.trim() === gameName)
         .map(item => ({
             ...item,
             roi: item.estimatedWL > 0 ? item.investment / item.estimatedWL : '-',
         }));
     
     const eventTracking = trackingData.eventTracking
-        .filter(d => d.game.trim() === game)
+        .filter(d => d.game.trim() === gameName)
         .map(item => ({
             ...item,
             roi: item.wlGenerated > 0 ? item.cost / item.wlGenerated : '-',
@@ -317,7 +412,7 @@ const Dashboard = () => {
         }));
 
     const paidTraffic = trackingData.paidTraffic
-        .filter(d => d.game.trim() === game)
+        .filter(d => d.game.trim() === gameName)
         .map(item => ({
             ...item,
             networkConversion: item.impressions > 0 ? item.clicks / item.impressions : 0,
@@ -326,7 +421,7 @@ const Dashboard = () => {
     
     // Filter WL Sales by selected game AND platform
     const wlSales = trackingData.wlSales
-        .filter(d => d.game.trim() === game)
+        .filter(d => d.game.trim() === gameName)
         .filter(d => selectedPlatform === 'All' || d.platform === selectedPlatform)
         .sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
 
@@ -345,7 +440,7 @@ const Dashboard = () => {
     });
 
     const influencerSummary: InfluencerSummaryEntry[] = Array.from(influencerSummaryMap.entries()).map(([influencer, data]) => ({
-        game: game,
+        game: gameName,
         influencer: influencer,
         totalActions: data.totalActions,
         totalInvestment: data.totalInvestment,
@@ -364,10 +459,8 @@ const Dashboard = () => {
     const totalInvestment = investmentSources.influencers + investmentSources.events + investmentSources.paidTraffic;
 
     // Separar Visualizações e Impressões
-    const totalViews = 
-        influencerTracking.reduce((sum, item) => sum + item.views, 0) +
-        eventTracking.reduce((sum, item) => sum + item.views, 0);
-    
+    const totalInfluencerViews = influencerTracking.reduce((sum, item) => sum + item.views, 0);
+    const totalEventViews = eventTracking.reduce((sum, item) => sum + item.views, 0);
     const totalImpressions = paidTraffic.reduce((sum, item) => sum + item.impressions, 0);
     
     const totalWLGenerated = 
@@ -380,29 +473,31 @@ const Dashboard = () => {
 
 
     return {
-      resultSummary: trackingData.resultSummary.filter(d => d.game.trim() === game),
+      resultSummary: trackingData.resultSummary.filter(d => d.game.trim() === gameName),
       wlSales,
       influencerSummary, 
       influencerTracking,
       eventTracking,
       paidTraffic,
-      demoTracking: trackingData.demoTracking.filter(d => d.game.trim() === game),
-      wlDetails: trackingData.wlDetails.find(d => d.game.trim() === game),
+      demoTracking: trackingData.demoTracking.filter(d => d.game.trim() === gameName),
+      wlDetails: trackingData.wlDetails.find(d => d.game.trim() === gameName),
       kpis: {
+          gameId,
           totalInvestment,
-          totalViews, // Novo KPI
-          totalImpressions, // Novo KPI
+          totalInfluencerViews,
+          totalEventViews,
+          totalImpressions,
           totalWLGenerated,
           totalSales,
           totalWishlists,
           investmentSources,
-          launchDate: gameLaunchDate, // Passar a data de lançamento
+          launchDate,
       }
     };
-  }, [selectedGame, selectedPlatform, trackingData, recalculateWLSales]);
+  }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame]);
 
   // Renderização condicional para quando não há jogos
-  if (trackingData.games.length === 0) {
+  if (allAvailableGames.length === 0) {
     return (
         <div className="min-h-screen flex items-center justify-center p-8 bg-background text-foreground gaming-background">
             <Card className="p-6 shadow-xl border border-border">
@@ -442,13 +537,13 @@ const Dashboard = () => {
             <div className="flex-grow space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="game-select" className="font-semibold text-foreground">Jogo:</Label>
-                <Select onValueChange={setSelectedGame} defaultValue={selectedGame}>
+                <Select onValueChange={setSelectedGameName} defaultValue={selectedGameName}>
                   <SelectTrigger id="game-select" className="w-full bg-background">
                     <SelectValue placeholder="Selecione um jogo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {trackingData.games.map(game => (
-                      <SelectItem key={game} value={game}>{game}</SelectItem>
+                    {allAvailableGames.map(game => (
+                      <SelectItem key={game.id} value={game.name}>{game.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -482,7 +577,7 @@ const Dashboard = () => {
                     </h1>
                     <p className="text-lg text-muted-foreground mt-2">Análise de Performance de Jogos</p>
                 </div>
-                <ThemeToggle /> {/* Adicionar o ThemeToggle aqui */}
+                <ThemeToggle />
             </header>
 
             {filteredData && (
@@ -500,14 +595,17 @@ const Dashboard = () => {
 
                         <TabsContent value="overview" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             <GameSummaryPanel 
-                                gameName={selectedGame}
+                                gameId={filteredData.kpis.gameId}
+                                gameName={selectedGameName}
                                 totalSales={filteredData.kpis.totalSales}
                                 totalWishlists={filteredData.kpis.totalWishlists}
                                 totalInvestment={filteredData.kpis.totalInvestment}
-                                totalViews={filteredData.kpis.totalViews}
+                                totalInfluencerViews={filteredData.kpis.totalInfluencerViews}
+                                totalEventViews={filteredData.kpis.totalEventViews}
                                 totalImpressions={filteredData.kpis.totalImpressions}
                                 launchDate={filteredData.kpis.launchDate}
                                 investmentSources={filteredData.kpis.investmentSources}
+                                onUpdateLaunchDate={handleUpdateLaunchDate}
                             />
                             <ResultSummaryPanel data={filteredData.resultSummary} />
                         </TabsContent>
@@ -537,7 +635,7 @@ const Dashboard = () => {
                                 </Button>
                                 <ExportDataButton 
                                     data={filteredData.wlSales} 
-                                    filename={`${selectedGame}_${selectedPlatform}_WL_Vendas.csv`} 
+                                    filename={`${selectedGameName}_${selectedPlatform}_WL_Vendas.csv`} 
                                     label="WL/Vendas"
                                 />
                                 <Dialog open={isAddWLSalesFormOpen} onOpenChange={setIsAddWLSalesFormOpen}>
@@ -571,7 +669,7 @@ const Dashboard = () => {
                             {selectedPlatform === 'Steam' && filteredData.wlDetails && (
                                 <WlDetailsManager 
                                     details={filteredData.wlDetails} 
-                                    gameName={selectedGame}
+                                    gameName={selectedGameName}
                                     onUpdateDetails={handleUpdateWlDetails}
                                 />
                             )}
@@ -585,7 +683,7 @@ const Dashboard = () => {
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.influencerTracking} 
-                                    filename={`${selectedGame}_Influencers_Tracking.csv`} 
+                                    filename={`${selectedGameName}_Influencers_Tracking.csv`} 
                                     label="Tracking Detalhado"
                                 />
                                 <Dialog open={isAddInfluencerFormOpen} onOpenChange={setIsAddInfluencerFormOpen}>
@@ -619,7 +717,7 @@ const Dashboard = () => {
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.eventTracking} 
-                                    filename={`${selectedGame}_Eventos_Tracking.csv`} 
+                                    filename={`${selectedGameName}_Eventos_Tracking.csv`} 
                                     label="Eventos"
                                 />
                                 <Dialog open={isAddEventFormOpen} onOpenChange={setIsAddEventFormOpen}>
@@ -652,7 +750,7 @@ const Dashboard = () => {
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.paidTraffic} 
-                                    filename={`${selectedGame}_Trafego_Pago.csv`} 
+                                    filename={`${selectedGameName}_Trafego_Pago.csv`} 
                                     label="Tráfego Pago"
                                 />
                                 <Dialog open={isAddPaidTrafficFormOpen} onOpenChange={setIsAddPaidTrafficFormOpen}>
@@ -685,14 +783,36 @@ const Dashboard = () => {
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.demoTracking} 
-                                    filename={`${selectedGame}_Demo_Tracking.csv`} 
+                                    filename={`${selectedGameName}_Demo_Tracking.csv`} 
                                     label="Demo Tracking"
                                 />
+                                <Dialog open={isAddDemoFormOpen} onOpenChange={setIsAddDemoFormOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button onClick={() => setIsAddDemoFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
+                                            <Plus className="h-4 w-4 mr-2" /> Adicionar Demo
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[600px]">
+                                        <DialogHeader>
+                                            <DialogTitle>Adicionar Nova Entrada de Demo Tracking</DialogTitle>
+                                        </DialogHeader>
+                                        <AddDemoForm 
+                                            gameName={selectedGameName} 
+                                            onSave={handleAddDemoEntry} 
+                                            onClose={() => setIsAddDemoFormOpen(false)} 
+                                        />
+                                    </DialogContent>
+                                </Dialog>
                             </div>
-                            <DemoTrackingPanel data={filteredData.demoTracking} />
+                            <DemoTrackingPanel 
+                                data={filteredData.demoTracking} 
+                                onDeleteTracking={handleDeleteDemoEntry} 
+                                onEditTracking={(entry) => setEditingDemoEntry(entry)} // Open edit dialog
+                            />
                         </TabsContent>
                     </Tabs>
 
+                    {/* Dialog for editing WL Sales entry */}
                     <Dialog open={!!editingWLSalesEntry} onOpenChange={(open) => !open && setEditingWLSalesEntry(null)}>
                         <DialogContent className="sm:max-w-[600px]">
                             <DialogHeader>
@@ -704,6 +824,22 @@ const Dashboard = () => {
                                     entry={editingWLSalesEntry}
                                     onSave={handleEditWLSalesEntry}
                                     onClose={() => setEditingWLSalesEntry(null)}
+                                />
+                            )}
+                        </DialogContent>
+                    </Dialog>
+
+                    {/* Dialog for editing Demo Tracking entry */}
+                    <Dialog open={!!editingDemoEntry} onOpenChange={(open) => !open && setEditingDemoEntry(null)}>
+                        <DialogContent className="sm:max-w-[600px]">
+                            <DialogHeader>
+                                <DialogTitle>Editar Entrada de Demo Tracking</DialogTitle>
+                            </DialogHeader>
+                            {editingDemoEntry && (
+                                <EditDemoForm 
+                                    entry={editingDemoEntry}
+                                    onSave={handleEditDemoEntry}
+                                    onClose={() => setEditingDemoEntry(null)}
                                 />
                             )}
                         </DialogContent>

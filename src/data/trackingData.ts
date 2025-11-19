@@ -57,6 +57,7 @@ export interface PaidTrafficEntry {
 }
 
 export interface DemoTrackingEntry {
+    id: string; // Added unique ID for manipulation
     game: string;
     date: Date | null;
     downloads: number;
@@ -270,6 +271,7 @@ const processDemoTracking = (data: any[]): DemoTrackingEntry[] => {
     return data
         .filter(item => item.Game && item.Data)
         .map(item => ({
+            id: generateUniqueId('demo'), // Added ID here
             game: item.Game,
             date: excelSerialDateToJSDate(item.Data as number),
             downloads: Number(String(item['Numero de downloads da demo']).replace(/,/g, '')) || 0,
@@ -327,9 +329,14 @@ const processWlDetails = (sheetData: any[], gameName: string): WlDetails => {
     return details;
 }
 
-const processResultSummary = (data: any[]): ResultSummaryEntry[] => {
+const processResultSummary = (data: any[]): ResultSummaryEntry => {
+    // This function now returns a single ResultSummaryEntry for the selected game
+    // It aggregates data from different types (Influencers, Eventos, Trafego Pago)
+    // and should not be directly editable.
+    // The structure of rawData['RESUMO DE RESULTADOS'] suggests it's already summarized.
+    // We'll just filter it by game.
     return data
-        .filter(item => item.Jogo && item.Tipo)
+        .filter(item => item.Jogo)
         .map(item => ({
             type: item.Tipo,
             game: item.Jogo.replace('The Mare sHow', 'The Mare Show'),
