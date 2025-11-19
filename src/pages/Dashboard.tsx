@@ -30,7 +30,7 @@ import DemoTrackingPanel from '@/components/dashboard/DemoTrackingPanel';
 import KpiCard from '@/components/dashboard/KpiCard';
 import WlDetailsManager from '@/components/dashboard/WlDetailsManager';
 import AddInfluencerForm from '@/components/dashboard/AddInfluencerForm';
-import AddEventForm from '@/components/dashboard/AddEventForm';
+import AddEventForm from '@/components/dashboard/AddEvent/Form';
 import AddPaidTrafficForm from '@/components/dashboard/AddPaidTrafficForm';
 import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm';
 import EditWLSalesForm from '@/components/dashboard/EditWLSalesForm';
@@ -419,7 +419,7 @@ const Dashboard = () => {
 
   // Renderização principal
   return (
-    <div className="min-h-screen p-4 md:p-8 font-sans gaming-background">
+    <div className="min-h-screen p-4 md:p-8 font-sans"> {/* Simplificado aqui */}
       <ResizablePanelGroup
         direction="horizontal"
         className="min-h-[calc(100vh-64px)] w-full rounded-lg border border-border bg-card text-card-foreground shadow-gogo-cyan-glow transition-shadow duration-300"
