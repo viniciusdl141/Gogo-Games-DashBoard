@@ -4,6 +4,7 @@ import { excelSerialDateToJSDate } from '@/lib/utils';
 // --- Interfaces for Normalized Data ---
 
 export interface InfluencerTrackingEntry {
+    id: string; // Added unique ID for manipulation
     date: Date | null;
     game: string;
     influencer: string;
@@ -102,7 +103,8 @@ export interface TrackingData {
     wlDetails: WlDetails[];
 }
 
-// --- Data Processing Functions ---
+let uniqueIdCounter = 0;
+const generateUniqueId = () => `track-${uniqueIdCounter++}`;
 
 const cleanValue = (value: any): number | string => {
     if (value === undefined || value === null || value === '-' || value === '#DIV/0!') {
@@ -121,6 +123,7 @@ const processInfluencerTracking = (data: any[]): InfluencerTrackingEntry[] => {
     return data
         .filter(item => item.Game && item.Influencer)
         .map(item => ({
+            id: generateUniqueId(), // Assign unique ID
             date: excelSerialDateToJSDate(item.Data as number),
             game: item.Game.replace('Legavy of Evil', 'Legacy of Evil').replace('HellBrella', 'Hellbrella'),
             influencer: item.Influencer,
@@ -150,7 +153,7 @@ const processInfluencerSummary = (data: any[]): InfluencerSummaryEntry[] => {
 
 const processEventTracking = (data: any[]): EventTrackingEntry[] => {
     return data
-        .filter(item => item.Jogo && item.Evento && typeof item.Começo === 'number' && typeof item.Final === 'number' && item.Começo > 10)
+        .filter(item => item.Jogo && item.Evento && item.Começo && item.Final)
         .map(item => ({
             startDate: excelSerialDateToJSDate(item.Começo as number),
             endDate: excelSerialDateToJSDate(item.Final as number),
@@ -215,6 +218,7 @@ const processWLSalesSheet = (sheetData: any[], gameName: string): WLSalesEntry[]
 
         if (typeof dateKey === 'number' && typeof wlValue === 'number' && dateKey > 10000) {
             const sales = salesMap.get(dateKey) || 0;
+            
             wlSales.push({
                 date: excelSerialDateToJSDate(dateKey),
                 game: gameName,
@@ -258,16 +262,16 @@ const processWlDetails = (sheetData: any[], gameName: string): WlDetails => {
             }));
     }
 
-    let trafficHeaderIndex = sheetData.findIndex(r => r.__EMPTY === 'Trafego na pagina');
+    let trafficHeaderIndex = sheetData.findIndex(r => r.Data === 'Trafego na pagina' || r.__EMPTY === 'Trafego na pagina');
     if (trafficHeaderIndex !== -1) {
         details.traffic = sheetData.slice(trafficHeaderIndex + 1)
-            .filter(r => r.__EMPTY && (r.__EMPTY.includes(gameName) || r.__EMPTY.includes('Hellbrella')))
+            .filter(r => r.Data === gameName || r.__EMPTY === gameName)
             .map(r => ({
-                impressions: r.__EMPTY_1,
-                ctr: r.__EMPTY_2,
-                visits: r.__EMPTY_3,
-                totalVisits: r.__EMPTY_4,
-                date: excelSerialDateToJSDate(r.__EMPTY_5)
+                impressions: cleanValue(r.WL ?? r.__EMPTY_1),
+                ctr: cleanValue(r.Jogo ?? r.__EMPTY_2),
+                visits: cleanValue(r['WL TOTAIS'] ?? r.__EMPTY_3),
+                totalVisits: cleanValue(r.__EMPTY ?? r.__EMPTY_4),
+                date: excelSerialDateToJSDate(r.__EMPTY_1 ?? r.__EMPTY_5)
             }));
     }
 
@@ -294,6 +298,9 @@ const processResultSummary = (data: any[]): ResultSummaryEntry[] => {
 // --- Main Data Aggregation ---
 
 export const getTrackingData = (): TrackingData => {
+    // Reset counter for consistent IDs if data is reloaded
+    uniqueIdCounter = 0; 
+    
     const influencerTracking = processInfluencerTracking(rawData['Tracking Semanal Influencers']);
     const influencerSummary = processInfluencerSummary(rawData['Resumo por Influencer']);
     const eventTracking = processEventTracking(rawData['Tracking Eventos']);
@@ -305,13 +312,14 @@ export const getTrackingData = (): TrackingData => {
         ...processWLSalesSheet(rawData['Total WL - Legacy of Evil'], 'Legacy of Evil'),
         ...processWLSalesSheet(rawData['Total WL - Hellbrella'], 'Hellbrella'),
         ...processWLSalesSheet(rawData['Total WL - The Mare Show'], 'The Mare Show'),
-        ...processWLSalesSheet(rawData['Total WL - Dreadstone Keep'], 'Dreadstone Keep'),
+        ...processWLSalesSheet(rawData['Total WL - Dreadstone Keep'], 'DREADSTONE KEEP'),
     ];
 
     const wlDetails: WlDetails[] = [
         processWlDetails(rawData['Total WL - Legacy of Evil'], 'Legacy of Evil'),
         processWlDetails(rawData['Total WL - Hellbrella'], 'Hellbrella'),
         processWlDetails(rawData['Total WL - The Mare Show'], 'The Mare Show'),
+        processWlDetails(rawData['Total WL - Dreadstone Keep'], 'DREADSTONE KEEP'),
     ];
 
     const allGames = new Set<string>();

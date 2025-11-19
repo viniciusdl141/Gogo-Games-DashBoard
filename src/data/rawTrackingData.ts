@@ -465,7 +465,8 @@ export const rawData = {
       "Wishlists Depois": 1917,
       "WL Geradas": 196,
       "ROI (R$/WL)": 25.01530612,
-      "Custo View (R$/View)": "-"
+      "Custo View (R$/View)": "-",
+      "Total de Views": 9100
     },
     {
       "Começo": 45863,
@@ -1070,9 +1071,9 @@ export const rawData = {
       "__EMPTY_19": "Quantidade de Reviews",
       "__EMPTY_20": "Reviews Positivas",
       "__EMPTY_21": "Reviews Negativas",
-      "__EMPTY_22": "Porcentagem",
-      "__EMPTY_23": "Classificação",
-      "__EMPTY_24": "Data"
+      "__EMPTY_22": 0.93,
+      "__EMPTY_23": "Positivas",
+      "__EMPTY_24": 45924
     },
     {
       "__EMPTY": 45926,
@@ -1082,12 +1083,12 @@ export const rawData = {
       "__EMPTY_9": 1268,
       "__EMPTY_17": 45935,
       "__EMPTY_18": 27,
-      "__EMPTY_19": 53,
-      "__EMPTY_20": 50,
+      "__EMPTY_19": 62,
+      "__EMPTY_20": 59,
       "__EMPTY_21": 3,
-      "__EMPTY_22": 0.93,
-      "__EMPTY_23": "Positivas",
-      "__EMPTY_24": 45924
+      "__EMPTY_22": 0.95,
+      "__EMPTY_23": "Muito Positivas",
+      "__EMPTY_24": 45925
     },
     {
       "__EMPTY": 45927,
@@ -1097,12 +1098,12 @@ export const rawData = {
       "__EMPTY_9": 1003,
       "__EMPTY_17": 45936,
       "__EMPTY_18": 12,
-      "__EMPTY_19": 62,
-      "__EMPTY_20": 59,
+      "__EMPTY_19": 86,
+      "__EMPTY_20": 83,
       "__EMPTY_21": 3,
-      "__EMPTY_22": 0.95,
+      "__EMPTY_22": 0.96,
       "__EMPTY_23": "Muito Positivas",
-      "__EMPTY_24": 45925
+      "__EMPTY_24": 45931
     },
     {
       "__EMPTY": 45928,
@@ -1112,12 +1113,12 @@ export const rawData = {
       "__EMPTY_9": 505,
       "__EMPTY_17": 45937,
       "__EMPTY_18": 12,
-      "__EMPTY_19": 86,
-      "__EMPTY_20": 83,
-      "__EMPTY_21": 3,
-      "__EMPTY_22": 0.96,
+      "__EMPTY_19": 102,
+      "__EMPTY_20": 97,
+      "__EMPTY_21": 5,
+      "__EMPTY_22": 0.95,
       "__EMPTY_23": "Muito Positivas",
-      "__EMPTY_24": 45931
+      "__EMPTY_24": 45945
     },
     {
       "__EMPTY": 45929,
@@ -1127,12 +1128,12 @@ export const rawData = {
       "__EMPTY_9": 206,
       "__EMPTY_17": 45938,
       "__EMPTY_18": 21,
-      "__EMPTY_19": 102,
-      "__EMPTY_20": 97,
+      "__EMPTY_19": 115,
+      "__EMPTY_20": 110,
       "__EMPTY_21": 5,
       "__EMPTY_22": 0.95,
       "__EMPTY_23": "Muito Positivas",
-      "__EMPTY_24": 45945
+      "__EMPTY_24": 45966
     },
     {
       "__EMPTY": 45930,
@@ -1141,13 +1142,7 @@ export const rawData = {
       "__EMPTY_8": 45930,
       "__EMPTY_9": 134,
       "__EMPTY_17": 45939,
-      "__EMPTY_18": 21,
-      "__EMPTY_19": 115,
-      "__EMPTY_20": 110,
-      "__EMPTY_21": 5,
-      "__EMPTY_22": 0.95,
-      "__EMPTY_23": "Muito Positivas",
-      "__EMPTY_24": 45966
+      "__EMPTY_18": 21
     },
     {
       "__EMPTY": 45931,
@@ -1515,9 +1510,9 @@ export const rawData = {
       "__EMPTY_19": "Quantidade de Reviews",
       "__EMPTY_20": "Reviews Positivas",
       "__EMPTY_21": "Reviews Negativas",
-      "__EMPTY_22": "Porcentagem",
-      "__EMPTY_23": "Classificação",
-      "__EMPTY_24": "Data"
+      "__EMPTY_22": "N/A",
+      "__EMPTY_23": "N/A",
+      "__EMPTY_24": 45975
     },
     {
       "__EMPTY": 45967,
@@ -2269,12 +2264,12 @@ export const rawData = {
       "__EMPTY_10": "Taxa de Conversão de Wishlist em vendas"
     },
     {
-      "__EMPTY": "LIA HACKING DESTINY",
+      "__EMPTY": "DREADSTONE KEEP",
       "__EMPTY_9": 45966,
       "__EMPTY_10": 0.046
     },
     {
-      "__EMPTY": "LIA HACKING DESTINY"
+      "__EMPTY": "DREADSTONE KEEP"
     },
     {
       "__EMPTY": "Envios Imprensa",
@@ -2951,657 +2946,7 @@ export const rawData = {
       "__EMPTY_5": 0.07142857143
     }
   ],
-  "TOTAL WL PS- LIA HACKING DESTIN": [
-    {
-      "__EMPTY": "Data",
-      "__EMPTY_1": "WL",
-      "__EMPTY_2": "Jogo",
-      "__EMPTY_8": "Data",
-      "__EMPTY_9": "Variação",
-      "__EMPTY_17": "Data",
-      "__EMPTY_18": "Vendas"
-    },
-    {
-      "__EMPTY": 45951,
-      "__EMPTY_2": "LIA HACKING DESTINY"
-    },
-    {
-      "__EMPTY": 45960,
-      "__EMPTY_2": "LIA HACKING DESTINY"
-    },
-    {
-      "__EMPTY": 45943,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45909,
-      "__EMPTY_17": 45918
-    },
-    {
-      "__EMPTY": 45965,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45910,
-      "__EMPTY_17": 45919
-    },
-    {
-      "__EMPTY": 45911,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45911,
-      "__EMPTY_17": 45920
-    },
-    {
-      "__EMPTY": 45912,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45912,
-      "__EMPTY_17": 45921
-    },
-    {
-      "__EMPTY": 45913,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45913,
-      "__EMPTY_17": 45922
-    },
-    {
-      "__EMPTY": 45914,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45914,
-      "__EMPTY_17": 45923
-    },
-    {
-      "__EMPTY": 45915,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45915,
-      "__EMPTY_17": 45924,
-      "__EMPTY_19": "Total  Vendas Steam",
-      "__EMPTY_20": "Total  Vendas Epic Games",
-      "__EMPTY_21": "Chaves Não ativadas",
-      "__EMPTY_22": "=",
-      "__EMPTY_24": "Total"
-    },
-    {
-      "__EMPTY": 45916,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45916,
-      "__EMPTY_17": 45925,
-      "__EMPTY_19": 0,
-      "__EMPTY_24": "<-------"
-    },
-    {
-      "__EMPTY": 45917,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_4": "Legenda",
-      "__EMPTY_8": 45917,
-      "__EMPTY_17": 45926,
-      "__EMPTY_19": "Progresso da Meta",
-      "__EMPTY_21": " 0%"
-    },
-    {
-      "__EMPTY": 45918,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45918,
-      "__EMPTY_17": 45927
-    },
-    {
-      "__EMPTY": 45919,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45919,
-      "__EMPTY_17": 45928,
-      "__EMPTY_19": "Bundle Name",
-      "__EMPTY_20": "Bundle Units",
-      "__EMPTY_21": "Package Units",
-      "__EMPTY_22": "Sales",
-      "__EMPTY_23": "Total Xsolla"
-    },
-    {
-      "__EMPTY": 45920,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45920,
-      "__EMPTY_17": 45929
-    },
-    {
-      "__EMPTY": 45921,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45921,
-      "__EMPTY_17": 45930
-    },
-    {
-      "__EMPTY": 45922,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45922,
-      "__EMPTY_17": 45931,
-      "__EMPTY_19": "VENDAS DLC",
-      "__EMPTY_20": "PREÇO",
-      "__EMPTY_21": "TOTAL"
-    },
-    {
-      "__EMPTY": 45923,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45923,
-      "__EMPTY_17": 45932
-    },
-    {
-      "__EMPTY": 45924,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45924,
-      "__EMPTY_17": 45933
-    },
-    {
-      "__EMPTY": 45925,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45925,
-      "__EMPTY_17": 45934,
-      "__EMPTY_19": "Quantidade de Reviews",
-      "__EMPTY_20": "Reviews Positivas",
-      "__EMPTY_21": "Reviews Negativas",
-      "__EMPTY_22": "Porcentagem",
-      "__EMPTY_23": "Classificação",
-      "__EMPTY_24": "Data"
-    },
-    {
-      "__EMPTY": 45926,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45926,
-      "__EMPTY_17": 45935
-    },
-    {
-      "__EMPTY": 45927,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45927,
-      "__EMPTY_17": 45936
-    },
-    {
-      "__EMPTY": 45928,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45928,
-      "__EMPTY_17": 45937
-    },
-    {
-      "__EMPTY": 45929,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45929,
-      "__EMPTY_17": 45938
-    },
-    {
-      "__EMPTY": 45930,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45930,
-      "__EMPTY_17": 45939
-    },
-    {
-      "__EMPTY": 45931,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45931,
-      "__EMPTY_17": 45940
-    },
-    {
-      "__EMPTY": 45932,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45932,
-      "__EMPTY_17": 45941
-    },
-    {
-      "__EMPTY": 45933,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45933,
-      "__EMPTY_17": 45942
-    },
-    {
-      "__EMPTY": 45934,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45934,
-      "__EMPTY_17": 45943
-    },
-    {
-      "__EMPTY": 45935,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45935,
-      "__EMPTY_17": 45944
-    },
-    {
-      "__EMPTY": 45936,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45936
-    },
-    {
-      "__EMPTY": 45937,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45937
-    },
-    {
-      "__EMPTY": 45938,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45938
-    },
-    {
-      "__EMPTY": 45939,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45939
-    },
-    {
-      "__EMPTY": 45940,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45940
-    },
-    {
-      "__EMPTY": 45941,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45941
-    },
-    {
-      "__EMPTY": 45942,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45942
-    },
-    {
-      "__EMPTY": 45943,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45943
-    },
-    {
-      "__EMPTY": 45944,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45944
-    },
-    {
-      "__EMPTY": "Trafego na pagina",
-      "__EMPTY_1": "Impressões",
-      "__EMPTY_2": "Click Thru Rate",
-      "__EMPTY_3": "Visitas",
-      "__EMPTY_4": "% total de visitas",
-      "__EMPTY_5": "Data",
-      "__EMPTY_9": "Data",
-      "__EMPTY_10": "Taxa de Conversão de Wishlist em vendas"
-    },
-    {
-      "__EMPTY": "DREADSTONE KEEP",
-      "__EMPTY_9": 45966,
-      "__EMPTY_10": 0.046
-    },
-    {
-      "__EMPTY": "DREADSTONE KEEP"
-    },
-    {
-      "__EMPTY": "Envios Imprensa",
-      "__EMPTY_1": "Quantidade Envios Imprensa",
-      "__EMPTY_2": "Quantidade Materias/Conteudos cobertos",
-      "__EMPTY_3": "Visualizações Alcançadas",
-      "__EMPTY_4": "Custo Por Jogo",
-      "__EMPTY_5": "Custo View (R$/View)"
-    },
-    {
-      "__EMPTY": "Vinicius",
-      "__EMPTY_1": 90,
-      "__EMPTY_2": 9
-    },
-    {
-      "__EMPTY": "Jesus",
-      "__EMPTY_1": 48,
-      "__EMPTY_2": 6,
-      "__EMPTY_3": 28000,
-      "__EMPTY_4": 2000,
-      "__EMPTY_5": 0.07142857143
-    }
-  ],
   "TOTAL WL XBOX- LIA HACKING DEST": [
-    {
-      "__EMPTY": "Data",
-      "__EMPTY_1": "WL",
-      "__EMPTY_2": "Jogo",
-      "__EMPTY_8": "Data",
-      "__EMPTY_9": "Variação",
-      "__EMPTY_17": "Data",
-      "__EMPTY_18": "Vendas"
-    },
-    {
-      "__EMPTY": 45951,
-      "__EMPTY_2": "LIA HACKING DESTINY"
-    },
-    {
-      "__EMPTY": 45960,
-      "__EMPTY_2": "LIA HACKING DESTINY"
-    },
-    {
-      "__EMPTY": 45943,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45909,
-      "__EMPTY_17": 45918
-    },
-    {
-      "__EMPTY": 45965,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45910,
-      "__EMPTY_17": 45919
-    },
-    {
-      "__EMPTY": 45911,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45911,
-      "__EMPTY_17": 45920
-    },
-    {
-      "__EMPTY": 45912,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45912,
-      "__EMPTY_17": 45921
-    },
-    {
-      "__EMPTY": 45913,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45913,
-      "__EMPTY_17": 45922
-    },
-    {
-      "__EMPTY": 45914,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45914,
-      "__EMPTY_17": 45923
-    },
-    {
-      "__EMPTY": 45915,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45915,
-      "__EMPTY_17": 45924,
-      "__EMPTY_19": "Total  Vendas Steam",
-      "__EMPTY_20": "Total  Vendas Epic Games",
-      "__EMPTY_21": "Chaves Não ativadas",
-      "__EMPTY_22": "=",
-      "__EMPTY_24": "Total"
-    },
-    {
-      "__EMPTY": 45916,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45916,
-      "__EMPTY_17": 45925,
-      "__EMPTY_19": 0,
-      "__EMPTY_24": "<-------"
-    },
-    {
-      "__EMPTY": 45917,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_4": "Legenda",
-      "__EMPTY_8": 45917,
-      "__EMPTY_17": 45926,
-      "__EMPTY_19": "Progresso da Meta",
-      "__EMPTY_21": " 0%"
-    },
-    {
-      "__EMPTY": 45918,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45918,
-      "__EMPTY_17": 45927
-    },
-    {
-      "__EMPTY": 45919,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45919,
-      "__EMPTY_17": 45928,
-      "__EMPTY_19": "Bundle Name",
-      "__EMPTY_20": "Bundle Units",
-      "__EMPTY_21": "Package Units",
-      "__EMPTY_22": "Sales",
-      "__EMPTY_23": "Total Xsolla"
-    },
-    {
-      "__EMPTY": 45920,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45920,
-      "__EMPTY_17": 45929
-    },
-    {
-      "__EMPTY": 45921,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45921,
-      "__EMPTY_17": 45930
-    },
-    {
-      "__EMPTY": 45922,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45922,
-      "__EMPTY_17": 45931,
-      "__EMPTY_19": "VENDAS DLC",
-      "__EMPTY_20": "PREÇO",
-      "__EMPTY_21": "TOTAL"
-    },
-    {
-      "__EMPTY": 45923,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45923,
-      "__EMPTY_17": 45932
-    },
-    {
-      "__EMPTY": 45924,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45924,
-      "__EMPTY_17": 45933
-    },
-    {
-      "__EMPTY": 45925,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45925,
-      "__EMPTY_17": 45934,
-      "__EMPTY_19": "Quantidade de Reviews",
-      "__EMPTY_20": "Reviews Positivas",
-      "__EMPTY_21": "Reviews Negativas",
-      "__EMPTY_22": "Porcentagem",
-      "__EMPTY_23": "Classificação",
-      "__EMPTY_24": "Data"
-    },
-    {
-      "__EMPTY": 45926,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45926,
-      "__EMPTY_17": 45935
-    },
-    {
-      "__EMPTY": 45927,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45927,
-      "__EMPTY_17": 45936
-    },
-    {
-      "__EMPTY": 45928,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45928,
-      "__EMPTY_17": 45937
-    },
-    {
-      "__EMPTY": 45929,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45929,
-      "__EMPTY_17": 45938
-    },
-    {
-      "__EMPTY": 45930,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45930,
-      "__EMPTY_17": 45939
-    },
-    {
-      "__EMPTY": 45931,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45931,
-      "__EMPTY_17": 45940
-    },
-    {
-      "__EMPTY": 45932,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45932,
-      "__EMPTY_17": 45941
-    },
-    {
-      "__EMPTY": 45933,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45933,
-      "__EMPTY_17": 45942
-    },
-    {
-      "__EMPTY": 45934,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45934,
-      "__EMPTY_17": 45943
-    },
-    {
-      "__EMPTY": 45935,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45935,
-      "__EMPTY_17": 45944
-    },
-    {
-      "__EMPTY": 45936,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45936
-    },
-    {
-      "__EMPTY": 45937,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45937
-    },
-    {
-      "__EMPTY": 45938,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45938
-    },
-    {
-      "__EMPTY": 45939,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45939
-    },
-    {
-      "__EMPTY": 45940,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45940
-    },
-    {
-      "__EMPTY": 45941,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45941
-    },
-    {
-      "__EMPTY": 45942,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45942
-    },
-    {
-      "__EMPTY": 45943,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45943
-    },
-    {
-      "__EMPTY": 45944,
-      "__EMPTY_1": 0,
-      "__EMPTY_2": "LIA HACKING DESTINY",
-      "__EMPTY_8": 45944
-    },
-    {
-      "__EMPTY": "Trafego na pagina",
-      "__EMPTY_1": "Impressões",
-      "__EMPTY_2": "Click Thru Rate",
-      "__EMPTY_3": "Visitas",
-      "__EMPTY_4": "% total de visitas",
-      "__EMPTY_5": "Data",
-      "__EMPTY_9": "Data",
-      "__EMPTY_10": "Taxa de Conversão de Wishlist em vendas"
-    },
-    {
-      "__EMPTY": "DREADSTONE KEEP",
-      "__EMPTY_9": 45966,
-      "__EMPTY_10": 0.046
-    },
-    {
-      "__EMPTY": "DREADSTONE KEEP"
-    },
-    {
-      "__EMPTY": "Envios Imprensa",
-      "__EMPTY_1": "Quantidade Envios Imprensa",
-      "__EMPTY_2": "Quantidade Materias/Conteudos cobertos",
-      "__EMPTY_3": "Visualizações Alcançadas",
-      "__EMPTY_4": "Custo Por Jogo",
-      "__EMPTY_5": "Custo View (R$/View)"
-    },
-    {
-      "__EMPTY": "Vinicius",
-      "__EMPTY_1": 90,
-      "__EMPTY_2": 9
-    },
-    {
-      "__EMPTY": "Jesus",
-      "__EMPTY_1": 48,
-      "__EMPTY_2": 6,
-      "__EMPTY_3": 28000,
-      "__EMPTY_4": 2000,
-      "__EMPTY_5": 0.07142857143
-    }
-  ],
-  "TOTAL WL STEAM- LIA HACKING DES": [
     {
       "__EMPTY": "Data",
       "__EMPTY_1": "WL",

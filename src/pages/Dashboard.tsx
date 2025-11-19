@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { getTrackingData } from '@/data/trackingData';
+import React, { useState, useMemo, useCallback } from 'react';
+import { getTrackingData, InfluencerTrackingEntry, InfluencerSummaryEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, WLSalesEntry, ResultSummaryEntry, WlDetails } from '@/data/trackingData';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, DollarSign, Eye, List } from 'lucide-react';
+import { DollarSign, Eye, List } from 'lucide-react';
+import { toast } from 'sonner';
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
@@ -18,9 +19,22 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import WlDetailsPanel from '@/components/dashboard/WlDetailsPanel';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
+// Initialize data once
+const initialData = getTrackingData();
+
 const Dashboard = () => {
-  const trackingData = useMemo(() => getTrackingData(), []);
+  // Use state to manage data that might be modified (e.g., deletions)
+  const [trackingData, setTrackingData] = useState(initialData);
   const [selectedGame, setSelectedGame] = useState<string>(trackingData.games[0] || '');
+
+  // Handler for deleting an influencer tracking entry
+  const handleDeleteInfluencerEntry = useCallback((id: string) => {
+    setTrackingData(prevData => ({
+      ...prevData,
+      influencerTracking: prevData.influencerTracking.filter(entry => entry.id !== id),
+    }));
+    toast.success("Entrada de influencer removida com sucesso.");
+  }, []);
 
   const filteredData = useMemo(() => {
     if (!selectedGame) return null;
@@ -130,6 +144,7 @@ const Dashboard = () => {
                     <InfluencerPanel 
                         summary={filteredData.influencerSummary} 
                         tracking={filteredData.influencerTracking} 
+                        onDeleteTracking={handleDeleteInfluencerEntry}
                     />
                 </TabsContent>
 
