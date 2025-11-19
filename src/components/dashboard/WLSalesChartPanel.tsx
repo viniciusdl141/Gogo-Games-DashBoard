@@ -79,14 +79,14 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data }) => {
                         <Line 
                             type="monotone" 
                             dataKey="Wishlists" 
-                            stroke="hsl(var(--gogo-primary))" // Usando cor primária da Gogo
+                            stroke="hsl(var(--primary))" // Cor primária (Azul escuro/Preto)
                             strokeWidth={2}
                             dot={false}
                         />
                         <Line 
                             type="monotone" 
                             dataKey="Vendas" 
-                            stroke="hsl(var(--gogo-secondary))" // Usando cor secundária da Gogo
+                            stroke="hsl(var(--destructive))" // Cor destrutiva (Vermelho) para contraste
                             strokeWidth={2}
                             dot={false}
                         />
