@@ -6,11 +6,10 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, Gamepad2, EyeOff } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   ResizablePanelGroup,
@@ -422,12 +421,12 @@ const Dashboard = () => {
         direction="horizontal"
         className="min-h-[calc(100vh-64px)] w-full rounded-lg border bg-white dark:bg-gray-800 shadow-lg"
       >
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4">
+        <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-gray-50 dark:bg-gray-900 border-r">
           <div className="flex flex-col h-full">
-            <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-gray-50">Jogos</h2>
+            <h2 className="text-2xl font-bold mb-6 text-gogo-cyan dark:text-gogo-cyan">Selecione um Jogo</h2>
             <div className="flex-grow space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="game-select" className="font-semibold text-gray-700 dark:text-gray-200">Selecione um Jogo:</Label>
+                <Label htmlFor="game-select" className="font-semibold text-gray-700 dark:text-gray-200">Jogo:</Label>
                 <Select onValueChange={setSelectedGame} defaultValue={selectedGame}>
                   <SelectTrigger id="game-select" className="w-full bg-background">
                     <SelectValue placeholder="Selecione um jogo" />
@@ -458,29 +457,30 @@ const Dashboard = () => {
             </div>
           </div>
         </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={80} className="p-4">
+        <ResizableHandle withHandle className="bg-gray-200 dark:bg-gray-700 w-2 hover:bg-gogo-cyan transition-colors" />
+        <ResizablePanel defaultSize={80} className="p-6">
           <div className="space-y-8">
-            <header className="flex items-center justify-between mb-8">
-                <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">
+            <header className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <h1 className="text-4xl font-extrabold text-gogo-cyan dark:text-gogo-cyan">
                     Gogo Games Dashboard
                 </h1>
+                <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">Análise de Performance de Jogos</p>
             </header>
 
             {filteredData && (
                 <>
                     <Tabs defaultValue="overview" className="w-full">
-                        <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b bg-white dark:bg-gray-800 text-muted-foreground rounded-t-lg p-0 h-auto">
-                            <TabsTrigger value="overview" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Visão Geral</TabsTrigger>
-                            <TabsTrigger value="wl-sales" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Wishlists</TabsTrigger>
-                            <TabsTrigger value="comparisons" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Comparações</TabsTrigger>
-                            <TabsTrigger value="influencers" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Influencers</TabsTrigger>
-                            <TabsTrigger value="events" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Eventos</TabsTrigger>
-                            <TabsTrigger value="paid-traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Tráfego Pago</TabsTrigger>
-                            <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm">Demo</TabsTrigger>
+                        <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b bg-white dark:bg-gray-800 text-muted-foreground rounded-t-lg p-0 h-auto shadow-sm">
+                            <TabsTrigger value="overview" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Visão Geral</TabsTrigger>
+                            <TabsTrigger value="wl-sales" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Wishlists</TabsTrigger>
+                            <TabsTrigger value="comparisons" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Comparações</TabsTrigger>
+                            <TabsTrigger value="influencers" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Influencers</TabsTrigger>
+                            <TabsTrigger value="events" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Eventos</TabsTrigger>
+                            <TabsTrigger value="paid-traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Tráfego Pago</TabsTrigger>
+                            <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-sm transition-colors">Demo</TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="overview" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="overview" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                             <GameSummaryPanel 
                                 gameName={selectedGame}
                                 totalSales={filteredData.kpis.totalSales}
@@ -496,7 +496,7 @@ const Dashboard = () => {
                             <ResultSummaryPanel data={filteredData.resultSummary} />
                         </TabsContent>
 
-                        <TabsContent value="wl-sales" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="wl-sales" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                             <Card className="bg-muted/50 dark:bg-gray-700 border-none shadow-none">
                                 <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
                                     <label htmlFor="platform-select" className="font-semibold text-md min-w-[150px] text-gray-700 dark:text-gray-200">Filtrar por Plataforma:</label>
@@ -561,11 +561,11 @@ const Dashboard = () => {
                             )}
                         </TabsContent>
 
-                        <TabsContent value="comparisons" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="comparisons" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                             <WlComparisonsPanel data={filteredData.wlSales} allPlatforms={ALL_PLATFORMS} />
                         </TabsContent>
 
-                        <TabsContent value="influencers" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="influencers" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.influencerTracking} 
@@ -599,7 +599,7 @@ const Dashboard = () => {
                             />
                         </TabsContent>
 
-                        <TabsContent value="events" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="events" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.eventTracking} 
@@ -632,7 +632,7 @@ const Dashboard = () => {
                             />
                         </TabsContent>
 
-                        <TabsContent value="paid-traffic" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="paid-traffic" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.paidTraffic} 
@@ -665,7 +665,7 @@ const Dashboard = () => {
                             />
                         </TabsContent>
 
-                        <TabsContent value="demo" className="space-y-6 mt-4 p-4 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
+                        <TabsContent value="demo" className="space-y-6 mt-4 p-6 bg-white dark:bg-gray-800 rounded-b-lg shadow-md">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.demoTracking} 

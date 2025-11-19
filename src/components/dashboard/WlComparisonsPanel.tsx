@@ -124,7 +124,7 @@ const WlComparisonsPanel: React.FC<WlComparisonsPanelProps> = ({ data, allPlatfo
 
     if (data.length === 0) {
         return (
-            <Card>
+            <Card className="shadow-md">
                 <CardHeader><CardTitle>Comparações de Wishlists e Vendas</CardTitle></CardHeader>
                 <CardContent><p className="text-muted-foreground">Nenhum dado de WL/Vendas disponível para comparações.</p></CardContent>
             </Card>
@@ -133,11 +133,11 @@ const WlComparisonsPanel: React.FC<WlComparisonsPanelProps> = ({ data, allPlatfo
 
     return (
         <div className="space-y-6">
-            <Card>
+            <Card className="shadow-sm">
                 <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
-                    <label htmlFor="comparison-platform-select" className="font-semibold text-md min-w-[150px]">Filtrar Comparações por Plataforma:</label>
+                    <label htmlFor="comparison-platform-select" className="font-semibold text-md min-w-[150px] text-gray-700 dark:text-gray-200">Filtrar Comparações por Plataforma:</label>
                     <Select onValueChange={(value: Platform | 'All') => setSelectedComparisonPlatform(value)} defaultValue={selectedComparisonPlatform}>
-                        <SelectTrigger id="comparison-platform-select" className="w-full md:w-[200px]">
+                        <SelectTrigger id="comparison-platform-select" className="w-full md:w-[200px] bg-background">
                             <SelectValue placeholder="Todas as Plataformas" />
                         </SelectTrigger>
                         <SelectContent>
@@ -151,7 +151,7 @@ const WlComparisonsPanel: React.FC<WlComparisonsPanelProps> = ({ data, allPlatfo
             </Card>
 
             {wlSalesByPlatform.length > 0 && (
-                <Card>
+                <Card className="shadow-md">
                     <CardHeader>
                         <CardTitle>Wishlists e Vendas por Plataforma</CardTitle>
                     </CardHeader>
@@ -162,8 +162,8 @@ const WlComparisonsPanel: React.FC<WlComparisonsPanelProps> = ({ data, allPlatfo
                                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                             >
                                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                                <XAxis dataKey="platform" />
-                                <YAxis tickFormatter={(value) => formatNumber(value)} />
+                                <XAxis dataKey="platform" stroke="hsl(var(--foreground))" />
+                                <YAxis tickFormatter={(value) => formatNumber(value)} stroke="hsl(var(--foreground))" />
                                 <Tooltip formatter={(value) => formatNumber(value as number)} />
                                 <Legend />
                                 <Bar dataKey="Wishlists" stackId="a" fill={WL_COLOR} name="Wishlists (Último Reg.)" />
@@ -175,7 +175,7 @@ const WlComparisonsPanel: React.FC<WlComparisonsPanelProps> = ({ data, allPlatfo
             )}
 
             {wlGrowthRateOverTime.length > 0 && (
-                <Card>
+                <Card className="shadow-md">
                     <CardHeader>
                         <CardTitle>Taxa de Crescimento de Wishlists e Conversão (Vendas/WL)</CardTitle>
                     </CardHeader>
@@ -193,6 +193,7 @@ const WlComparisonsPanel: React.FC<WlComparisonsPanelProps> = ({ data, allPlatfo
                                     angle={-45}
                                     textAnchor="end"
                                     height={60}
+                                    stroke="hsl(var(--foreground))"
                                 />
                                 <YAxis yAxisId="left" orientation="left" stroke={GROWTH_COLOR} tickFormatter={(value) => `${(value * 100).toFixed(0)}%`} />
                                 <YAxis yAxisId="right" orientation="right" stroke={CONVERSION_COLOR} tickFormatter={(value) => `${(value * 100).toFixed(0)}%`} />
