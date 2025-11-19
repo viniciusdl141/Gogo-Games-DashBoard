@@ -48,6 +48,8 @@
     /* Gogo Games Custom Colors */
     --gogo-cyan: 195 100% 50%; /* #00BFFF */
     --gogo-orange: 24 100% 50%; /* #FF6600 */
+    --gogo-cyan-glow: 195 100% 50%; /* Para o efeito de glow */
+    --gogo-orange-glow: 24 100% 50%; /* Para o efeito de glow */
 
     /* Platform Colors */
     --platform-steam: 214 25% 16%; /* #1B2838 */
@@ -108,6 +110,8 @@
     /* Gogo Games Custom Colors (Dark Mode) */
     --gogo-cyan: 195 100% 60%; /* Slightly lighter for dark mode */
     --gogo-orange: 24 100% 60%; /* Slightly lighter for dark mode */
+    --gogo-cyan-glow: 195 100% 60%; /* Para o efeito de glow */
+    --gogo-orange-glow: 24 100% 60%; /* Para o efeito de glow */
 
     /* Platform Colors (Dark Mode) */
     --platform-steam: 214 20% 25%; 
@@ -142,26 +146,37 @@
   .gaming-background {
     background-color: hsl(var(--background));
     background-image: 
-      radial-gradient(at 0% 0%, hsla(var(--gogo-cyan)/0.2) 0px, transparent 50%), /* Increased opacity */
-      radial-gradient(at 100% 100%, hsla(var(--gogo-orange)/0.2) 0px, transparent 50%), /* Increased opacity */
+      radial-gradient(at 0% 0%, hsla(var(--gogo-cyan)/0.3) 0px, transparent 50%), /* Increased opacity */
+      radial-gradient(at 100% 100%, hsla(var(--gogo-orange)/0.3) 0px, transparent 50%), /* Increased opacity */
+      linear-gradient(135deg, hsla(var(--background)/0.6) 25%, transparent 25%), /* Adjusted opacity */
+      linear-gradient(225deg, hsla(var(--background)/0.6) 25%, transparent 25%), /* Adjusted opacity */
+      linear-gradient(45deg, hsla(var(--background)/0.6) 25%, transparent 25%), /* Adjusted opacity */
+      linear-gradient(315deg, hsla(var(--background)/0.6) 25%, hsla(var(--background)/0.6) 25%); /* Adjusted opacity */
+    background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px, 20px 20px, 20px 20px;
+    background-position: 0 0, 0 0, 0 0, 10px 0, 10px -10px, 0px 10px;
+    animation: background-pan 60s linear infinite; /* Subtle animation */
+  }
+
+  .dark .gaming-background {
+    background-color: hsl(var(--background));
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(var(--gogo-cyan)/0.15) 0px, transparent 50%), /* Increased opacity */
+      radial-gradient(at 100% 100%, hsla(var(--gogo-orange)/0.15) 0px, transparent 50%), /* Increased opacity */
       linear-gradient(135deg, hsla(var(--background)/0.7) 25%, transparent 25%), /* Adjusted opacity */
       linear-gradient(225deg, hsla(var(--background)/0.7) 25%, transparent 25%), /* Adjusted opacity */
       linear-gradient(45deg, hsla(var(--background)/0.7) 25%, transparent 25%), /* Adjusted opacity */
       linear-gradient(315deg, hsla(var(--background)/0.7) 25%, hsla(var(--background)/0.7) 25%); /* Adjusted opacity */
     background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px, 20px 20px, 20px 20px;
     background-position: 0 0, 0 0, 0 0, 10px 0, 10px -10px, 0px 10px;
+    animation: background-pan 60s linear infinite; /* Subtle animation */
   }
 
-  .dark .gaming-background {
-    background-color: hsl(var(--background));
-    background-image: 
-      radial-gradient(at 0% 0%, hsla(var(--gogo-cyan)/0.1) 0px, transparent 50%), /* Increased opacity */
-      radial-gradient(at 100% 100%, hsla(var(--gogo-orange)/0.1) 0px, transparent 50%), /* Increased opacity */
-      linear-gradient(135deg, hsla(var(--background)/0.8) 25%, transparent 25%), /* Adjusted opacity */
-      linear-gradient(225deg, hsla(var(--background)/0.8) 25%, transparent 25%), /* Adjusted opacity */
-      linear-gradient(45deg, hsla(var(--background)/0.8) 25%, transparent 25%), /* Adjusted opacity */
-      linear-gradient(315deg, hsla(var(--background)/0.8) 25%, hsla(var(--background)/0.8) 25%); /* Adjusted opacity */
-    background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px, 20px 20px, 20px 20px;
-    background-position: 0 0, 0 0, 0 0, 10px 0, 10px -10px, 0px 10px;
+  @keyframes background-pan {
+    from {
+      background-position: 0% 0%;
+    }
+    to {
+      background-position: 100% 100%;
+    }
   }
 }

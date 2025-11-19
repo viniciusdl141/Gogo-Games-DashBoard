@@ -23,7 +23,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 gaming-background">
-      <div className="w-full max-w-md bg-card p-8 rounded-lg shadow-xl border border-border">
+      <div className="w-full max-w-md bg-card p-8 rounded-lg shadow-gogo-orange-glow border border-border transition-shadow duration-300">
         <h2 className="text-2xl font-bold text-center mb-6 text-foreground">Entrar no Dashboard</h2>
         <Auth
           supabaseClient={supabase}

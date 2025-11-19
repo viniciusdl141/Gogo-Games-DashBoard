@@ -112,11 +112,24 @@ export default {
             height: "0",
           },
         },
+        "background-pan": { // Adicionando keyframe para animação de fundo
+          from: {
+            "background-position": "0% 0%",
+          },
+          to: {
+            "background-position": "100% 100%",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "background-pan": "background-pan 60s linear infinite", // Aplicando a animação
       },
+      boxShadow: { // Adicionando sombras personalizadas para o efeito de glow
+        'gogo-cyan-glow': '0 0 15px 5px hsla(var(--gogo-cyan-glow)/0.5), 0 0 30px 10px hsla(var(--gogo-cyan-glow)/0.3)',
+        'gogo-orange-glow': '0 0 15px 5px hsla(var(--gogo-orange-glow)/0.5), 0 0 30px 10px hsla(var(--gogo-orange-glow)/0.3)',
+      }
     },
   },
   plugins: [tailwindcssAnimate], // Usando o plugin importado
