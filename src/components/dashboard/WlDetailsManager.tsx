@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, MessageSquare, Package } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,14 +32,9 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import AddBundleForm from './AddBundleForm'; // Novo Import
 
-interface WlDetailsManagerProps {
-    details: WlDetails | undefined;
-    gameName: string;
-    onUpdateDetails: (game: string, newDetails: Partial<WlDetails>) => void;
-}
-
-// --- Forms for adding new entries ---
+// --- Forms for adding new entries (moved AddReviewForm here for encapsulation) ---
 
 const ReviewSchema = z.object({
     date: z.string().min(1),
@@ -65,7 +60,6 @@ const AddReviewForm: React.FC<{ gameName: string, onSave: (data: ReviewFormValue
 
     const onSubmit = (values: ReviewFormValues) => {
         onSave(values);
-        toast.success(`Nova análise de review adicionada para ${gameName}.`);
         onClose();
     };
 
@@ -147,6 +141,7 @@ const AddReviewForm: React.FC<{ gameName: string, onSave: (data: ReviewFormValue
         </form>
     );
 };
+
 
 // --- Display Components ---
 
@@ -251,21 +246,21 @@ const BundleTable: React.FC<{ bundles: BundleEntry[], onDelete: (id: string) => 
 // --- Main Manager Component ---
 
 const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, onUpdateDetails }) => {
-    const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [formType, setFormType] = useState<'review' | 'bundle'>('review');
 
     if (!details) return null;
 
     const latestReview = details.reviews.length > 0 ? details.reviews[details.reviews.length - 1] : null;
+
+    // Helper to generate unique IDs locally (since we are adding new entries)
+    const generateLocalUniqueId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
     const handleSaveReview = (values: ReviewFormValues) => {
         const dateObject = new Date(values.date);
         const totalReviews = values.reviews;
         const positiveReviews = values.positive;
         const percentage = totalReviews > 0 ? positiveReviews / totalReviews : 0;
-
-        // Generate a local unique ID for the new entry
-        let localIdCounter = details.reviews.length + details.bundles.length + 1;
-        const generateLocalUniqueId = (prefix: string) => `${prefix}-${localIdCounter++}`;
 
         const newReviewEntry: ReviewEntry = {
             id: generateLocalUniqueId('review'),
@@ -277,10 +272,26 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
             date: dateObject,
         };
 
-        // Update the details object in the parent state
         onUpdateDetails(gameName, {
             reviews: [...details.reviews, newReviewEntry].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0))
         });
+        toast.success("Nova análise de review adicionada.");
+    };
+
+    const handleSaveBundle = (values: z.infer<typeof AddBundleForm>) => {
+        const newBundleEntry: BundleEntry = {
+            id: generateLocalUniqueId('bundle'),
+            name: values.name,
+            bundleUnits: values.bundleUnits,
+            packageUnits: values.packageUnits,
+            sales: `$${values.salesUSD.toFixed(2)}`,
+            xsolla: values.xsolla || '-',
+        };
+
+        onUpdateDetails(gameName, {
+            bundles: [...details.bundles, newBundleEntry]
+        });
+        toast.success("Nova entrada de Bundle/DLC adicionada.");
     };
 
     const handleDeleteReview = (id: string) => {
@@ -297,25 +308,54 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
         toast.success("Entrada de bundle/DLC removida.");
     };
 
+    const renderForm = () => {
+        if (formType === 'review') {
+            return <AddReviewForm gameName={gameName} onSave={handleSaveReview} onClose={() => setIsDialogOpen(false)} />;
+        }
+        if (formType === 'bundle') {
+            return <AddBundleForm gameName={gameName} onSave={handleSaveBundle} onClose={() => setIsDialogOpen(false)} />;
+        }
+        return null;
+    };
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Detalhes Adicionais da Página Steam</CardTitle>
-                <Dialog open={isReviewFormOpen} onOpenChange={setIsReviewFormOpen}>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="bg-gogo-orange hover:bg-gogo-orange/90 text-white">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="bg-gogo-orange hover:bg-gogo-orange/90 text-white"
+                            onClick={() => {
+                                setFormType('review'); // Default to review when opening
+                                setIsDialogOpen(true);
+                            }}
+                        >
                             <Plus className="h-4 w-4 mr-2" /> Adicionar Detalhe
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px]">
+                    <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
                             <DialogTitle>Adicionar Novo Detalhe de WL</DialogTitle>
                         </DialogHeader>
-                        <AddReviewForm 
-                            gameName={gameName}
-                            onSave={handleSaveReview}
-                            onClose={() => setIsReviewFormOpen(false)}
-                        />
+                        <div className="p-4 space-y-4">
+                            <Select value={formType} onValueChange={(value: 'review' | 'bundle') => setFormType(value)}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Selecione o tipo de entrada" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="review">
+                                        <MessageSquare className="h-4 w-4 inline mr-2" /> Análise de Reviews
+                                    </SelectItem>
+                                    <SelectItem value="bundle">
+                                        <Package className="h-4 w-4 inline mr-2" /> Venda de Bundle/DLC
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {renderForm()}
+                        </div>
                     </DialogContent>
                 </Dialog>
             </CardHeader>
