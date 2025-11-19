@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, List, TrendingUp, Info, CalendarDays, Clock } from 'lucide-react';
+import { DollarSign, List, TrendingUp, Info, CalendarDays, Clock, Eye } from 'lucide-react'; // Adicionado Eye aqui
 import KpiCard from './KpiCard';
 import { formatCurrency, formatNumber, formatDate } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
