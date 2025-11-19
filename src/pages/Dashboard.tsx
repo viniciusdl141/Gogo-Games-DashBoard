@@ -30,7 +30,7 @@ import DemoTrackingPanel from '@/components/dashboard/DemoTrackingPanel';
 import KpiCard from '@/components/dashboard/KpiCard';
 import WlDetailsManager from '@/components/dashboard/WlDetailsManager';
 import AddInfluencerForm from '@/components/dashboard/AddInfluencerForm';
-import AddEventForm from '@/components/dashboard/AddEvent/Form';
+import AddEventForm from '@/components/dashboard/AddEventForm'; // Caminho corrigido
 import AddPaidTrafficForm from '@/components/dashboard/AddPaidTrafficForm';
 import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm';
 import EditWLSalesForm from '@/components/dashboard/EditWLSalesForm';
@@ -45,7 +45,7 @@ const initialData = getTrackingData();
 
 // Helper to generate unique IDs locally
 let localIdCounter = initialData.influencerTracking.length + initialData.eventTracking.length + initialData.paidTraffic.length + initialData.wlSales.length;
-const generateLocalUniqueId = (prefix: string) => `${prefix}-${localIdCounter++}`;
+const generateLocalUniqueId = (prefix: string = 'track') => `${prefix}-${localIdCounter++}`;
 
 const ALL_PLATFORMS: Platform[] = ['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra'];
 
@@ -419,7 +419,7 @@ const Dashboard = () => {
 
   // Renderização principal
   return (
-    <div className="min-h-screen p-4 md:p-8 font-sans"> {/* Simplificado aqui */}
+    <div className="min-h-screen p-4 md:p-8 font-sans gaming-background">
       <ResizablePanelGroup
         direction="horizontal"
         className="min-h-[calc(100vh-64px)] w-full rounded-lg border border-border bg-card text-card-foreground shadow-gogo-cyan-glow transition-shadow duration-300"
