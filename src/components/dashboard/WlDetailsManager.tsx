@@ -32,8 +32,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import AddBundleForm, { BundleFormValues } from './AddBundleForm'; // Importar BundleFormValues
-import { FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'; // Importar componentes de formulário
+import AddBundleForm from './AddBundleForm'; // Novo Import
 
 // --- Forms for adding new entries (moved AddReviewForm here for encapsulation) ---
 
@@ -246,12 +245,6 @@ const BundleTable: React.FC<{ bundles: BundleEntry[], onDelete: (id: string) => 
 
 // --- Main Manager Component ---
 
-interface WlDetailsManagerProps {
-    details: WlDetails;
-    gameName: string;
-    onUpdateDetails: (game: string, newDetails: Partial<WlDetails>) => void;
-}
-
 const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, onUpdateDetails }) => {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [formType, setFormType] = useState<'review' | 'bundle'>('review');
@@ -285,7 +278,7 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
         toast.success("Nova análise de review adicionada.");
     };
 
-    const handleSaveBundle = (values: BundleFormValues) => { // Corrigido o tipo aqui
+    const handleSaveBundle = (values: z.infer<typeof AddBundleForm>) => {
         const newBundleEntry: BundleEntry = {
             id: generateLocalUniqueId('bundle'),
             name: values.name,

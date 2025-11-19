@@ -1,5 +1,5 @@
 import { rawData } from './rawTrackingData';
-import { excelSerialDateToJSDate, generateUniqueId } from '@/lib/utils'; // Importar generateUniqueId
+import { excelSerialDateToJSDate } from '@/lib/utils';
 
 // --- Interfaces for Normalized Data ---
 
@@ -118,7 +118,6 @@ export interface WlDetails {
     reviews: ReviewEntry[];
     bundles: BundleEntry[];
     traffic: any[];
-    launchDate: Date | null; // Novo campo para data de lançamento
 }
 
 export interface TrackingData {
@@ -132,6 +131,9 @@ export interface TrackingData {
     resultSummary: ResultSummaryEntry[];
     wlDetails: WlDetails[];
 }
+
+let uniqueIdCounter = 0;
+const generateUniqueId = (prefix: string = 'track') => `${prefix}-${uniqueIdCounter++}`;
 
 const cleanValue = (value: any): number | string => {
     if (value === undefined || value === null || value === '-' || value === '#DIV/0!') {
@@ -278,29 +280,8 @@ const processDemoTracking = (data: any[]): DemoTrackingEntry[] => {
 };
 
 const processWlDetails = (sheetData: any[], gameName: string): WlDetails => {
-    const details: WlDetails = { game: gameName, reviews: [], bundles: [], traffic: [], launchDate: null };
+    const details: WlDetails = { game: gameName, reviews: [], bundles: [], traffic: [] };
     
-    // Exemplo de datas de lançamento (ajuste conforme necessário)
-    switch (gameName) {
-        case 'Legacy of Evil':
-            details.launchDate = new Date('2023-10-26'); // Passado
-            break;
-        case 'Hellbrella':
-            details.launchDate = new Date('2024-07-15'); // Futuro
-            break;
-        case 'The Mare Show':
-            details.launchDate = new Date('2024-05-01'); // Passado
-            break;
-        case 'DREADSTONE KEEP':
-            details.launchDate = new Date('2025-03-10'); // Futuro
-            break;
-        case 'LIA HACKING DESTINY':
-            details.launchDate = new Date('2024-06-20'); // Passado
-            break;
-        default:
-            details.launchDate = null;
-    }
-
     let reviewHeaderIndex = sheetData.findIndex(r => r.__EMPTY_19 === 'Quantidade de Reviews');
     if (reviewHeaderIndex !== -1) {
         details.reviews = sheetData.slice(reviewHeaderIndex + 1)
@@ -367,7 +348,7 @@ const processResultSummary = (data: any[]): ResultSummaryEntry[] => {
 
 export const getTrackingData = (): TrackingData => {
     // Reset counter for consistent IDs if data is reloaded
-    // uniqueIdCounter = 0; // This is now managed in utils.ts
+    uniqueIdCounter = 0; 
     
     const influencerTracking = processInfluencerTracking(rawData['Tracking Semanal Influencers']);
     const influencerSummary = processInfluencerSummary(rawData['Resumo por Influencer']);
@@ -394,10 +375,6 @@ export const getTrackingData = (): TrackingData => {
         processWlDetails(rawData['Total WL - Hellbrella'], 'Hellbrella'),
         processWlDetails(rawData['Total WL - The Mare Show'], 'The Mare Show'),
         processWlDetails(rawData['Total WL - Dreadstone Keep'], 'DREADSTONE KEEP'),
-        processWlDetails(rawData['TOTAL WL NINTENDO - LIA HACKING'], 'LIA HACKING DESTINY'),
-        processWlDetails(rawData['TOTAL WL ANDROID - LIA HACKING '], 'LIA HACKING DESTINY'),
-        processWlDetails(rawData['TOTAL WL IOS - LIA HACKING DEST'], 'LIA HACKING DESTINY'),
-        processWlDetails(rawData['TOTAL WL XBOX- LIA HACKING DEST'], 'LIA HACKING DESTINY'),
     ];
 
     const allGames = new Set<string>();

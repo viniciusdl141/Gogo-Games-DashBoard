@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, List, TrendingUp, Info, CalendarDays, Clock, Eye } from 'lucide-react'; // Adicionado Eye aqui
+import { DollarSign, List, TrendingUp, Info } from 'lucide-react';
 import KpiCard from './KpiCard';
-import { formatCurrency, formatNumber, formatDate } from '@/lib/utils';
+import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -15,8 +15,6 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { differenceInDays, differenceInMonths, differenceInYears, formatDistanceToNowStrict, isFuture, isPast } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 interface GameSummaryPanelProps {
     gameName: string;
@@ -24,9 +22,6 @@ interface GameSummaryPanelProps {
     totalWishlists: number;
     totalInvestment: number;
     investmentSources: { influencers: number, events: number, paidTraffic: number };
-    totalMarketingViews: number; // Novo prop
-    totalPaidImpressions: number; // Novo prop
-    launchDate: Date | null; // Novo prop
 }
 
 const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({ 
@@ -34,10 +29,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     totalSales, 
     totalWishlists, 
     totalInvestment,
-    investmentSources,
-    totalMarketingViews,
-    totalPaidImpressions,
-    launchDate
+    investmentSources
 }) => {
     const [gamePrice, setGamePrice] = React.useState(19.99); // Preço padrão em R$
     const [revenueShare, setRevenueShare] = React.useState(0.70); // 70% (Steam/Epic geralmente 70/30)
@@ -67,46 +59,6 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     const netManualProfit = netManualRevenue - totalInvestment;
     const roiManualPercentage = totalInvestment > 0 ? (netManualProfit / totalInvestment) * 100 : 0;
 
-    // Lógica para data de lançamento
-    const launchInfo = useMemo(() => {
-        if (!launchDate) return null;
-
-        const now = new Date();
-        if (isFuture(launchDate)) {
-            const daysRemaining = differenceInDays(launchDate, now);
-            return {
-                status: 'futuro',
-                text: `Lançamento em ${formatDate(launchDate)}`,
-                countdown: `Faltam ${daysRemaining} dias`,
-                icon: <CalendarDays className="h-4 w-4 text-gogo-cyan" />
-            };
-        } else if (isPast(launchDate)) {
-            const years = differenceInYears(now, launchDate);
-            const months = differenceInMonths(now, launchDate) % 12;
-            const days = differenceInDays(now, launchDate) % 30; // Aproximação para dias após meses/anos
-
-            let timeSince = '';
-            if (years > 0) timeSince += `${years} ano${years > 1 ? 's' : ''} `;
-            if (months > 0) timeSince += `${months} mês${months > 1 ? 'es' : ''} `;
-            if (days > 0 && years === 0 && months === 0) timeSince += `${days} dia${days > 1 ? 's' : ''}`; // Apenas mostra dias se for menos de 1 mês
-
-            if (timeSince.trim() === '') timeSince = 'Hoje'; // Se a data for muito recente
-
-            return {
-                status: 'passado',
-                text: `Lançado em ${formatDate(launchDate)}`,
-                timeSince: `${timeSince.trim()} atrás`,
-                icon: <Clock className="h-4 w-4 text-gogo-orange" />
-            };
-        } else {
-            return {
-                status: 'hoje',
-                text: `Lançamento: Hoje!`,
-                icon: <CalendarDays className="h-4 w-4 text-green-500" />
-            };
-        }
-    }, [launchDate]);
-
 
     return (
         <Card>
@@ -115,31 +67,6 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
             </CardHeader>
             <CardContent className="space-y-6">
                 
-                {/* KPIs de Lançamento */}
-                {launchInfo && (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                        <KpiCard 
-                            title="Data de Lançamento" 
-                            value={launchInfo.text} 
-                            icon={launchInfo.icon} 
-                        />
-                        {launchInfo.status === 'futuro' && (
-                            <KpiCard 
-                                title="Contagem Regressiva" 
-                                value={launchInfo.countdown} 
-                                icon={<Clock className="h-4 w-4 text-gogo-cyan" />} 
-                            />
-                        )}
-                        {launchInfo.status === 'passado' && (
-                            <KpiCard 
-                                title="Tempo Desde o Lançamento" 
-                                value={launchInfo.timeSince} 
-                                icon={<Clock className="h-4 w-4 text-gogo-orange" />} 
-                            />
-                        )}
-                    </div>
-                )}
-
                 {/* KPIs de Vendas e WL */}
                 <div className="grid gap-4 md:grid-cols-3">
                     <KpiCard 
@@ -167,24 +94,6 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                                 </TooltipContent>
                             </Tooltip>
                         } 
-                    />
-                </div>
-
-                <Separator />
-
-                {/* KPIs de Visualizações e Impressões Separadas */}
-                <div className="grid gap-4 md:grid-cols-2">
-                    <KpiCard 
-                        title="Visualizações Marketing" 
-                        value={formatNumber(totalMarketingViews)} 
-                        icon={<Eye className="h-4 w-4 text-gogo-cyan" />} 
-                        description="De influencers e eventos."
-                    />
-                    <KpiCard 
-                        title="Impressões Tráfego Pago" 
-                        value={formatNumber(totalPaidImpressions)} 
-                        icon={<Eye className="h-4 w-4 text-gogo-orange" />} 
-                        description="De campanhas de tráfego pago."
                     />
                 </div>
 
