@@ -54,6 +54,7 @@ const WLSalesTablePanel: React.FC<WLSalesTablePanelProps> = ({ data, onDelete, o
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Data</TableHead>
+                                <TableHead className="text-center">Frequência</TableHead>
                                 <TableHead className="text-center">Tipo de Venda</TableHead>
                                 <TableHead className="text-right">WL Totais</TableHead>
                                 <TableHead className="text-right">Variação Diária</TableHead>
@@ -65,6 +66,9 @@ const WLSalesTablePanel: React.FC<WLSalesTablePanelProps> = ({ data, onDelete, o
                             {data.map((item) => (
                                 <TableRow key={item.id}>
                                     <TableCell className="font-medium">{formatDate(item.date)}</TableCell>
+                                    <TableCell className="text-center">
+                                        <Badge variant="outline">{item.frequency}</Badge>
+                                    </TableCell>
                                     <TableCell className="text-center">
                                         <Badge variant="secondary">{item.saleType}</Badge>
                                     </TableCell>
