@@ -29,7 +29,7 @@ import EditWLSalesForm from '@/components/dashboard/EditWLSalesForm';
 import GameSummaryPanel from '@/components/dashboard/GameSummaryPanel';
 import ExportDataButton from '@/components/dashboard/ExportDataButton';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import AddGameForm from '@/components/dashboard/AddGameForm'; // Novo Import
+import AddGameForm from '@/components/dashboard/AddGameForm';
 
 // Initialize data once
 const initialData = getTrackingData();
@@ -147,7 +147,7 @@ const Dashboard = () => {
     toast.success("Entrada de Wishlist/Vendas removida com sucesso.");
   }, [recalculateWLSales]);
 
-  // --- Other Handlers (omitted for brevity, assuming they use the same logic as before) ---
+  // --- Other Handlers ---
   
   const handleEditInfluencerEntry = useCallback((updatedEntry: InfluencerTrackingEntry) => {
     setTrackingData(prevData => ({
