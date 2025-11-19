@@ -28,6 +28,7 @@ export interface InfluencerSummaryEntry {
 }
 
 export interface EventTrackingEntry {
+    id: string; // Added unique ID for manipulation
     startDate: Date | null;
     endDate: Date | null;
     event: string;
@@ -104,7 +105,7 @@ export interface TrackingData {
 }
 
 let uniqueIdCounter = 0;
-const generateUniqueId = () => `track-${uniqueIdCounter++}`;
+const generateUniqueId = (prefix: string = 'track') => `${prefix}-${uniqueIdCounter++}`;
 
 const cleanValue = (value: any): number | string => {
     if (value === undefined || value === null || value === '-' || value === '#DIV/0!') {
@@ -123,7 +124,7 @@ const processInfluencerTracking = (data: any[]): InfluencerTrackingEntry[] => {
     return data
         .filter(item => item.Game && item.Influencer)
         .map(item => ({
-            id: generateUniqueId(), // Assign unique ID
+            id: generateUniqueId('influencer'), // Assign unique ID
             date: excelSerialDateToJSDate(item.Data as number),
             game: item.Game.replace('Legavy of Evil', 'Legacy of Evil').replace('HellBrella', 'Hellbrella'),
             influencer: item.Influencer,
@@ -155,6 +156,7 @@ const processEventTracking = (data: any[]): EventTrackingEntry[] => {
     return data
         .filter(item => item.Jogo && item.Evento && item.Começo && item.Final)
         .map(item => ({
+            id: generateUniqueId('event'), // Assign unique ID
             startDate: excelSerialDateToJSDate(item.Começo as number),
             endDate: excelSerialDateToJSDate(item.Final as number),
             event: item.Evento,

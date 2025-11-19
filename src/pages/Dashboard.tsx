@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DollarSign, Eye, List, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button"; // <-- Adicionando importação do Button
+import { Button } from "@/components/ui/button"; 
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
@@ -20,21 +20,24 @@ import DemoTrackingPanel from '@/components/dashboard/DemoTrackingPanel';
 import KpiCard from '@/components/dashboard/KpiCard';
 import WlDetailsPanel from '@/components/dashboard/WlDetailsPanel';
 import AddInfluencerForm from '@/components/dashboard/AddInfluencerForm';
+import AddEventForm from '@/components/dashboard/AddEventForm';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
 // Initialize data once
 const initialData = getTrackingData();
 
 // Helper to generate unique IDs locally
-let localIdCounter = initialData.influencerTracking.length;
-const generateLocalUniqueId = () => `local-track-${localIdCounter++}`;
+let localIdCounter = initialData.influencerTracking.length + initialData.eventTracking.length;
+const generateLocalUniqueId = (prefix: string) => `${prefix}-${localIdCounter++}`;
 
 const Dashboard = () => {
   const [trackingData, setTrackingData] = useState(initialData);
   const [selectedGame, setSelectedGame] = useState<string>(trackingData.games[0] || '');
-  const [isAddFormOpen, setIsAddFormOpen] = useState(false);
+  const [isAddInfluencerFormOpen, setIsAddInfluencerFormOpen] = useState(false);
+  const [isAddEventFormOpen, setIsAddEventFormOpen] = useState(false);
 
-  // Handler for deleting an influencer tracking entry
+  // --- Influencer Handlers ---
+
   const handleDeleteInfluencerEntry = useCallback((id: string) => {
     setTrackingData(prevData => ({
       ...prevData,
@@ -43,8 +46,7 @@ const Dashboard = () => {
     toast.success("Entrada de influencer removida com sucesso.");
   }, []);
 
-  // Handler for adding a new influencer tracking entry
-  const handleAddInfluencerEntry = useCallback((newEntry: Omit<InfluencerTrackingEntry, 'id' | 'roi'> & { date: string }) => {
+  const handleAddInfluencerEntry = useCallback((newEntry: Omit<InfluencerTrackingEntry, 'id' | 'roi' | 'date'> & { date: string }) => {
     const dateObject = new Date(newEntry.date);
     
     // Calculate ROI: Real/WL. If WL is 0, ROI is '-'.
@@ -54,7 +56,7 @@ const Dashboard = () => {
 
     const entryToAdd: InfluencerTrackingEntry = {
         ...newEntry,
-        id: generateLocalUniqueId(),
+        id: generateLocalUniqueId('influencer'),
         date: dateObject,
         roi: roiValue,
     };
@@ -64,8 +66,48 @@ const Dashboard = () => {
         influencerTracking: [...prevData.influencerTracking, entryToAdd].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)),
     }));
     
-    // Note: We don't recalculate influencerSummary here, as that would require complex aggregation logic 
-    // which is typically done server-side or in a dedicated data layer. We focus on displaying the raw tracking data.
+    setIsAddInfluencerFormOpen(false);
+  }, []);
+
+  // --- Event Handlers ---
+
+  const handleDeleteEventEntry = useCallback((id: string) => {
+    setTrackingData(prevData => ({
+      ...prevData,
+      eventTracking: prevData.eventTracking.filter(entry => entry.id !== id),
+    }));
+    toast.success("Entrada de evento removida com sucesso.");
+  }, []);
+
+  const handleAddEventEntry = useCallback((newEntry: Omit<EventTrackingEntry, 'startDate' | 'endDate' | 'roi' | 'costPerView' | 'id'> & { startDate: string, endDate: string }) => {
+    const startDateObject = new Date(newEntry.startDate);
+    const endDateObject = new Date(newEntry.endDate);
+
+    // Calculate ROI (R$/WL)
+    const roiValue = newEntry.wlGenerated > 0 
+        ? newEntry.cost / newEntry.wlGenerated 
+        : '-';
+
+    // Calculate Cost Per View (R$/View)
+    const costPerViewValue = newEntry.views > 0 
+        ? newEntry.cost / newEntry.views 
+        : '-';
+
+    const entryToAdd: EventTrackingEntry = {
+        ...newEntry,
+        id: generateLocalUniqueId('event'),
+        startDate: startDateObject,
+        endDate: endDateObject,
+        roi: roiValue,
+        costPerView: costPerViewValue,
+    };
+
+    setTrackingData(prevData => ({
+        ...prevData,
+        eventTracking: [...prevData.eventTracking, entryToAdd].sort((a, b) => (a.startDate?.getTime() || 0) - (b.startDate?.getTime() || 0)),
+    }));
+    
+    setIsAddEventFormOpen(false);
   }, []);
 
 
@@ -74,8 +116,25 @@ const Dashboard = () => {
     
     const game = selectedGame.trim();
 
-    const influencerTracking = trackingData.influencerTracking.filter(d => d.game.trim() === game);
-    const eventTracking = trackingData.eventTracking.filter(d => d.game.trim() === game);
+    // Filter and enhance Influencer Data
+    const influencerTracking = trackingData.influencerTracking
+        .filter(d => d.game.trim() === game)
+        .map(item => ({
+            ...item,
+            // Recalculate ROI in case investment/WL was manually updated (future feature)
+            roi: item.estimatedWL > 0 ? item.investment / item.estimatedWL : '-',
+        }));
+    
+    // Filter and enhance Event Data
+    const eventTracking = trackingData.eventTracking
+        .filter(d => d.game.trim() === game)
+        .map(item => ({
+            ...item,
+            id: item.id || generateLocalUniqueId('event'), // Ensure existing data has IDs for deletion
+            roi: item.wlGenerated > 0 ? item.cost / item.wlGenerated : '-',
+            costPerView: item.views > 0 ? item.cost / item.views : '-',
+        }));
+
     const paidTraffic = trackingData.paidTraffic.filter(d => d.game.trim() === game);
     
     // Recalculate Influencer Summary based on current tracking data
@@ -87,7 +146,6 @@ const Dashboard = () => {
         
         current.totalActions += 1;
         current.totalInvestment += item.investment;
-        // Use estimatedWL for summary calculation
         current.wishlistsGenerated += item.estimatedWL; 
         
         influencerSummaryMap.set(influencer, current);
@@ -123,7 +181,7 @@ const Dashboard = () => {
     return {
       resultSummary: trackingData.resultSummary.filter(d => d.game.trim() === game),
       wlSales: trackingData.wlSales.filter(d => d.game.trim() === game),
-      influencerSummary, // Use recalculated summary
+      influencerSummary, 
       influencerTracking,
       eventTracking,
       paidTraffic,
@@ -201,9 +259,9 @@ const Dashboard = () => {
 
                 <TabsContent value="influencers" className="mt-4">
                     <div className="flex justify-end mb-4">
-                        <Dialog open={isAddFormOpen} onOpenChange={setIsAddFormOpen}>
+                        <Dialog open={isAddInfluencerFormOpen} onOpenChange={setIsAddInfluencerFormOpen}>
                             <DialogTrigger asChild>
-                                <Button onClick={() => setIsAddFormOpen(true)}>
+                                <Button onClick={() => setIsAddInfluencerFormOpen(true)}>
                                     <Plus className="h-4 w-4 mr-2" /> Adicionar Entrada
                                 </Button>
                             </DialogTrigger>
@@ -214,7 +272,7 @@ const Dashboard = () => {
                                 <AddInfluencerForm 
                                     games={trackingData.games} 
                                     onSave={handleAddInfluencerEntry} 
-                                    onClose={() => setIsAddFormOpen(false)} 
+                                    onClose={() => setIsAddInfluencerFormOpen(false)} 
                                 />
                             </DialogContent>
                         </Dialog>
@@ -227,7 +285,26 @@ const Dashboard = () => {
                 </TabsContent>
 
                 <TabsContent value="events" className="mt-4">
-                    <EventPanel data={filteredData.eventTracking} />
+                    <div className="flex justify-end mb-4">
+                        <Dialog open={isAddEventFormOpen} onOpenChange={setIsAddEventFormOpen}>
+                            <DialogTrigger asChild>
+                                <Button onClick={() => setIsAddEventFormOpen(true)}>
+                                    <Plus className="h-4 w-4 mr-2" /> Adicionar Evento
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[600px]">
+                                <DialogHeader>
+                                    <DialogTitle>Adicionar Novo Tracking de Evento</DialogTitle>
+                                </DialogHeader>
+                                <AddEventForm 
+                                    games={trackingData.games} 
+                                    onSave={handleAddEventEntry} 
+                                    onClose={() => setIsAddEventFormOpen(false)} 
+                                />
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                    <EventPanel data={filteredData.eventTracking} onDeleteTracking={handleDeleteEventEntry} />
                 </TabsContent>
 
                 <TabsContent value="paid-traffic" className="mt-4">
