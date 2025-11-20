@@ -124,12 +124,11 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "background-pan": "background-pan 90s linear infinite", // Aplicando a animação mais lenta
+        "background-pan": "background-pan 60s linear infinite", // Aplicando a animação
       },
       boxShadow: { // Adicionando sombras personalizadas para o efeito de glow
         'gogo-cyan-glow': '0 0 15px 5px hsla(var(--gogo-cyan-glow)/0.5), 0 0 30px 10px hsla(var(--gogo-cyan-glow)/0.3)',
         'gogo-orange-glow': '0 0 15px 5px hsla(var(--gogo-orange-glow)/0.5), 0 0 30px 10px hsla(var(--gogo-orange-glow)/0.3)',
-        'gogo-card-glow': '0 0 8px 2px hsla(var(--gogo-cyan-glow)/0.2), 0 0 15px 5px hsla(var(--gogo-orange-glow)/0.15)', // Novo glow para cards
       }
     },
   },

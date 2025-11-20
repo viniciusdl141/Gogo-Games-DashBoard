@@ -24,7 +24,7 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96% 1%;
+    --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
@@ -146,29 +146,29 @@
   .gaming-background {
     background-color: hsl(var(--background));
     background-image: 
-      radial-gradient(at 0% 0%, hsla(var(--gogo-cyan)/0.4) 0px, transparent 50%), /* Mais opaco */
-      radial-gradient(at 100% 100%, hsla(var(--gogo-orange)/0.4) 0px, transparent 50%), /* Mais opaco */
-      linear-gradient(135deg, hsla(var(--background)/0.7) 25%, transparent 25%), /* Ajustado opacidade */
-      linear-gradient(225deg, hsla(var(--background)/0.7) 25%, transparent 25%), /* Ajustado opacidade */
-      linear-gradient(45deg, hsla(var(--background)/0.7) 25%, transparent 25%), /* Ajustado opacidade */
-      linear-gradient(315deg, hsla(var(--background)/0.7) 25%, hsla(var(--background)/0.7) 25%); /* Ajustado opacidade */
-    background-size: 100% 100%, 100% 100%, 25px 25px, 25px 25px, 25px 25px, 25px 25px; /* Tamanho maior para o padrão */
-    background-position: 0 0, 0 0, 0 0, 12.5px 0, 12.5px -12.5px, 0px 12.5px; /* Ajuste de posição */
-    animation: background-pan 90s linear infinite; /* Animação mais lenta */
+      radial-gradient(at 0% 0%, hsla(var(--gogo-cyan)/0.3) 0px, transparent 50%), /* Increased opacity */
+      radial-gradient(at 100% 100%, hsla(var(--gogo-orange)/0.3) 0px, transparent 50%), /* Increased opacity */
+      linear-gradient(135deg, hsla(var(--background)/0.6) 25%, transparent 25%), /* Adjusted opacity */
+      linear-gradient(225deg, hsla(var(--background)/0.6) 25%, transparent 25%), /* Adjusted opacity */
+      linear-gradient(45deg, hsla(var(--background)/0.6) 25%, transparent 25%), /* Adjusted opacity */
+      linear-gradient(315deg, hsla(var(--background)/0.6) 25%, hsla(var(--background)/0.6) 25%); /* Adjusted opacity */
+    background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px, 20px 20px, 20px 20px;
+    background-position: 0 0, 0 0, 0 0, 10px 0, 10px -10px, 0px 10px;
+    animation: background-pan 60s linear infinite; /* Subtle animation */
   }
 
   .dark .gaming-background {
     background-color: hsl(var(--background));
     background-image: 
-      radial-gradient(at 0% 0%, hsla(var(--gogo-cyan)/0.2) 0px, transparent 50%), /* Mais opaco */
-      radial-gradient(at 100% 100%, hsla(var(--gogo-orange)/0.2) 0px, transparent 50%), /* Mais opaco */
-      linear-gradient(135deg, hsla(var(--background)/0.8) 25%, transparent 25%), /* Ajustado opacidade */
-      linear-gradient(225deg, hsla(var(--background)/0.8) 25%, transparent 25%), /* Ajustado opacidade */
-      linear-gradient(45deg, hsla(var(--background)/0.8) 25%, transparent 25%), /* Ajustado opacidade */
-      linear-gradient(315deg, hsla(var(--background)/0.8) 25%, hsla(var(--background)/0.8) 25%); /* Ajustado opacidade */
-    background-size: 100% 100%, 100% 100%, 25px 25px, 25px 25px, 25px 25px, 25px 25px; /* Tamanho maior para o padrão */
-    background-position: 0 0, 0 0, 0 0, 12.5px 0, 12.5px -12.5px, 0px 12.5px; /* Ajuste de posição */
-    animation: background-pan 90s linear infinite; /* Animação mais lenta */
+      radial-gradient(at 0% 0%, hsla(var(--gogo-cyan)/0.15) 0px, transparent 50%), /* Increased opacity */
+      radial-gradient(at 100% 100%, hsla(var(--gogo-orange)/0.15) 0px, transparent 50%), /* Increased opacity */
+      linear-gradient(135deg, hsla(var(--background)/0.7) 25%, transparent 25%), /* Adjusted opacity */
+      linear-gradient(225deg, hsla(var(--background)/0.7) 25%, transparent 25%), /* Adjusted opacity */
+      linear-gradient(45deg, hsla(var(--background)/0.7) 25%, transparent 25%), /* Adjusted opacity */
+      linear-gradient(315deg, hsla(var(--background)/0.7) 25%, hsla(var(--background)/0.7) 25%); /* Adjusted opacity */
+    background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px, 20px 20px, 20px 20px;
+    background-position: 0 0, 0 0, 0 0, 10px 0, 10px -10px, 0px 10px;
+    animation: background-pan 60s linear infinite; /* Subtle animation */
   }
 
   @keyframes background-pan {

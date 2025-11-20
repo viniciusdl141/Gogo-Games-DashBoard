@@ -14,16 +14,6 @@ import {
 
 export function ThemeToggle() {
   const { setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-
-  // useEffect to ensure component is mounted before interacting with theme
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null; // Render nothing or a placeholder until mounted
-  }
 
   return (
     <DropdownMenu>

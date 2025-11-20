@@ -42,7 +42,6 @@ import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
 import AddDemoForm from '@/components/dashboard/AddDemoForm';
 import EditDemoForm from '@/components/dashboard/EditDemoForm';
-import Controller3D from '@/components/dashboard/Controller3D'; // Importar o componente 3D
 
 // Initialize data once
 const initialRawData = getTrackingData();
@@ -542,9 +541,9 @@ const Dashboard = () => {
     <div className="min-h-screen p-4 md:p-8 font-sans gaming-background">
       <ResizablePanelGroup
         direction="horizontal"
-        className="min-h-[calc(100vh-64px)] w-full rounded-lg border border-border bg-card text-card-foreground shadow-gogo-card-glow transition-shadow duration-300"
+        className="min-h-[calc(100vh-64px)] w-full rounded-lg border border-border bg-card text-card-foreground shadow-gogo-cyan-glow transition-shadow duration-300"
       >
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-muted/20 border-r border-border shadow-inner flex flex-col">
+        <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-muted/20 border-r border-border shadow-inner">
           <div className="flex flex-col h-full">
             <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">Selecione um Jogo</h2>
             <div className="flex-grow space-y-4">
@@ -577,10 +576,6 @@ const Dashboard = () => {
                   />
                 </DialogContent>
               </Dialog>
-            </div>
-            {/* Controller 3D no final da sidebar */}
-            <div className="mt-auto pt-8">
-                <Controller3D />
             </div>
           </div>
         </ResizablePanel>

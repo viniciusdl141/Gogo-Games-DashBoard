@@ -4,34 +4,22 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [isSupabaseReady, setIsSupabaseReady] = useState(false);
 
   useEffect(() => {
-    // Check if supabase client is initialized
-    if (supabase) {
-      setIsSupabaseReady(true);
-      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        if (session) {
-          navigate('/');
-        }
-      });
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        navigate('/');
+      }
+    });
 
-      return () => {
-        authListener.subscription.unsubscribe();
-      };
-    } else {
-      console.error("Supabase client is not initialized in Login component.");
-      // Optionally, you could show an error message to the user here
-    }
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [navigate]);
-
-  if (!isSupabaseReady) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando autenticação...</div>;
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 gaming-background">
@@ -39,7 +27,7 @@ const Login = () => {
         <h2 className="text-2xl font-bold text-center mb-6 text-foreground">Entrar no Dashboard</h2>
         <Auth
           supabaseClient={supabase}
-          providers={[]}
+          providers={[]} // Removendo provedores de terceiros para simplificar
           appearance={{
             theme: ThemeSupa,
             variables: {
@@ -47,6 +35,7 @@ const Login = () => {
                 colors: {
                   brand: 'hsl(var(--gogo-cyan))',
                   brandAccent: 'hsl(var(--gogo-orange))',
+                  // Ajustar cores para o tema claro/escuro
                   defaultButtonBackground: 'hsl(var(--primary))',
                   defaultButtonBackgroundHover: 'hsl(var(--primary-foreground))',
                   defaultButtonBorder: 'hsl(var(--border))',
@@ -73,7 +62,7 @@ const Login = () => {
               },
             },
           }}
-          // Removido theme="dark" para permitir que o ThemeProvider global gerencie
+          theme="dark" // Definir tema inicial como dark para melhor contraste com o fundo claro do Auth UI
           redirectTo={window.location.origin}
         />
       </div>
