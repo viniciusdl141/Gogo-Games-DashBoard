@@ -48,7 +48,7 @@ const initialRawData = getTrackingData();
 
 // Helper to generate unique IDs locally
 let localIdCounter = initialRawData.influencerTracking.length + initialRawData.eventTracking.length + initialRawData.paidTraffic.length + initialRawData.wlSales.length + initialRawData.demoTracking.length;
-const generateLocalUniqueId = (prefix: string) => `${prefix}-${localIdCounter++}`;
+const generateLocalUniqueId = (prefix: string = 'track') => `${prefix}-${localIdCounter++}`;
 
 const ALL_PLATFORMS: Platform[] = ['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra'];
 
@@ -88,6 +88,7 @@ const Dashboard = () => {
     // Add games from local data if not already in Supabase, without launch_date
     trackingData.games.forEach(gameName => {
       if (!combinedGamesMap.has(gameName)) {
+        // Assign a temporary local ID if not in Supabase
         combinedGamesMap.set(gameName, { id: generateLocalUniqueId('game'), name: gameName, launch_date: null, created_at: new Date().toISOString() });
       }
     });
@@ -148,14 +149,25 @@ const Dashboard = () => {
 
   const handleUpdateLaunchDate = useCallback(async (gameId: string, launchDate: string | null) => {
     try {
-        await updateGameInSupabase(gameId, { launch_date: launchDate });
-        refetchSupabaseGames();
-        toast.success("Data de lançamento atualizada com sucesso!");
+        // Check if the game exists in Supabase by its ID
+        const gameInSupabase = supabaseGames.find(g => g.id === gameId);
+
+        if (!gameInSupabase) {
+            // If the game is not in Supabase (it has a local ID), add it first
+            // We use selectedGameName here because gameId might be a local ID
+            await addGameToSupabase(selectedGameName, launchDate);
+            toast.success(`Jogo "${selectedGameName}" adicionado ao Supabase com data de lançamento.`);
+        } else {
+            // If the game exists in Supabase, just update its launch date
+            await updateGameInSupabase(gameId, { launch_date: launchDate });
+            toast.success(`Data de lançamento para "${selectedGameName}" atualizada.`);
+        }
+        refetchSupabaseGames(); // Always refetch to ensure UI is in sync
     } catch (error) {
         console.error("Error updating launch date:", error);
         toast.error("Falha ao atualizar data de lançamento.");
     }
-  }, [refetchSupabaseGames]);
+  }, [refetchSupabaseGames, supabaseGames, selectedGameName]);
 
 
   // --- WL/Sales Handlers ---
@@ -372,7 +384,7 @@ const Dashboard = () => {
     setTrackingData(prevData => ({
         ...prevData,
         demoTracking: prevData.demoTracking.map(entry => 
-            entry.id === updatedEntry.id ? updatedEntry : entry
+            entry.id === updatedEntry.id ? entry : updatedEntry
         ).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)),
     }));
     setEditingDemoEntry(null); // Close dialog
