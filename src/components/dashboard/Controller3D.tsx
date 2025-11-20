@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useRef } from 'react';
+import React, { useRef, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, OrbitControls, Environment } from '@react-three/drei';
 import { Mesh } from 'three';
+import ErrorBoundary from '@/components/ErrorBoundary'; // Import ErrorBoundary
 
 interface ModelProps {
   path: string;
@@ -34,7 +35,11 @@ const Controller3D: React.FC = () => {
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <directionalLight position={[-10, -10, -5]} intensity={0.5} />
         <Environment preset="city" /> {/* Adds realistic lighting environment */}
-        <Model path="/ps5.controller.glb" />
+        <ErrorBoundary fallback={<p className="text-red-500 text-center">Erro ao carregar o modelo 3D.</p>}>
+          <Suspense fallback={<p className="text-muted-foreground text-center">Carregando modelo 3D...</p>}>
+            <Model path="/ps5.controller.glb" />
+          </Suspense>
+        </ErrorBoundary>
         <OrbitControls enableZoom={false} enablePan={false} /> {/* Allows rotation with mouse, but disables zoom/pan */}
       </Canvas>
     </div>
