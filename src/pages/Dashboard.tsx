@@ -834,7 +834,8 @@ const Dashboard = () => {
                                 </CardContent>
                             </Card>
 
-                            <div className="flex justify-end mb-4 space-x-2">
+                            {/* CORREÇÃO DE ALINHAMENTO: Usando flex-wrap e justify-end */}
+                            <div className="flex flex-wrap justify-end gap-2 mb-4">
                                 <Dialog open={isColorConfigOpen} onOpenChange={setIsColorConfigOpen}>
                                     <DialogTrigger asChild>
                                         <Button variant="outline" size="sm" className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10">
