@@ -532,7 +532,8 @@ const Dashboard = () => {
         paidTraffic: paidTraffic.reduce((sum, item) => sum + item.investedValue, 0),
     };
 
-    const totalInvestment = investmentSources.influencers + investmentSources.events + investmentTraffic.paidTraffic;
+    // FIX: Use investmentSources.paidTraffic instead of undefined investmentTraffic
+    const totalInvestment = investmentSources.influencers + investmentSources.events + investmentSources.paidTraffic;
 
     // Separar Visualizações e Impressões
     const totalInfluencerViews = influencerTracking.reduce((sum, item) => sum + item.views, 0);
