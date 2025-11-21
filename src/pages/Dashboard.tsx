@@ -443,7 +443,7 @@ const Dashboard = () => {
 
     // --- Step 4: Inject placeholder entries for event dates without WL data ---
     const existingDates = new Set(realWLSales.map(e => startOfDay(e.date!).getTime()));
-    const platformFor Injection: Platform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform; // Default to Steam if 'All' is selected
+    const platformForInjection: Platform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform; // Default to Steam if 'All' is selected
 
     let wlSales: WLSalesPlatformEntry[] = [...realWLSales];
     let lastRealWL = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists : 0;
@@ -532,7 +532,7 @@ const Dashboard = () => {
         paidTraffic: paidTraffic.reduce((sum, item) => sum + item.investedValue, 0),
     };
 
-    const totalInvestment = investmentSources.influencers + investmentSources.events + investmentSources.paidTraffic;
+    const totalInvestment = investmentSources.influencers + investmentSources.events + investmentTraffic.paidTraffic;
 
     // Separar Visualizações e Impressões
     const totalInfluencerViews = influencerTracking.reduce((sum, item) => sum + item.views, 0);
