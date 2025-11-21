@@ -54,18 +54,37 @@ const isDateInEvent = (date: Date | null, events: EventTrackingEntry[]): boolean
     });
 };
 
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: any[];
+    label?: number; // Timestamp
+    eventTracking: EventTrackingEntry[]; 
+}
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, eventTracking }) => {
+    if (active && payload && payload.length && label) {
         const dateLabel = formatDate(label);
+        const date = new Date(label);
         
+        // Find active events for this date
+        const activeEvents = eventTracking.filter(event => {
+            const start = event.startDate?.getTime();
+            const end = event.endDate?.getTime();
+            const timestamp = date.getTime();
+            // Check if timestamp is between start and end (inclusive)
+            return start && end && timestamp >= start && timestamp <= end;
+        });
+
         // Group data by platform and frequency for the tooltip
         const dataByPlatform = payload.reduce((acc: Record<string, any[]>, entry: any) => {
-            const platform = entry.payload.platform || 'Steam';
-            if (!acc[platform]) {
-                acc[platform] = [];
+            // Ensure we only process data points related to WL or Sales
+            if (entry.dataKey === 'Wishlists' || entry.dataKey === 'Vendas') {
+                const platform = entry.payload.platform || 'Steam';
+                if (!acc[platform]) {
+                    acc[platform] = [];
+                }
+                acc[platform].push(entry);
             }
-            acc[platform].push(entry);
             return acc;
         }, {});
 
@@ -73,6 +92,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             <div className="bg-white/90 dark:bg-gray-800/90 p-3 border rounded-md shadow-lg text-sm backdrop-blur-sm">
                 <p className="font-bold mb-2 text-base">{dateLabel}</p>
                 
+                {/* Display active events */}
+                {activeEvents.length > 0 && (
+                    <div className="mb-2 p-2 bg-gogo-orange/10 border border-gogo-orange rounded-md">
+                        <p className="font-semibold text-gogo-orange text-xs mb-1">Eventos Ativos:</p>
+                        {activeEvents.map(event => (
+                            <p key={event.id} className="text-xs text-foreground">
+                                {event.event}
+                            </p>
+                        ))}
+                    </div>
+                )}
+
                 {Object.keys(dataByPlatform).sort().map(platform => {
                     const platformData = dataByPlatform[platform];
                     const wlEntry = platformData.find((e: any) => e.dataKey === 'Wishlists')?.payload;
@@ -269,7 +300,7 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
                             height={60}
                         />
                         <YAxis />
-                        <Tooltip content={<CustomTooltip />} />
+                        <Tooltip content={<CustomTooltip eventTracking={eventTracking} />} />
                         <Legend content={<CustomLegend />} />
                         <Line 
                             type="monotone" 
