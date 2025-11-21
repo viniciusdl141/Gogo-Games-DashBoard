@@ -1000,25 +1000,21 @@ const Dashboard = () => {
                         </DialogContent>
                     </Dialog>
 
-                    {/* NEW: Dialog for WL Sales Action Menu (replaces separate edit/marker dialogs) */}
+                    {/* NEW: Dialog for WL Sales Action Menu (triggered by chart click or manual button) */}
                     <Dialog open={!!clickedWLSalesEntry} onOpenChange={(open) => !open && setClickedWLSalesEntry(null)}>
-                        {clickedWLSalesEntry && (
-                            <WLSalesActionMenu
-                                entry={clickedWLSalesEntry}
-                                existingMarker={existingMarkerForClickedEntry}
-                                gameName={selectedGameName}
-                                onEditWLSales={handleEditWLSalesEntry}
-                                onSaveManualMarker={handleSaveManualMarker}
-                                onDeleteManualMarker={handleDeleteManualMarker}
-                            >
-                                {/* We need a trigger element for the DropdownMenu, but since we are using the Dialog to wrap the whole action, 
-                                    we can use a hidden button or simply rely on the Dialog's open state. 
-                                    The WLSalesActionMenu component handles the DropdownMenu internally. 
-                                    We pass a dummy trigger here since the Dialog is controlling the visibility.
-                                */}
-                                <div /> 
-                            </WLSalesActionMenu>
-                        )}
+                        <DialogContent className={clickedWLSalesEntry?.isPlaceholder ? "sm:max-w-[450px]" : "sm:max-w-[600px]"}>
+                            {clickedWLSalesEntry && (
+                                <WLSalesActionMenu
+                                    entry={clickedWLSalesEntry}
+                                    existingMarker={existingMarkerForClickedEntry}
+                                    gameName={selectedGameName}
+                                    onEditWLSales={handleEditWLSalesEntry}
+                                    onSaveManualMarker={handleSaveManualMarker}
+                                    onDeleteManualMarker={handleDeleteManualMarker}
+                                    onClose={() => setClickedWLSalesEntry(null)}
+                                />
+                            )}
+                        </DialogContent>
                     </Dialog>
                 </>
             )}
