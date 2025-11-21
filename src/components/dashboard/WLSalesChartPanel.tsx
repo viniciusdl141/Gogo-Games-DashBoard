@@ -46,8 +46,6 @@ const isDateInEvent = (date: Date | null, events: EventTrackingEntry[]): boolean
         
         if (start && end) {
             // Check if timestamp is between start and end (inclusive)
-            // We need to normalize dates to start/end of day for comparison if the source data is only date (not time)
-            // Since the source data uses Excel serial dates which are usually midnight, comparing timestamps should be fine.
             return timestamp >= start && timestamp <= end;
         }
         return false;
@@ -112,7 +110,8 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, e
                     const isPlaceholder = wlEntry?.isPlaceholder;
                     const variation = wlEntry?.variation || 0;
                     const totalWishlists = wlEntry?.Wishlists || 0;
-                    const totalSales = salesEntry?.Vendas || 0;
+                    // Sales should be 0 if placeholder, or the actual value
+                    const totalSales = salesEntry?.Vendas === null ? 0 : salesEntry?.Vendas || 0; 
                     const frequency = wlEntry?.frequency || 'Diário';
 
                     const VariationIcon = variation > 0 ? ArrowUp : variation < 0 ? ArrowDown : Minus;
@@ -155,6 +154,10 @@ const CustomDot = (props: any) => {
     
     // Only apply custom dot logic to Wishlists (WL)
     if (dataKey !== 'Wishlists') {
+        // Sales dots should only appear if Vendas is not null and not a placeholder
+        if (payload.isPlaceholder || payload.Vendas === null) {
+            return null;
+        }
         return <Dot {...props} r={3} fill={SALES_COLOR} stroke={SALES_COLOR} />;
     }
 
@@ -272,7 +275,8 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
     const chartData = data.map(item => ({
         date: item.date ? item.date.getTime() : null, // Use timestamp for sorting/keying
         Wishlists: item.wishlists,
-        Vendas: item.sales,
+        // Set Vendas to null if it's a placeholder entry, so the line breaks
+        Vendas: item.isPlaceholder ? null : item.sales, 
         variation: item.variation,
         frequency: item.frequency, // Pass frequency data
         platform: item.platform, // Pass platform data
@@ -289,7 +293,6 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
                 onPointClick(originalEntry);
             } else {
                 // If it's a placeholder, we don't open the edit dialog, but the tooltip still works.
-                // We can optionally show a toast here if needed, but for now, just prevent opening the form.
             }
         }
     };
@@ -325,6 +328,7 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
                             strokeWidth={2}
                             dot={<CustomDot dataKey="Wishlists" eventTracking={eventTracking} />} // Pass eventTracking here
                             activeDot={{ r: 8, className: 'cursor-pointer' }}
+                            connectNulls={true} // Ensure WL line remains connected if any WL value was null (though placeholders have a value)
                         />
                         <Line 
                             type="monotone" 
@@ -332,7 +336,8 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
                             stroke={SALES_COLOR}
                             strokeWidth={2}
                             activeDot={{ r: 8, className: 'cursor-pointer' }}
-                            dot={false} // Keep sales line simple
+                            dot={<CustomDot dataKey="Vendas" eventTracking={eventTracking} />} // Use CustomDot for sales too, to hide dots on placeholders
+                            connectNulls={false} // Do NOT connect null values (placeholders)
                         />
                     </LineChart>
                 </ResponsiveContainer>
