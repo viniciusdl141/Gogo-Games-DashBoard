@@ -114,11 +114,12 @@ const Dashboard = () => {
 
   // Função auxiliar para recalcular variações de WL
   const recalculateWLSales = useCallback((wlSales: WLSalesPlatformEntry[], game: string, platform: Platform): WLSalesPlatformEntry[] => {
+    // Filter only real entries for calculation
     const gamePlatformEntries = wlSales
-        .filter(e => e.game === game && e.platform === platform)
+        .filter(e => e.game === game && e.platform === platform && !e.isPlaceholder)
         .sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
         
-    const otherEntries = wlSales.filter(e => e.game !== game || e.platform !== platform);
+    const otherEntries = wlSales.filter(e => e.game !== game || e.platform !== platform || e.isPlaceholder);
 
     let lastWL = 0;
     const recalculatedGamePlatformEntries = gamePlatformEntries.map(entry => {
@@ -128,6 +129,7 @@ const Dashboard = () => {
         return { ...entry, variation: currentVariation };
     });
 
+    // Recombine real entries with placeholders (placeholders should not have their variation recalculated here)
     return [...otherEntries, ...recalculatedGamePlatformEntries].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
   }, []);
 
@@ -432,53 +434,70 @@ const Dashboard = () => {
             estimatedCostPerWL: item.estimatedWishlists > 0 ? item.investedValue / item.estimatedWishlists : '-',
         }));
     
-    // Filter WL Sales by selected game AND platform
-    let wlSales = trackingData.wlSales
+    // Filter real WL Sales by selected game AND platform
+    const realWLSales = trackingData.wlSales
         .filter(d => d.game.trim() === gameName)
         .filter(d => selectedPlatform === 'All' || d.platform === selectedPlatform)
+        .filter(d => !d.isPlaceholder)
         .sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
 
     // --- Step 4: Inject placeholder entries for event dates without WL data ---
-    const existingDates = new Set(wlSales.map(e => startOfDay(e.date!).getTime()));
-    const platformForInjection: Platform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform; // Default to Steam if 'All' is selected
+    const existingDates = new Set(realWLSales.map(e => startOfDay(e.date!).getTime()));
+    const platformFor Injection: Platform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform; // Default to Steam if 'All' is selected
 
-    eventTracking.forEach(event => {
-        if (event.startDate && event.endDate) {
-            let currentDate = startOfDay(event.startDate);
-            const endDate = startOfDay(event.endDate);
+    let wlSales: WLSalesPlatformEntry[] = [...realWLSales];
+    let lastRealWL = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists : 0;
 
+    // Find the earliest and latest date among all real WL entries and events
+    const allDates = new Set<number>();
+    realWLSales.forEach(e => e.date && allDates.add(startOfDay(e.date).getTime()));
+    eventTracking.forEach(e => {
+        if (e.startDate && e.endDate) {
+            let currentDate = startOfDay(e.startDate);
+            const endDate = startOfDay(e.endDate);
             while (isBefore(currentDate, endDate) || isEqual(currentDate, endDate)) {
-                const dateTimestamp = currentDate.getTime();
-                
-                if (!existingDates.has(dateTimestamp)) {
-                    // Find the closest previous WL entry to estimate metrics
-                    const closestPreviousEntry = wlSales
-                        .filter(e => e.date && e.date.getTime() < dateTimestamp)
-                        .pop(); // Since it's sorted, the last one is the closest
-
-                    // Create a placeholder entry
-                    const placeholderEntry: WLSalesPlatformEntry = {
-                        id: generateLocalUniqueId('wl-placeholder'),
-                        date: currentDate,
-                        game: gameName,
-                        platform: platformForInjection,
-                        wishlists: closestPreviousEntry?.wishlists || 0, // Use previous WL count
-                        sales: 0,
-                        variation: 0,
-                        saleType: 'Padrão',
-                        frequency: 'Diário',
-                        isPlaceholder: true, // Mark as placeholder
-                    };
-                    wlSales.push(placeholderEntry);
-                    existingDates.add(dateTimestamp);
-                }
+                allDates.add(currentDate.getTime());
                 currentDate = addDays(currentDate, 1);
             }
         }
     });
 
-    // Re-sort the combined list
-    wlSales.sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
+    const sortedDates = Array.from(allDates).sort((a, b) => a - b);
+    
+    // Map of real WL entries by date timestamp
+    const realWLSalesMap = new Map(realWLSales.map(e => [startOfDay(e.date!).getTime(), e]));
+
+    // Iterate through all relevant dates and create the final list, filling gaps with placeholders
+    let lastWLValue = 0;
+    const finalWLSales: WLSalesPlatformEntry[] = [];
+
+    for (const dateTimestamp of sortedDates) {
+        const date = new Date(dateTimestamp);
+        const existingRealEntry = realWLSalesMap.get(dateTimestamp);
+
+        if (existingRealEntry) {
+            // Use real entry and update lastWLValue
+            finalWLSales.push(existingRealEntry);
+            lastWLValue = existingRealEntry.wishlists;
+        } else {
+            // Create placeholder entry
+            const placeholderEntry: WLSalesPlatformEntry = {
+                id: generateLocalUniqueId('wl-placeholder'),
+                date: date,
+                game: gameName,
+                platform: platformForInjection,
+                wishlists: lastWLValue, // Use the last known real WL value
+                sales: 0, // Sales must be 0 or null for placeholders
+                variation: 0,
+                saleType: 'Padrão',
+                frequency: 'Diário',
+                isPlaceholder: true,
+            };
+            finalWLSales.push(placeholderEntry);
+        }
+    }
+
+    wlSales = finalWLSales.sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
     // --- End Step 4 ---
 
 
@@ -525,8 +544,8 @@ const Dashboard = () => {
         eventTracking.reduce((sum, item) => sum + item.wlGenerated, 0);
     
     // Total Sales and Wishlists (for Game Summary Panel) - based on filtered WL Sales
-    const totalSales = wlSales.reduce((sum, item) => sum + item.sales, 0);
-    const totalWishlists = wlSales.length > 0 ? wlSales[wlSales.length - 1].wishlists : 0;
+    const totalSales = realWLSales.reduce((sum, item) => sum + item.sales, 0);
+    const totalWishlists = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists : 0;
 
 
     return {
