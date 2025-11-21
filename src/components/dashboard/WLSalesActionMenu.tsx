@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState } from 'react';
-import { WLSalesPlatformEntry, ManualEventMarker } from '@/data/trackingData';
+import { WLSalesPlatformEntry, ManualEventMarker, InfluencerTrackingEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry } from '@/data/trackingData';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Edit, CalendarPlus, List, Trash2, ArrowLeft } from 'lucide-react';
+import { Edit, CalendarPlus, List, Trash2, ArrowLeft, Search } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import EditWLSalesForm from './EditWLSalesForm';
 import ManualEventMarkerForm from './ManualEventMarkerForm';
+import DailySummaryPanel from './DailySummaryPanel'; // Novo Import
 
 interface WLSalesActionMenuProps {
     entry: WLSalesPlatformEntry;
@@ -17,6 +18,12 @@ interface WLSalesActionMenuProps {
     onSaveManualMarker: (values: { date: string, name: string }) => void;
     onDeleteManualMarker: (id: string) => void;
     onClose: () => void; // Adicionado para fechar o diálogo principal
+    // Novos props para o resumo diário
+    allInfluencerTracking: InfluencerTrackingEntry[];
+    allEventTracking: EventTrackingEntry[];
+    allPaidTraffic: PaidTrafficEntry[];
+    allDemoTracking: DemoTrackingEntry[];
+    allManualEventMarkers: ManualEventMarker[];
 }
 
 const WLSalesActionMenu: React.FC<WLSalesActionMenuProps> = ({ 
@@ -26,12 +33,23 @@ const WLSalesActionMenu: React.FC<WLSalesActionMenuProps> = ({
     onEditWLSales, 
     onSaveManualMarker,
     onDeleteManualMarker,
-    onClose
+    onClose,
+    allInfluencerTracking,
+    allEventTracking,
+    allPaidTraffic,
+    allDemoTracking,
+    allManualEventMarkers,
 }) => {
-    const [currentView, setCurrentView] = useState<'menu' | 'edit-wl' | 'edit-marker'>('menu');
+    const [currentView, setCurrentView] = useState<'menu' | 'edit-wl' | 'edit-marker' | 'daily-summary'>('menu');
+    const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
 
     const isRealData = !entry.isPlaceholder;
     const dateString = entry.date ? entry.date.toISOString().split('T')[0] : '';
+
+    const handleViewSummary = () => {
+        setIsSummaryDialogOpen(true);
+        // Não fechar o menu principal, apenas abrir o sub-diálogo
+    };
 
     const renderContent = () => {
         switch (currentView) {
@@ -55,12 +73,22 @@ const WLSalesActionMenu: React.FC<WLSalesActionMenuProps> = ({
                         onClose={onClose} // Fecha o diálogo principal após salvar/remover
                     />
                 );
+            case 'daily-summary':
+                // Este caso não deve ser alcançado, pois o resumo será aberto em um diálogo separado.
+                return null; 
             case 'menu':
             default:
                 return (
                     <div className="p-4 space-y-4">
                         <p className="text-lg font-semibold text-foreground">Ações para {formatDate(entry.date)}</p>
                         
+                        <Button 
+                            onClick={handleViewSummary} 
+                            className="w-full justify-start bg-gogo-cyan/10 text-gogo-cyan hover:bg-gogo-cyan/20 border border-gogo-cyan"
+                        >
+                            <Search className="mr-2 h-4 w-4" /> Ver Detalhes do Dia
+                        </Button>
+
                         {isRealData ? (
                             <Button 
                                 onClick={() => setCurrentView('edit-wl')} 
@@ -98,6 +126,7 @@ const WLSalesActionMenu: React.FC<WLSalesActionMenuProps> = ({
         switch (currentView) {
             case 'edit-wl': return 'Editar Entrada de WL/Vendas';
             case 'edit-marker': return existingMarker ? 'Editar Marcador de Evento' : 'Adicionar Marcador de Evento';
+            case 'menu':
             default: return 'Selecione uma Ação';
         }
     };
@@ -109,19 +138,42 @@ const WLSalesActionMenu: React.FC<WLSalesActionMenuProps> = ({
     };
 
     return (
-        <div className={getDialogClass()}>
-            <DialogHeader>
-                <DialogTitle className="flex items-center">
-                    {currentView !== 'menu' && (
-                        <Button variant="ghost" size="icon" onClick={() => setCurrentView('menu')} className="mr-2">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
+        <>
+            <div className={getDialogClass()}>
+                <DialogHeader>
+                    <DialogTitle className="flex items-center">
+                        {currentView !== 'menu' && (
+                            <Button variant="ghost" size="icon" onClick={() => setCurrentView('menu')} className="mr-2">
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                        )}
+                        {getDialogTitle()}
+                    </DialogTitle>
+                </DialogHeader>
+                {renderContent()}
+            </div>
+
+            {/* Diálogo de Resumo Diário (Abre sobre o menu de ação) */}
+            <Dialog open={isSummaryDialogOpen} onOpenChange={setIsSummaryDialogOpen}>
+                <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Detalhes de Tracking Diário</DialogTitle>
+                    </DialogHeader>
+                    {entry.date && (
+                        <DailySummaryPanel 
+                            date={entry.date}
+                            gameName={gameName}
+                            wlSales={allWLSales}
+                            influencerTracking={allInfluencerTracking}
+                            eventTracking={allEventTracking}
+                            paidTraffic={allPaidTraffic}
+                            demoTracking={allDemoTracking}
+                            manualEventMarkers={allManualEventMarkers}
+                        />
                     )}
-                    {getDialogTitle()}
-                </DialogTitle>
-            </DialogHeader>
-            {renderContent()}
-        </div>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 };
 

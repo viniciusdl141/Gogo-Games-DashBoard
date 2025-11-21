@@ -586,9 +586,9 @@ const Dashboard = () => {
 
     // 3. KPI Calculations (based on ALL platforms for the game, except for WL/Sales which respects platform filter)
     const investmentSources = {
-        influencers: influencerTracking.reduce((sum, item) => sum + item.investment, 0),
-        events: eventTracking.reduce((sum, item) => sum + item.cost, 0),
-        paidTraffic: paidTraffic.reduce((sum, item) => sum + item.investedValue, 0),
+        influencers: trackingData.influencerTracking.filter(d => d.game.trim() === gameName).reduce((sum, item) => sum + item.investment, 0),
+        events: trackingData.eventTracking.filter(d => d.game.trim() === gameName).reduce((sum, item) => sum + item.cost, 0),
+        paidTraffic: trackingData.paidTraffic.filter(d => d.game.trim() === gameName).reduce((sum, item) => sum + item.investedValue, 0),
     };
 
     const totalInvestment = investmentSources.influencers + investmentSources.events + investmentSources.paidTraffic;
@@ -1012,6 +1012,13 @@ const Dashboard = () => {
                                     onSaveManualMarker={handleSaveManualMarker}
                                     onDeleteManualMarker={handleDeleteManualMarker}
                                     onClose={() => setClickedWLSalesEntry(null)}
+                                    // Pass ALL tracking data for the Daily Summary Panel
+                                    allWLSales={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName)}
+                                    allInfluencerTracking={trackingData.influencerTracking.filter(e => e.game.trim() === selectedGameName)}
+                                    allEventTracking={trackingData.eventTracking.filter(e => e.game.trim() === selectedGameName)}
+                                    allPaidTraffic={trackingData.paidTraffic.filter(e => e.game.trim() === selectedGameName)}
+                                    allDemoTracking={trackingData.demoTracking.filter(e => e.game.trim() === selectedGameName)}
+                                    allManualEventMarkers={trackingData.manualEventMarkers.filter(e => e.game.trim() === selectedGameName)}
                                 />
                             )}
                         </DialogContent>
