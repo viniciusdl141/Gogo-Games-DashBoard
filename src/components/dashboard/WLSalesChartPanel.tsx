@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { WLSalesPlatformEntry, EntryFrequency, EventTrackingEntry } from '@/data/trackingData'; // Import EventTrackingEntry
+import { WLSalesPlatformEntry, EntryFrequency, EventTrackingEntry, ManualEventMarker } from '@/data/trackingData'; // Import ManualEventMarker
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     LineChart,
@@ -16,11 +16,13 @@ import {
 } from 'recharts';
 import { formatDate, formatNumber } from '@/lib/utils';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { startOfDay, isBefore, isEqual } from 'date-fns';
 
 interface WLSalesChartPanelProps {
     data: WLSalesPlatformEntry[];
     onPointClick: (entry: WLSalesPlatformEntry) => void;
-    eventTracking: EventTrackingEntry[]; // New prop
+    eventTracking: EventTrackingEntry[];
+    manualEventMarkers: ManualEventMarker[]; // New prop
 }
 
 // Cores Gogo Games
@@ -35,21 +37,35 @@ const FREQUENCY_STYLES: Record<EntryFrequency, { fill: string, stroke: string, s
     'Mensal': { fill: WL_COLOR, stroke: WL_COLOR, shape: 'square' },
 };
 
-// Helper function to check if a date is within an event period
-const isDateInEvent = (date: Date | null, events: EventTrackingEntry[]): boolean => {
-    if (!date) return false;
-    const timestamp = date.getTime();
+// Helper function to check if a date is within an event period (automatic or manual)
+const getActiveEventsForDate = (date: Date | null, events: EventTrackingEntry[], manualMarkers: ManualEventMarker[]): { type: 'auto' | 'manual', name: string, id: string }[] => {
+    if (!date) return [];
+    const timestamp = startOfDay(date).getTime();
+    const activeEvents: { type: 'auto' | 'manual', name: string, id: string }[] = [];
 
-    return events.some(event => {
+    // 1. Automatic Events (EventTrackingEntry)
+    events.forEach(event => {
         const start = event.startDate?.getTime();
         const end = event.endDate?.getTime();
         
         if (start && end) {
-            // Check if timestamp is between start and end (inclusive)
-            return timestamp >= start && timestamp <= end;
+            const startDay = startOfDay(event.startDate!).getTime();
+            const endDay = startOfDay(event.endDate!).getTime();
+            
+            if (timestamp >= startDay && timestamp <= endDay) {
+                activeEvents.push({ type: 'auto', name: event.event, id: event.id });
+            }
         }
-        return false;
     });
+
+    // 2. Manual Markers
+    manualMarkers.forEach(marker => {
+        if (startOfDay(marker.date).getTime() === timestamp) {
+            activeEvents.push({ type: 'manual', name: marker.name, id: marker.id });
+        }
+    });
+
+    return activeEvents;
 };
 
 interface CustomTooltipProps {
@@ -57,21 +73,16 @@ interface CustomTooltipProps {
     payload?: any[];
     label?: number; // Timestamp
     eventTracking: EventTrackingEntry[]; 
+    manualEventMarkers: ManualEventMarker[]; // New prop
 }
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, eventTracking }) => {
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, eventTracking, manualEventMarkers }) => {
     if (active && payload && payload.length && label) {
         const dateLabel = formatDate(label);
         const date = new Date(label);
         
         // Find active events for this date
-        const activeEvents = eventTracking.filter(event => {
-            const start = event.startDate?.getTime();
-            const end = event.endDate?.getTime();
-            const timestamp = date.getTime();
-            // Check if timestamp is between start and end (inclusive)
-            return start && end && timestamp >= start && timestamp <= end;
-        });
+        const activeEvents = getActiveEventsForDate(date, eventTracking, manualEventMarkers);
 
         // Group data by platform and frequency for the tooltip
         const dataByPlatform = payload.reduce((acc: Record<string, any[]>, entry: any) => {
@@ -94,9 +105,9 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, e
                 {activeEvents.length > 0 && (
                     <div className="mb-2 p-2 bg-gogo-orange/10 border border-gogo-orange rounded-md">
                         <p className="font-semibold text-gogo-orange text-xs mb-1">Eventos Ativos:</p>
-                        {activeEvents.map(event => (
-                            <p key={event.id} className="text-xs text-foreground">
-                                {event.event}
+                        {activeEvents.map((event, index) => (
+                            <p key={event.id || index} className="text-xs text-foreground">
+                                {event.name} ({event.type === 'manual' ? 'Manual' : 'Automático'})
                             </p>
                         ))}
                     </div>
@@ -150,7 +161,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, e
 
 // Custom Dot component to change shape based on frequency and event status
 const CustomDot = (props: any) => {
-    const { cx, cy, stroke, payload, dataKey, eventTracking } = props;
+    const { cx, cy, stroke, payload, dataKey, eventTracking, manualEventMarkers } = props;
     
     // Only apply custom dot logic to Wishlists (WL)
     if (dataKey !== 'Wishlists') {
@@ -162,7 +173,8 @@ const CustomDot = (props: any) => {
     }
 
     const date = payload.date ? new Date(payload.date) : null;
-    const isActiveEvent = isDateInEvent(date, eventTracking); // Check if date is in an event
+    const activeEvents = getActiveEventsForDate(date, eventTracking, manualEventMarkers); // Check if date is in an event (auto or manual)
+    const isActiveEvent = activeEvents.length > 0;
     const isPlaceholder = payload.isPlaceholder;
 
     const frequency: EntryFrequency = payload.frequency || 'Diário';
@@ -261,7 +273,7 @@ const CustomLegend = (props: any) => {
 };
 
 
-const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClick, eventTracking }) => {
+const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClick, eventTracking, manualEventMarkers }) => {
     if (data.length === 0) {
         return (
             <Card>
@@ -292,7 +304,11 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
             if (originalEntry) {
                 onPointClick(originalEntry);
             } else {
-                // If it's a placeholder, we don't open the edit dialog, but the tooltip still works.
+                // If it's a placeholder, we still want to allow interaction to add a manual marker
+                const placeholderEntry = data.find(d => d.date?.getTime() === clickedTimestamp && d.isPlaceholder);
+                if (placeholderEntry) {
+                    onPointClick(placeholderEntry);
+                }
             }
         }
     };
@@ -319,16 +335,16 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
                             height={60}
                         />
                         <YAxis />
-                        <Tooltip content={<CustomTooltip eventTracking={eventTracking} />} />
+                        <Tooltip content={<CustomTooltip eventTracking={eventTracking} manualEventMarkers={manualEventMarkers} />} />
                         <Legend content={<CustomLegend />} />
                         <Line 
                             type="monotone" 
                             dataKey="Wishlists" 
                             stroke={WL_COLOR}
                             strokeWidth={2}
-                            dot={<CustomDot dataKey="Wishlists" eventTracking={eventTracking} />} // Pass eventTracking here
+                            dot={<CustomDot dataKey="Wishlists" eventTracking={eventTracking} manualEventMarkers={manualEventMarkers} />} // Pass manualEventMarkers here
                             activeDot={{ r: 8, className: 'cursor-pointer' }}
-                            connectNulls={true} // Ensure WL line remains connected if any WL value was null (though placeholders have a value)
+                            connectNulls={true}
                         />
                         <Line 
                             type="monotone" 
@@ -336,8 +352,8 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
                             stroke={SALES_COLOR}
                             strokeWidth={2}
                             activeDot={{ r: 8, className: 'cursor-pointer' }}
-                            dot={<CustomDot dataKey="Vendas" eventTracking={eventTracking} />} // Use CustomDot for sales too, to hide dots on placeholders
-                            connectNulls={false} // Do NOT connect null values (placeholders)
+                            dot={<CustomDot dataKey="Vendas" eventTracking={eventTracking} manualEventMarkers={manualEventMarkers} />} // Pass manualEventMarkers here
+                            connectNulls={false}
                         />
                     </LineChart>
                 </ResponsiveContainer>

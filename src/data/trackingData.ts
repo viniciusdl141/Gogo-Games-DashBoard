@@ -83,6 +83,14 @@ export interface WLSalesPlatformEntry {
     isPlaceholder?: boolean; // New: Indicates if this entry was generated to fill a gap
 }
 
+// NEW: Manual Event Marker Interface
+export interface ManualEventMarker {
+    id: string;
+    game: string;
+    date: Date;
+    name: string;
+}
+
 export interface ReviewEntry {
     id: string;
     reviews: number;
@@ -132,6 +140,7 @@ export interface TrackingData {
     wlSales: WLSalesPlatformEntry[]; // Updated type
     resultSummary: ResultSummaryEntry[];
     wlDetails: WlDetails[];
+    manualEventMarkers: ManualEventMarker[]; // NEW: Manual markers
 }
 
 let uniqueIdCounter = 0;
@@ -404,5 +413,6 @@ export const getTrackingData = (): TrackingData => {
         wlSales,
         resultSummary,
         wlDetails,
+        manualEventMarkers: [], // Initialize empty array for manual markers
     };
 };

@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { getTrackingData, InfluencerTrackingEntry, InfluencerSummaryEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, WLSalesPlatformEntry, ResultSummaryEntry, WlDetails, SaleType, Platform } from '@/data/trackingData';
+import { getTrackingData, InfluencerTrackingEntry, InfluencerSummaryEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, WLSalesPlatformEntry, ResultSummaryEntry, WlDetails, SaleType, Platform, ManualEventMarker } from '@/data/trackingData';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff, Megaphone } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -42,13 +42,14 @@ import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
 import AddDemoForm from '@/components/dashboard/AddDemoForm';
 import EditDemoForm from '@/components/dashboard/EditDemoForm';
+import ManualEventMarkerForm from '@/components/dashboard/ManualEventMarkerForm'; // NEW Import
 import { addDays, isBefore, isEqual, startOfDay } from 'date-fns';
 
 // Initialize data once
 const initialRawData = getTrackingData();
 
 // Helper to generate unique IDs locally
-let localIdCounter = initialRawData.influencerTracking.length + initialRawData.eventTracking.length + initialRawData.paidTraffic.length + initialRawData.wlSales.length + initialRawData.demoTracking.length;
+let localIdCounter = initialRawData.influencerTracking.length + initialRawData.eventTracking.length + initialRawData.paidTraffic.length + initialRawData.wlSales.length + initialRawData.demoTracking.length + initialRawData.manualEventMarkers.length;
 const generateLocalUniqueId = (prefix: string = 'track') => `${prefix}-${localIdCounter++}`;
 
 const ALL_PLATFORMS: Platform[] = ['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra'];
@@ -63,12 +64,14 @@ const Dashboard = () => {
   const [isAddPaidTrafficFormOpen, setIsAddPaidTrafficFormOpen] = useState(false);
   const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
-  const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false); // New state for Demo form
+  const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false);
   
   const [editingWLSalesEntry, setEditingWLSalesEntry] = useState<WLSalesPlatformEntry | null>(null);
-  const [editingDemoEntry, setEditingDemoEntry] = useState<DemoTrackingEntry | null>(null); // New state for editing Demo
+  const [editingDemoEntry, setEditingDemoEntry] = useState<DemoTrackingEntry | null>(null);
   
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
+  const [isManualMarkerDialogOpen, setIsManualMarkerDialogOpen] = useState(false); // NEW state for manual marker dialog
+  const [markerDate, setMarkerDate] = useState<Date | null>(null); // Date selected for manual marker
 
   // Fetch games from Supabase
   const { data: supabaseGames, refetch: refetchSupabaseGames } = useQuery<SupabaseGame[], Error>({
@@ -235,8 +238,57 @@ const Dashboard = () => {
   }, [recalculateWLSales]);
 
   const handleChartPointClick = useCallback((entry: WLSalesPlatformEntry) => {
-    setEditingWLSalesEntry(entry);
+    // When clicking a point, open the manual marker dialog for that date
+    if (entry.date) {
+        setMarkerDate(entry.date);
+        setIsManualMarkerDialogOpen(true);
+    }
   }, []);
+
+  // --- Manual Event Marker Handlers ---
+  
+  const handleAddManualMarker = useCallback((values: { date: string, name: string }) => {
+    const dateObject = startOfDay(new Date(values.date));
+    
+    // Check if a marker already exists for this date/game
+    const existingMarker = trackingData.manualEventMarkers.find(m => 
+        m.game === selectedGameName && startOfDay(m.date).getTime() === dateObject.getTime()
+    );
+
+    if (existingMarker) {
+        // Update existing marker
+        setTrackingData(prevData => ({
+            ...prevData,
+            manualEventMarkers: prevData.manualEventMarkers.map(m => 
+                m.id === existingMarker.id ? { ...m, name: values.name } : m
+            ),
+        }));
+    } else {
+        // Add new marker
+        const newMarker: ManualEventMarker = {
+            id: generateLocalUniqueId('manual-event'),
+            game: selectedGameName,
+            date: dateObject,
+            name: values.name,
+        };
+        setTrackingData(prevData => ({
+            ...prevData,
+            manualEventMarkers: [...prevData.manualEventMarkers, newMarker],
+        }));
+    }
+    setIsManualMarkerDialogOpen(false);
+    setMarkerDate(null);
+  }, [selectedGameName, trackingData.manualEventMarkers]);
+
+  const handleDeleteManualMarker = useCallback((id: string) => {
+    setTrackingData(prevData => ({
+        ...prevData,
+        manualEventMarkers: prevData.manualEventMarkers.filter(m => m.id !== id),
+    }));
+    setIsManualMarkerDialogOpen(false);
+    setMarkerDate(null);
+  }, []);
+
 
   // --- Influencer Handlers ---
   
@@ -441,19 +493,19 @@ const Dashboard = () => {
         .filter(d => !d.isPlaceholder)
         .sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
 
-    // --- Step 4: Inject placeholder entries for event dates without WL data ---
-    const existingDates = new Set(realWLSales.map(e => startOfDay(e.date!).getTime()));
-    const platformForInjection: Platform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform; // Default to Steam if 'All' is selected
+    // Filter manual markers for the current game
+    const manualEventMarkers = trackingData.manualEventMarkers
+        .filter(m => m.game.trim() === gameName);
 
-    let wlSales: WLSalesPlatformEntry[] = [...realWLSales];
-    let lastRealWL = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists : 0;
+    // --- Step 4: Inject placeholder entries for event dates without WL data ---
+    const platformForInjection: Platform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform; // Default to Steam if 'All' is selected
 
     // Encontrar a data mais antiga de um registro real de WL
     const minRealWLDateTimestamp = realWLSales.length > 0 
         ? Math.min(...realWLSales.map(e => startOfDay(e.date!).getTime()))
         : null;
 
-    // Encontrar todas as datas relevantes (WL reais + eventos)
+    // Encontrar todas as datas relevantes (WL reais + eventos automáticos + eventos manuais)
     const allDates = new Set<number>();
     realWLSales.forEach(e => e.date && allDates.add(startOfDay(e.date).getTime()));
     eventTracking.forEach(e => {
@@ -466,6 +518,8 @@ const Dashboard = () => {
             }
         }
     });
+    manualEventMarkers.forEach(m => allDates.add(startOfDay(m.date).getTime()));
+
 
     let sortedDates = Array.from(allDates).sort((a, b) => a - b);
     
@@ -479,10 +533,6 @@ const Dashboard = () => {
 
     // Iterate through all relevant dates and create the final list, filling gaps with placeholders
     let lastWLValue = 0; 
-    
-    // Se a primeira data no sortedDates for uma data real, inicializamos lastWLValue com o WL anterior (que é 0 se for o primeiro ponto de dados).
-    // Se a primeira data for um placeholder (evento), lastWLValue permanece 0, o que é o comportamento desejado para o início do gráfico.
-    
     const finalWLSales: WLSalesPlatformEntry[] = [];
 
     for (const dateTimestamp of sortedDates) {
@@ -511,7 +561,7 @@ const Dashboard = () => {
         }
     }
 
-    wlSales = finalWLSales.sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
+    const wlSales = finalWLSales.sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
     // --- End Step 4 ---
 
 
@@ -571,6 +621,7 @@ const Dashboard = () => {
       paidTraffic,
       demoTracking: trackingData.demoTracking.filter(d => d.game.trim() === gameName),
       wlDetails: trackingData.wlDetails.find(d => d.game.trim() === gameName),
+      manualEventMarkers, // NEW: Include manual markers
       kpis: {
           gameId,
           totalInvestment,
@@ -585,6 +636,14 @@ const Dashboard = () => {
       }
     };
   }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame]);
+
+  // Determine if a manual marker already exists for the selected date
+  const existingMarkerForDate = useMemo(() => {
+    if (!markerDate) return undefined;
+    const dateTimestamp = startOfDay(markerDate).getTime();
+    return filteredData?.manualEventMarkers.find(m => startOfDay(m.date).getTime() === dateTimestamp);
+  }, [markerDate, filteredData]);
+
 
   // Renderização condicional para quando não há jogos
   if (allAvailableGames.length === 0) {
@@ -719,6 +778,17 @@ const Dashboard = () => {
                             </Card>
 
                             <div className="flex justify-end mb-4 space-x-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => {
+                                        setMarkerDate(new Date());
+                                        setIsManualMarkerDialogOpen(true);
+                                    }} 
+                                    className="text-gogo-orange border-gogo-orange hover:bg-gogo-orange/10"
+                                >
+                                    <CalendarPlus className="h-4 w-4 mr-2" /> Marcar Evento Manual
+                                </Button>
                                 <Button variant="outline" size="sm" onClick={() => setIsHistoryVisible(!isHistoryVisible)} className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10">
                                     {isHistoryVisible ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
                                     {isHistoryVisible ? 'Ocultar Histórico' : 'Mostrar Histórico'}
@@ -750,6 +820,7 @@ const Dashboard = () => {
                                 data={filteredData.wlSales} 
                                 onPointClick={handleChartPointClick} 
                                 eventTracking={filteredData.eventTracking}
+                                manualEventMarkers={filteredData.manualEventMarkers} // Pass manual markers
                             />
                             <SalesByTypeChart data={filteredData.wlSales} />
                             {isHistoryVisible && (
@@ -934,6 +1005,27 @@ const Dashboard = () => {
                                     entry={editingDemoEntry}
                                     onSave={handleEditDemoEntry}
                                     onClose={() => setEditingDemoEntry(null)}
+                                />
+                            )}
+                        </DialogContent>
+                    </Dialog>
+
+                    {/* NEW: Dialog for Manual Event Marker */}
+                    <Dialog open={isManualMarkerDialogOpen} onOpenChange={(open) => {
+                        setIsManualMarkerDialogOpen(open);
+                        if (!open) setMarkerDate(null);
+                    }}>
+                        <DialogContent className="sm:max-w-[450px]">
+                            <DialogHeader>
+                                <DialogTitle>{existingMarkerForDate ? 'Editar Marcador de Evento' : 'Adicionar Marcador de Evento'}</DialogTitle>
+                            </DialogHeader>
+                            {markerDate && (
+                                <ManualEventMarkerForm 
+                                    gameName={selectedGameName}
+                                    existingMarker={existingMarkerForDate}
+                                    onSave={handleAddManualMarker}
+                                    onDelete={handleDeleteManualMarker}
+                                    onClose={() => setIsManualMarkerDialogOpen(false)}
                                 />
                             )}
                         </DialogContent>
