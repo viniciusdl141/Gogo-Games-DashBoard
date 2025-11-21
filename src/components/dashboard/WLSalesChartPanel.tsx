@@ -109,6 +109,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, e
                     const wlEntry = platformData.find((e: any) => e.dataKey === 'Wishlists')?.payload;
                     const salesEntry = platformData.find((e: any) => e.dataKey === 'Vendas')?.payload;
 
+                    const isPlaceholder = wlEntry?.isPlaceholder;
                     const variation = wlEntry?.variation || 0;
                     const totalWishlists = wlEntry?.Wishlists || 0;
                     const totalSales = salesEntry?.Vendas || 0;
@@ -121,7 +122,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, e
                         <div key={platform} className="mt-2 border-t pt-2 border-muted-foreground/20">
                             <p className="font-semibold text-sm mb-1 flex items-center justify-between">
                                 <span>{platform} ({frequency})</span>
-                                <span className="text-xs text-muted-foreground">WL: {formatNumber(totalWishlists)}</span>
+                                <span className="text-xs text-muted-foreground">WL: {formatNumber(totalWishlists)} {isPlaceholder && '(Estimado)'}</span>
                             </p>
                             
                             <div className="space-y-1">
@@ -159,6 +160,7 @@ const CustomDot = (props: any) => {
 
     const date = payload.date ? new Date(payload.date) : null;
     const isActiveEvent = isDateInEvent(date, eventTracking); // Check if date is in an event
+    const isPlaceholder = payload.isPlaceholder;
 
     const frequency: EntryFrequency = payload.frequency || 'Diário';
     const style = FREQUENCY_STYLES[frequency];
@@ -167,6 +169,7 @@ const CustomDot = (props: any) => {
 
     const size = isActiveEvent ? 6 : 4; // Make event dots slightly larger
     const color = isActiveEvent ? EVENT_COLOR : style.fill;
+    const opacity = isPlaceholder ? 0.5 : 1; // Dim placeholder dots
 
     switch (style.shape) {
         case 'triangle':
@@ -177,6 +180,7 @@ const CustomDot = (props: any) => {
                     fill={color} 
                     stroke={color} 
                     strokeWidth={1}
+                    opacity={opacity}
                 />
             );
         case 'square':
@@ -190,6 +194,7 @@ const CustomDot = (props: any) => {
                     fill={color} 
                     stroke={color} 
                     strokeWidth={1}
+                    opacity={opacity}
                 />
             );
         case 'circle':
@@ -203,6 +208,7 @@ const CustomDot = (props: any) => {
                     fill={color} 
                     stroke={color} 
                     strokeWidth={1}
+                    opacity={opacity}
                 />
             );
     }
@@ -216,6 +222,7 @@ const CustomLegend = (props: any) => {
         { value: 'Wishlists (Semanal)', color: WL_COLOR, shape: 'triangle' },
         { value: 'Wishlists (Mensal)', color: WL_COLOR, shape: 'square' },
         { value: 'WL em Evento', color: EVENT_COLOR, shape: 'circle', size: 6 }, // New item
+        { value: 'WL Estimada (Sem Dados)', color: WL_COLOR, shape: 'circle', opacity: 0.5 }, // New item for placeholders
     ];
 
     return (
@@ -223,10 +230,13 @@ const CustomLegend = (props: any) => {
             {fixedItems.map((entry, index) => {
                 const style = FREQUENCY_STYLES[entry.shape === 'circle' ? 'Diário' : entry.shape === 'triangle' ? 'Semanal' : 'Mensal'];
                 
-                // Determine color and size based on event status for WL dots
+                // Determine color, size, and opacity
                 const isEventDot = entry.value === 'WL em Evento';
+                const isPlaceholder = entry.value.includes('Estimada');
+                
                 const color = isEventDot ? EVENT_COLOR : entry.color;
                 const size = isEventDot ? 6 : 4;
+                const opacity = isPlaceholder ? 0.5 : 1;
 
                 return (
                     <li key={`item-${index}`} className="flex items-center space-x-1 cursor-pointer">
@@ -234,9 +244,9 @@ const CustomLegend = (props: any) => {
                             <span className="w-4 h-0.5" style={{ backgroundColor: color }}></span>
                         ) : (
                             <svg width="10" height="10" viewBox="0 0 10 10" className="mr-1">
-                                {entry.shape === 'circle' && <circle cx="5" cy="5" r={size / 2} fill={color} />}
-                                {entry.shape === 'triangle' && <polygon points="5,1 1,9 9,9" fill={color} />}
-                                {entry.shape === 'square' && <rect x="1" y="1" width="8" height="8" fill={color} />}
+                                {entry.shape === 'circle' && <circle cx="5" cy="5" r={size / 2} fill={color} opacity={opacity} />}
+                                {entry.shape === 'triangle' && <polygon points="5,1 1,9 9,9" fill={color} opacity={opacity} />}
+                                {entry.shape === 'square' && <rect x="1" y="1" width="8" height="8" fill={color} opacity={opacity} />}
                             </svg>
                         )}
                         <span className="text-muted-foreground">{entry.value}</span>
@@ -266,14 +276,20 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
         variation: item.variation,
         frequency: item.frequency, // Pass frequency data
         platform: item.platform, // Pass platform data
+        isPlaceholder: item.isPlaceholder, // Pass placeholder status
     })).filter(item => item.date !== null);
 
     const handleChartClick = (e: any) => {
         if (e && e.activePayload && e.activePayload.length > 0) {
             const clickedTimestamp = e.activePayload[0].payload.date;
-            const originalEntry = data.find(d => d.date?.getTime() === clickedTimestamp);
+            // Find the original entry (excluding placeholders if possible, but allowing click on placeholders for event info)
+            const originalEntry = data.find(d => d.date?.getTime() === clickedTimestamp && !d.isPlaceholder);
+            
             if (originalEntry) {
                 onPointClick(originalEntry);
+            } else {
+                // If it's a placeholder, we don't open the edit dialog, but the tooltip still works.
+                // We can optionally show a toast here if needed, but for now, just prevent opening the form.
             }
         }
     };

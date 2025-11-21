@@ -42,6 +42,7 @@ import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
 import AddDemoForm from '@/components/dashboard/AddDemoForm';
 import EditDemoForm from '@/components/dashboard/EditDemoForm';
+import { addDays, isBefore, isEqual, startOfDay } from 'date-fns';
 
 // Initialize data once
 const initialRawData = getTrackingData();
@@ -432,10 +433,54 @@ const Dashboard = () => {
         }));
     
     // Filter WL Sales by selected game AND platform
-    const wlSales = trackingData.wlSales
+    let wlSales = trackingData.wlSales
         .filter(d => d.game.trim() === gameName)
         .filter(d => selectedPlatform === 'All' || d.platform === selectedPlatform)
         .sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
+
+    // --- Step 4: Inject placeholder entries for event dates without WL data ---
+    const existingDates = new Set(wlSales.map(e => startOfDay(e.date!).getTime()));
+    const platformForInjection: Platform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform; // Default to Steam if 'All' is selected
+
+    eventTracking.forEach(event => {
+        if (event.startDate && event.endDate) {
+            let currentDate = startOfDay(event.startDate);
+            const endDate = startOfDay(event.endDate);
+
+            while (isBefore(currentDate, endDate) || isEqual(currentDate, endDate)) {
+                const dateTimestamp = currentDate.getTime();
+                
+                if (!existingDates.has(dateTimestamp)) {
+                    // Find the closest previous WL entry to estimate metrics
+                    const closestPreviousEntry = wlSales
+                        .filter(e => e.date && e.date.getTime() < dateTimestamp)
+                        .pop(); // Since it's sorted, the last one is the closest
+
+                    // Create a placeholder entry
+                    const placeholderEntry: WLSalesPlatformEntry = {
+                        id: generateLocalUniqueId('wl-placeholder'),
+                        date: currentDate,
+                        game: gameName,
+                        platform: platformForInjection,
+                        wishlists: closestPreviousEntry?.wishlists || 0, // Use previous WL count
+                        sales: 0,
+                        variation: 0,
+                        saleType: 'Padrão',
+                        frequency: 'Diário',
+                        isPlaceholder: true, // Mark as placeholder
+                    };
+                    wlSales.push(placeholderEntry);
+                    existingDates.add(dateTimestamp);
+                }
+                currentDate = addDays(currentDate, 1);
+            }
+        }
+    });
+
+    // Re-sort the combined list
+    wlSales.sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
+    // --- End Step 4 ---
+
 
     // 2. Recalculate Influencer Summary (unchanged by platform filter)
     const influencerSummaryMap = new Map<string, { totalActions: number, totalInvestment: number, wishlistsGenerated: number }>();
@@ -646,7 +691,7 @@ const Dashboard = () => {
                                     {isHistoryVisible ? 'Ocultar Histórico' : 'Mostrar Histórico'}
                                 </Button>
                                 <ExportDataButton 
-                                    data={filteredData.wlSales} 
+                                    data={filteredData.wlSales.filter(e => !e.isPlaceholder)} // Do not export placeholders
                                     filename={`${selectedGameName}_${selectedPlatform}_WL_Vendas.csv`} 
                                     label="WL/Vendas"
                                 />
@@ -676,7 +721,7 @@ const Dashboard = () => {
                             <SalesByTypeChart data={filteredData.wlSales} />
                             {isHistoryVisible && (
                                 <WLSalesTablePanel 
-                                    data={filteredData.wlSales} 
+                                    data={filteredData.wlSales.filter(e => !e.isPlaceholder)} // Do not show placeholders in table
                                     onDelete={handleDeleteWLSalesEntry} 
                                     onEdit={handleEditWLSalesEntry}
                                     games={trackingData.games}

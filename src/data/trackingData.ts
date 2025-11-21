@@ -80,6 +80,7 @@ export interface WLSalesPlatformEntry {
     variation: number; // WL variation from previous entry
     saleType: SaleType; 
     frequency: EntryFrequency;
+    isPlaceholder?: boolean; // New: Indicates if this entry was generated to fill a gap
 }
 
 export interface ReviewEntry {
