@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -45,6 +45,7 @@ import EditDemoForm from '@/components/dashboard/EditDemoForm';
 import ManualEventMarkerForm from '@/components/dashboard/ManualEventMarkerForm'; 
 import WLSalesActionMenu from '@/components/dashboard/WLSalesActionMenu'; // NEW Import
 import { addDays, isBefore, isEqual, startOfDay } from 'date-fns';
+import { Input } from '@/components/ui/input';
 
 // Initialize data once
 const initialRawData = getTrackingData();
@@ -54,6 +55,23 @@ let localIdCounter = initialRawData.influencerTracking.length + initialRawData.e
 const generateLocalUniqueId = (prefix: string = 'track') => `${prefix}-${localIdCounter++}`;
 
 const ALL_PLATFORMS: Platform[] = ['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra'];
+
+// Tipos para as configurações de cor
+interface WLSalesChartColors {
+    daily: string;
+    weekly: string;
+    monthly: string;
+    event: string;
+    sales: string;
+}
+
+const defaultChartColors: WLSalesChartColors = {
+    daily: '#00BFFF', // Gogo Cyan
+    weekly: '#00BFFF', // Gogo Cyan
+    monthly: '#00BFFF', // Gogo Cyan
+    event: '#FF6600', // Gogo Orange
+    sales: '#FF6600', // Gogo Orange
+};
 
 const Dashboard = () => {
   const [trackingData, setTrackingData] = useState(initialRawData);
@@ -66,6 +84,10 @@ const Dashboard = () => {
   const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
   const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false);
+  const [isColorConfigOpen, setIsColorConfigOpen] = useState(false); // Novo estado para config de cores
+  
+  // Estado para as cores do gráfico
+  const [chartColors, setChartColors] = useState<WLSalesChartColors>(defaultChartColors);
   
   // Use this state to hold the entry clicked on the chart, triggering the action menu dialog
   const [clickedWLSalesEntry, setClickedWLSalesEntry] = useState<WLSalesPlatformEntry | null>(null);
@@ -638,6 +660,46 @@ const Dashboard = () => {
     const dateTimestamp = startOfDay(clickedWLSalesEntry.date).getTime();
     return filteredData?.manualEventMarkers.find(m => startOfDay(m.date).getTime() === dateTimestamp);
   }, [clickedWLSalesEntry, filteredData]);
+  
+  // Componente de Configuração de Cores
+  const ColorConfigForm = () => (
+    <div className="space-y-4 p-4">
+        <h3 className="text-lg font-semibold">Configuração de Cores do Gráfico WL/Vendas</h3>
+        
+        {Object.keys(defaultChartColors).map(key => {
+            const labelMap: Record<keyof WLSalesChartColors, string> = {
+                daily: 'WL Diária (Círculo)',
+                weekly: 'WL Semanal (Triângulo)',
+                monthly: 'WL Mensal (Quadrado)',
+                event: 'WL em Evento (Destaque)',
+                sales: 'Vendas (Linha)',
+            };
+            const colorKey = key as keyof WLSalesChartColors;
+
+            return (
+                <div key={key} className="flex items-center justify-between space-x-4">
+                    <Label htmlFor={`color-${key}`}>{labelMap[colorKey]}</Label>
+                    <Input
+                        id={`color-${key}`}
+                        type="color"
+                        value={chartColors[colorKey]}
+                        onChange={(e) => setChartColors(prev => ({ ...prev, [colorKey]: e.target.value }))}
+                        className="w-16 h-8 p-0 border-none cursor-pointer"
+                    />
+                </div>
+            );
+        })}
+
+        <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setChartColors(defaultChartColors)}>
+                Resetar Padrão
+            </Button>
+            <Button type="button" onClick={() => setIsColorConfigOpen(false)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
+                Fechar
+            </Button>
+        </div>
+    </div>
+  );
 
 
   // Renderização condicional para quando não há jogos
@@ -773,6 +835,19 @@ const Dashboard = () => {
                             </Card>
 
                             <div className="flex justify-end mb-4 space-x-2">
+                                <Dialog open={isColorConfigOpen} onOpenChange={setIsColorConfigOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" size="sm" className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10">
+                                            <Palette className="h-4 w-4 mr-2" /> Cores do Gráfico
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[450px]">
+                                        <DialogHeader>
+                                            <DialogTitle>Configurar Cores</DialogTitle>
+                                        </DialogHeader>
+                                        <ColorConfigForm />
+                                    </DialogContent>
+                                </Dialog>
                                 <Button 
                                     variant="outline" 
                                     size="sm" 
@@ -827,7 +902,8 @@ const Dashboard = () => {
                                 data={filteredData.wlSales} 
                                 onPointClick={handleChartPointClick} 
                                 eventTracking={filteredData.eventTracking}
-                                manualEventMarkers={filteredData.manualEventMarkers} // Pass manual markers
+                                manualEventMarkers={filteredData.manualEventMarkers}
+                                chartColors={chartColors} // Passando as cores
                             />
                             <SalesByTypeChart data={filteredData.wlSales} />
                             {isHistoryVisible && (
