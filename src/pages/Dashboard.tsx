@@ -19,6 +19,7 @@ import {
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useQuery } from '@tanstack/react-query';
 import { getGames, addGame as addGameToSupabase, updateGame as updateGameInSupabase, deleteGame as deleteGameFromSupabase, Game as SupabaseGame } from '@/integrations/supabase/games';
+import { rawData } from '@/data/rawTrackingData'; // Import rawData
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
@@ -43,7 +44,8 @@ import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
 import AddDemoForm from '@/components/dashboard/AddDemoForm';
 import EditDemoForm from '@/components/dashboard/EditDemoForm';
 import ManualEventMarkerForm from '@/components/dashboard/ManualEventMarkerForm'; 
-import WLSalesActionMenu from '@/components/dashboard/WLSalesActionMenu'; // NEW Import
+import WLSalesActionMenu from '@/components/dashboard/WLSalesActionMenu'; 
+import WlConversionKpisPanel from '@/components/dashboard/WlConversionKpisPanel'; // NEW Import
 import { addDays, isBefore, isEqual, startOfDay } from 'date-fns';
 import { Input } from '@/components/ui/input';
 
@@ -628,29 +630,58 @@ const Dashboard = () => {
     const totalSales = realWLSales.reduce((sum, item) => sum + item.sales, 0);
     const totalWishlists = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists : 0;
 
+    // --- NEW KPI CALCULATIONS ---
+    
+    // 4. Calculate WL Growth Metrics
+    const totalDaysTracked = realWLSales.length > 0 ? (realWLSales[realWLSales.length - 1].date!.getTime() - realWLSales[0].date!.getTime()) / (1000 * 60 * 60 * 24) + 1 : 0;
+    const totalWLIncrease = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists - realWLSales[0].wishlists : 0;
 
+    const avgDailyGrowth = totalDaysTracked > 0 ? totalWLIncrease / totalDaysTracked : 0;
+    
+    // Total growth in the last 7 days (using real entries only)
+    const last7Days = realWLSales.slice(-7);
+    const totalWeeklyGrowth = last7Days.reduce((sum, entry) => sum + entry.variation, 0); 
+
+    // 5. Calculate Conversion Rates
+    
+    // C. WL-to-Sales Conversion Rate (Post-Launch)
+    const wlToSalesSummary = trackingData.resultSummary.find(r => r.game.trim() === gameName && r['Conversão vendas/wl']);
+    const wlToSalesConversionRate = Number(wlToSalesSummary?.['Conversão vendas/wl']) || 0;
+
+    // D. Visitor-to-Wishlist Conversion Rate (V2W) - Extracted from raw data
+    const rawTrafficData = rawData['Trafego pago'] as any[];
+    const gameConversionEntry = rawTrafficData.find(item => item.Game_1?.trim() === gameName);
+    const visitorToWlConversionRate = Number(gameConversionEntry?.['Conversão Steam']) || 0;
+    
+    // Final KPI object structure:
+    const kpis = {
+        gameId,
+        totalInvestment,
+        totalInfluencerViews,
+        totalEventViews,
+        totalImpressions,
+        totalWLGenerated,
+        totalSales,
+        totalWishlists,
+        investmentSources,
+        launchDate,
+        avgDailyGrowth,
+        totalWeeklyGrowth,
+        visitorToWlConversionRate,
+        wlToSalesConversionRate,
+    };
+    
     return {
       resultSummary: trackingData.resultSummary.filter(d => d.game.trim() === gameName),
       wlSales,
       influencerSummary, 
       influencerTracking,
-      eventTracking, // Include eventTracking here
+      eventTracking, 
       paidTraffic,
       demoTracking: trackingData.demoTracking.filter(d => d.game.trim() === gameName),
       wlDetails: trackingData.wlDetails.find(d => d.game.trim() === gameName),
-      manualEventMarkers, // NEW: Include manual markers
-      kpis: {
-          gameId,
-          totalInvestment,
-          totalInfluencerViews,
-          totalEventViews,
-          totalImpressions,
-          totalWLGenerated,
-          totalSales,
-          totalWishlists,
-          investmentSources,
-          launchDate,
-      }
+      manualEventMarkers, 
+      kpis,
     };
   }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame]);
 
@@ -813,6 +844,15 @@ const Dashboard = () => {
                                 investmentSources={filteredData.kpis.investmentSources}
                                 onUpdateLaunchDate={handleUpdateLaunchDate}
                             />
+                            
+                            {/* NEW KPI PANEL */}
+                            <WlConversionKpisPanel 
+                                avgDailyGrowth={filteredData.kpis.avgDailyGrowth}
+                                totalWeeklyGrowth={filteredData.kpis.totalWeeklyGrowth}
+                                visitorToWlConversionRate={filteredData.kpis.visitorToWlConversionRate}
+                                wlToSalesConversionRate={filteredData.kpis.wlToSalesConversionRate}
+                            />
+                            
                             <ResultSummaryPanel data={filteredData.resultSummary} />
                         </TabsContent>
 
