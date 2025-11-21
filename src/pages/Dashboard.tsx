@@ -778,7 +778,7 @@ const Dashboard = () => {
           <div className="space-y-8">
             <header className="flex items-center justify-between mb-8 pb-4 border-b border-border">
                 <div className="flex flex-col">
-                    <h1 className="text-4xl font-extrabold text-gogo-cyan drop-shadow-md">
+                    <h1 className="text-4xl font-extrabold text-gogo-cyan drop-shadow-md font-gamer">
                         Gogo Games Dashboard
                     </h1>
                     <p className="text-lg text-muted-foreground mt-2">Análise de Performance de Jogos</p>

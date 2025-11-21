@@ -21,6 +21,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['"Inter"', 'sans-serif'], // Adicionando a fonte Inter
+        gamer: ['"Press Start 2P"', 'cursive'], // NEW: Fonte Gamer
       },
       colors: {
         border: "hsl(var(--border))",
