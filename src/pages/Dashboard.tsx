@@ -384,7 +384,7 @@ const Dashboard = () => {
     setTrackingData(prevData => ({
         ...prevData,
         demoTracking: prevData.demoTracking.map(entry => 
-            entry.id === updatedEntry.id ? entry : updatedEntry
+            entry.id === updatedEntry.id ? updatedEntry : entry
         ).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)),
     }));
     setEditingDemoEntry(null); // Close dialog
@@ -489,7 +489,7 @@ const Dashboard = () => {
       wlSales,
       influencerSummary, 
       influencerTracking,
-      eventTracking,
+      eventTracking, // Include eventTracking here
       paidTraffic,
       demoTracking: trackingData.demoTracking.filter(d => d.game.trim() === gameName),
       wlDetails: trackingData.wlDetails.find(d => d.game.trim() === gameName),
@@ -668,7 +668,11 @@ const Dashboard = () => {
                                     </DialogContent>
                                 </Dialog>
                             </div>
-                            <WLSalesChartPanel data={filteredData.wlSales} onPointClick={handleChartPointClick} />
+                            <WLSalesChartPanel 
+                                data={filteredData.wlSales} 
+                                onPointClick={handleChartPointClick} 
+                                eventTracking={filteredData.eventTracking}
+                            />
                             <SalesByTypeChart data={filteredData.wlSales} />
                             {isHistoryVisible && (
                                 <WLSalesTablePanel 

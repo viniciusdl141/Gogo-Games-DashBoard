@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { WLSalesPlatformEntry, EntryFrequency } from '@/data/trackingData';
+import { WLSalesPlatformEntry, EntryFrequency, EventTrackingEntry } from '@/data/trackingData'; // Import EventTrackingEntry
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     LineChart,
@@ -20,11 +20,13 @@ import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 interface WLSalesChartPanelProps {
     data: WLSalesPlatformEntry[];
     onPointClick: (entry: WLSalesPlatformEntry) => void;
+    eventTracking: EventTrackingEntry[]; // New prop
 }
 
 // Cores Gogo Games
 const WL_COLOR = "#00BFFF"; // Gogo Cyan
 const SALES_COLOR = "#FF6600"; // Gogo Orange
+const EVENT_COLOR = "#FF6600"; // Usar Gogo Orange para destacar eventos
 
 // Mapeamento de cores e formas para a frequência
 const FREQUENCY_STYLES: Record<EntryFrequency, { fill: string, stroke: string, shape: 'circle' | 'triangle' | 'square' }> = {
@@ -32,6 +34,26 @@ const FREQUENCY_STYLES: Record<EntryFrequency, { fill: string, stroke: string, s
     'Semanal': { fill: WL_COLOR, stroke: WL_COLOR, shape: 'triangle' },
     'Mensal': { fill: WL_COLOR, stroke: WL_COLOR, shape: 'square' },
 };
+
+// Helper function to check if a date is within an event period
+const isDateInEvent = (date: Date | null, events: EventTrackingEntry[]): boolean => {
+    if (!date) return false;
+    const timestamp = date.getTime();
+
+    return events.some(event => {
+        const start = event.startDate?.getTime();
+        const end = event.endDate?.getTime();
+        
+        if (start && end) {
+            // Check if timestamp is between start and end (inclusive)
+            // We need to normalize dates to start/end of day for comparison if the source data is only date (not time)
+            // Since the source data uses Excel serial dates which are usually midnight, comparing timestamps should be fine.
+            return timestamp >= start && timestamp <= end;
+        }
+        return false;
+    });
+};
+
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -95,21 +117,25 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
-// Custom Dot component to change shape based on frequency
+// Custom Dot component to change shape based on frequency and event status
 const CustomDot = (props: any) => {
-    const { cx, cy, stroke, payload, dataKey } = props;
+    const { cx, cy, stroke, payload, dataKey, eventTracking } = props;
     
     // Only apply custom dot logic to Wishlists (WL)
     if (dataKey !== 'Wishlists') {
         return <Dot {...props} r={3} fill={SALES_COLOR} stroke={SALES_COLOR} />;
     }
 
+    const date = payload.date ? new Date(payload.date) : null;
+    const isActiveEvent = isDateInEvent(date, eventTracking); // Check if date is in an event
+
     const frequency: EntryFrequency = payload.frequency || 'Diário';
     const style = FREQUENCY_STYLES[frequency];
     
     if (!style) return null;
 
-    const size = 6; // Size of the shape
+    const size = isActiveEvent ? 6 : 4; // Make event dots slightly larger
+    const color = isActiveEvent ? EVENT_COLOR : style.fill;
 
     switch (style.shape) {
         case 'triangle':
@@ -117,8 +143,8 @@ const CustomDot = (props: any) => {
             return (
                 <polygon 
                     points={`${cx},${cy - size / 2} ${cx - size / 2},${cy + size / 2} ${cx + size / 2},${cy + size / 2}`} 
-                    fill={style.fill} 
-                    stroke={style.stroke} 
+                    fill={color} 
+                    stroke={color} 
                     strokeWidth={1}
                 />
             );
@@ -130,8 +156,8 @@ const CustomDot = (props: any) => {
                     y={cy - size / 2} 
                     width={size} 
                     height={size} 
-                    fill={style.fill} 
-                    stroke={style.stroke} 
+                    fill={color} 
+                    stroke={color} 
                     strokeWidth={1}
                 />
             );
@@ -142,9 +168,9 @@ const CustomDot = (props: any) => {
                 <Dot 
                     cx={cx} 
                     cy={cy} 
-                    r={4} 
-                    fill={style.fill} 
-                    stroke={style.stroke} 
+                    r={size} 
+                    fill={color} 
+                    stroke={color} 
                     strokeWidth={1}
                 />
             );
@@ -158,6 +184,7 @@ const CustomLegend = (props: any) => {
         { value: 'Wishlists (Diário)', color: WL_COLOR, shape: 'circle' },
         { value: 'Wishlists (Semanal)', color: WL_COLOR, shape: 'triangle' },
         { value: 'Wishlists (Mensal)', color: WL_COLOR, shape: 'square' },
+        { value: 'WL em Evento', color: EVENT_COLOR, shape: 'circle', size: 6 }, // New item
     ];
 
     return (
@@ -165,15 +192,20 @@ const CustomLegend = (props: any) => {
             {fixedItems.map((entry, index) => {
                 const style = FREQUENCY_STYLES[entry.shape === 'circle' ? 'Diário' : entry.shape === 'triangle' ? 'Semanal' : 'Mensal'];
                 
+                // Determine color and size based on event status for WL dots
+                const isEventDot = entry.value === 'WL em Evento';
+                const color = isEventDot ? EVENT_COLOR : entry.color;
+                const size = isEventDot ? 6 : 4;
+
                 return (
                     <li key={`item-${index}`} className="flex items-center space-x-1 cursor-pointer">
                         {entry.value === 'Vendas' ? (
-                            <span className="w-4 h-0.5" style={{ backgroundColor: entry.color }}></span>
+                            <span className="w-4 h-0.5" style={{ backgroundColor: color }}></span>
                         ) : (
                             <svg width="10" height="10" viewBox="0 0 10 10" className="mr-1">
-                                {style.shape === 'circle' && <circle cx="5" cy="5" r="4" fill={style.fill} />}
-                                {style.shape === 'triangle' && <polygon points="5,1 1,9 9,9" fill={style.fill} />}
-                                {style.shape === 'square' && <rect x="1" y="1" width="8" height="8" fill={style.fill} />}
+                                {entry.shape === 'circle' && <circle cx="5" cy="5" r={size / 2} fill={color} />}
+                                {entry.shape === 'triangle' && <polygon points="5,1 1,9 9,9" fill={color} />}
+                                {entry.shape === 'square' && <rect x="1" y="1" width="8" height="8" fill={color} />}
                             </svg>
                         )}
                         <span className="text-muted-foreground">{entry.value}</span>
@@ -185,7 +217,7 @@ const CustomLegend = (props: any) => {
 };
 
 
-const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClick }) => {
+const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClick, eventTracking }) => {
     if (data.length === 0) {
         return (
             <Card>
@@ -244,7 +276,7 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
                             dataKey="Wishlists" 
                             stroke={WL_COLOR}
                             strokeWidth={2}
-                            dot={<CustomDot dataKey="Wishlists" />} // Use CustomDot for Wishlists
+                            dot={<CustomDot dataKey="Wishlists" eventTracking={eventTracking} />} // Pass eventTracking here
                             activeDot={{ r: 8, className: 'cursor-pointer' }}
                         />
                         <Line 
