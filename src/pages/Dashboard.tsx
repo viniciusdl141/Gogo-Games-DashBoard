@@ -42,7 +42,8 @@ import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
 import AddDemoForm from '@/components/dashboard/AddDemoForm';
 import EditDemoForm from '@/components/dashboard/EditDemoForm';
-import ManualEventMarkerForm from '@/components/dashboard/ManualEventMarkerForm'; // NEW Import
+import ManualEventMarkerForm from '@/components/dashboard/ManualEventMarkerForm'; 
+import WLSalesActionMenu from '@/components/dashboard/WLSalesActionMenu'; // NEW Import
 import { addDays, isBefore, isEqual, startOfDay } from 'date-fns';
 
 // Initialize data once
@@ -66,12 +67,11 @@ const Dashboard = () => {
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
   const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false);
   
-  const [editingWLSalesEntry, setEditingWLSalesEntry] = useState<WLSalesPlatformEntry | null>(null);
+  // Use this state to hold the entry clicked on the chart, triggering the action menu dialog
+  const [clickedWLSalesEntry, setClickedWLSalesEntry] = useState<WLSalesPlatformEntry | null>(null);
   const [editingDemoEntry, setEditingDemoEntry] = useState<DemoTrackingEntry | null>(null);
   
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
-  const [isManualMarkerDialogOpen, setIsManualMarkerDialogOpen] = useState(false); // NEW state for manual marker dialog
-  const [markerDate, setMarkerDate] = useState<Date | null>(null); // Date selected for manual marker
 
   // Fetch games from Supabase
   const { data: supabaseGames, refetch: refetchSupabaseGames } = useQuery<SupabaseGame[], Error>({
@@ -192,7 +192,7 @@ const Dashboard = () => {
             wlSales: finalWLSales,
         };
     });
-    setEditingWLSalesEntry(null); // Close dialog
+    setClickedWLSalesEntry(null); // Close dialog
   }, [recalculateWLSales]);
 
   const handleAddWLSalesEntry = useCallback((newEntry: Omit<WLSalesPlatformEntry, 'date' | 'variation' | 'id'> & { date: string, saleType: SaleType, platform: Platform }) => {
@@ -238,21 +238,13 @@ const Dashboard = () => {
   }, [recalculateWLSales]);
 
   const handleChartPointClick = useCallback((entry: WLSalesPlatformEntry) => {
-    if (entry.date) {
-        // 1. Check if it's a real data point (not a placeholder)
-        if (!entry.isPlaceholder) {
-            setEditingWLSalesEntry(entry); // Open edit form for real data
-        } else {
-            // 2. If it's a placeholder, open the manual marker dialog for that date
-            setMarkerDate(entry.date);
-            setIsManualMarkerDialogOpen(true);
-        }
-    }
+    // Set the clicked entry to open the action menu dialog
+    setClickedWLSalesEntry(entry);
   }, []);
 
   // --- Manual Event Marker Handlers ---
   
-  const handleAddManualMarker = useCallback((values: { date: string, name: string }) => {
+  const handleSaveManualMarker = useCallback((values: { date: string, name: string }) => {
     const dateObject = startOfDay(new Date(values.date));
     
     // Check if a marker already exists for this date/game
@@ -281,8 +273,7 @@ const Dashboard = () => {
             manualEventMarkers: [...prevData.manualEventMarkers, newMarker],
         }));
     }
-    setIsManualMarkerDialogOpen(false);
-    setMarkerDate(null);
+    setClickedWLSalesEntry(null); // Close the action menu
   }, [selectedGameName, trackingData.manualEventMarkers]);
 
   const handleDeleteManualMarker = useCallback((id: string) => {
@@ -290,8 +281,7 @@ const Dashboard = () => {
         ...prevData,
         manualEventMarkers: prevData.manualEventMarkers.filter(m => m.id !== id),
     }));
-    setIsManualMarkerDialogOpen(false);
-    setMarkerDate(null);
+    setClickedWLSalesEntry(null); // Close the action menu
   }, []);
 
 
@@ -643,11 +633,11 @@ const Dashboard = () => {
   }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame]);
 
   // Determine if a manual marker already exists for the selected date
-  const existingMarkerForDate = useMemo(() => {
-    if (!markerDate) return undefined;
-    const dateTimestamp = startOfDay(markerDate).getTime();
+  const existingMarkerForClickedEntry = useMemo(() => {
+    if (!clickedWLSalesEntry || !clickedWLSalesEntry.date) return undefined;
+    const dateTimestamp = startOfDay(clickedWLSalesEntry.date).getTime();
     return filteredData?.manualEventMarkers.find(m => startOfDay(m.date).getTime() === dateTimestamp);
-  }, [markerDate, filteredData]);
+  }, [clickedWLSalesEntry, filteredData]);
 
 
   // Renderização condicional para quando não há jogos
@@ -787,8 +777,20 @@ const Dashboard = () => {
                                     variant="outline" 
                                     size="sm" 
                                     onClick={() => {
-                                        setMarkerDate(new Date());
-                                        setIsManualMarkerDialogOpen(true);
+                                        // Create a temporary placeholder entry for today to open the action menu
+                                        const todayEntry: WLSalesPlatformEntry = {
+                                            id: generateLocalUniqueId('temp-today'),
+                                            date: startOfDay(new Date()),
+                                            game: selectedGameName,
+                                            platform: selectedPlatform === 'All' ? 'Steam' : selectedPlatform,
+                                            wishlists: filteredData.wlSales.length > 0 ? filteredData.wlSales[filteredData.wlSales.length - 1].wishlists : 0,
+                                            sales: 0,
+                                            variation: 0,
+                                            saleType: 'Padrão',
+                                            frequency: 'Diário',
+                                            isPlaceholder: true,
+                                        };
+                                        setClickedWLSalesEntry(todayEntry);
                                     }} 
                                     className="text-gogo-orange border-gogo-orange hover:bg-gogo-orange/10"
                                 >
@@ -982,23 +984,6 @@ const Dashboard = () => {
                         </TabsContent>
                     </Tabs>
 
-                    {/* Dialog for editing WL Sales entry */}
-                    <Dialog open={!!editingWLSalesEntry} onOpenChange={(open) => !open && setEditingWLSalesEntry(null)}>
-                        <DialogContent className="sm:max-w-[600px]">
-                            <DialogHeader>
-                                <DialogTitle>Editar Entrada de WL/Vendas</DialogTitle>
-                            </DialogHeader>
-                            {editingWLSalesEntry && (
-                                <EditWLSalesForm 
-                                    games={trackingData.games}
-                                    entry={editingWLSalesEntry}
-                                    onSave={handleEditWLSalesEntry}
-                                    onClose={() => setEditingWLSalesEntry(null)}
-                                />
-                            )}
-                        </DialogContent>
-                    </Dialog>
-
                     {/* Dialog for editing Demo Tracking entry */}
                     <Dialog open={!!editingDemoEntry} onOpenChange={(open) => !open && setEditingDemoEntry(null)}>
                         <DialogContent className="sm:max-w-[600px]">
@@ -1015,25 +1000,25 @@ const Dashboard = () => {
                         </DialogContent>
                     </Dialog>
 
-                    {/* NEW: Dialog for Manual Event Marker */}
-                    <Dialog open={isManualMarkerDialogOpen} onOpenChange={(open) => {
-                        setIsManualMarkerDialogOpen(open);
-                        if (!open) setMarkerDate(null);
-                    }}>
-                        <DialogContent className="sm:max-w-[450px]">
-                            <DialogHeader>
-                                <DialogTitle>{existingMarkerForDate ? 'Editar Marcador de Evento' : 'Adicionar Marcador de Evento'}</DialogTitle>
-                            </DialogHeader>
-                            {markerDate && (
-                                <ManualEventMarkerForm 
-                                    gameName={selectedGameName}
-                                    existingMarker={existingMarkerForDate}
-                                    onSave={handleAddManualMarker}
-                                    onDelete={handleDeleteManualMarker}
-                                    onClose={() => setIsManualMarkerDialogOpen(false)}
-                                />
-                            )}
-                        </DialogContent>
+                    {/* NEW: Dialog for WL Sales Action Menu (replaces separate edit/marker dialogs) */}
+                    <Dialog open={!!clickedWLSalesEntry} onOpenChange={(open) => !open && setClickedWLSalesEntry(null)}>
+                        {clickedWLSalesEntry && (
+                            <WLSalesActionMenu
+                                entry={clickedWLSalesEntry}
+                                existingMarker={existingMarkerForClickedEntry}
+                                gameName={selectedGameName}
+                                onEditWLSales={handleEditWLSalesEntry}
+                                onSaveManualMarker={handleSaveManualMarker}
+                                onDeleteManualMarker={handleDeleteManualMarker}
+                            >
+                                {/* We need a trigger element for the DropdownMenu, but since we are using the Dialog to wrap the whole action, 
+                                    we can use a hidden button or simply rely on the Dialog's open state. 
+                                    The WLSalesActionMenu component handles the DropdownMenu internally. 
+                                    We pass a dummy trigger here since the Dialog is controlling the visibility.
+                                */}
+                                <div /> 
+                            </WLSalesActionMenu>
+                        )}
                     </Dialog>
                 </>
             )}
