@@ -448,7 +448,12 @@ const Dashboard = () => {
     let wlSales: WLSalesPlatformEntry[] = [...realWLSales];
     let lastRealWL = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists : 0;
 
-    // Find the earliest and latest date among all real WL entries and events
+    // Encontrar a data mais antiga de um registro real de WL
+    const minRealWLDateTimestamp = realWLSales.length > 0 
+        ? Math.min(...realWLSales.map(e => startOfDay(e.date!).getTime()))
+        : null;
+
+    // Encontrar todas as datas relevantes (WL reais + eventos)
     const allDates = new Set<number>();
     realWLSales.forEach(e => e.date && allDates.add(startOfDay(e.date).getTime()));
     eventTracking.forEach(e => {
@@ -462,13 +467,22 @@ const Dashboard = () => {
         }
     });
 
-    const sortedDates = Array.from(allDates).sort((a, b) => a - b);
+    let sortedDates = Array.from(allDates).sort((a, b) => a - b);
+    
+    // CRITICAL FIX: Se houver dados reais de WL, comece a linha do tempo apenas a partir da data do primeiro registro real de WL.
+    if (minRealWLDateTimestamp !== null) {
+        sortedDates = sortedDates.filter(dateTimestamp => dateTimestamp >= minRealWLDateTimestamp);
+    }
     
     // Map of real WL entries by date timestamp
     const realWLSalesMap = new Map(realWLSales.map(e => [startOfDay(e.date!).getTime(), e]));
 
     // Iterate through all relevant dates and create the final list, filling gaps with placeholders
-    let lastWLValue = 0;
+    let lastWLValue = 0; 
+    
+    // Se a primeira data no sortedDates for uma data real, inicializamos lastWLValue com o WL anterior (que é 0 se for o primeiro ponto de dados).
+    // Se a primeira data for um placeholder (evento), lastWLValue permanece 0, o que é o comportamento desejado para o início do gráfico.
+    
     const finalWLSales: WLSalesPlatformEntry[] = [];
 
     for (const dateTimestamp of sortedDates) {
@@ -532,7 +546,6 @@ const Dashboard = () => {
         paidTraffic: paidTraffic.reduce((sum, item) => sum + item.investedValue, 0),
     };
 
-    // FIX: Use investmentSources.paidTraffic instead of undefined investmentTraffic
     const totalInvestment = investmentSources.influencers + investmentSources.events + investmentSources.paidTraffic;
 
     // Separar Visualizações e Impressões
