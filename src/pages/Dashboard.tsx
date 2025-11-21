@@ -238,10 +238,15 @@ const Dashboard = () => {
   }, [recalculateWLSales]);
 
   const handleChartPointClick = useCallback((entry: WLSalesPlatformEntry) => {
-    // When clicking a point, open the manual marker dialog for that date
     if (entry.date) {
-        setMarkerDate(entry.date);
-        setIsManualMarkerDialogOpen(true);
+        // 1. Check if it's a real data point (not a placeholder)
+        if (!entry.isPlaceholder) {
+            setEditingWLSalesEntry(entry); // Open edit form for real data
+        } else {
+            // 2. If it's a placeholder, open the manual marker dialog for that date
+            setMarkerDate(entry.date);
+            setIsManualMarkerDialogOpen(true);
+        }
     }
   }, []);
 
