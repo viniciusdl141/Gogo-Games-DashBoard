@@ -66,11 +66,11 @@ interface WLSalesChartColors {
 }
 
 const defaultChartColors: WLSalesChartColors = {
-    daily: '#00BFFF', // Gogo Cyan
-    weekly: '#00BFFF', // Gogo Cyan
-    monthly: '#00BFFF', // Gogo Cyan
-    event: '#FF6600', // Gogo Orange
-    sales: '#FF6600', // Gogo Orange
+    daily: '#00BFFF', // Gogo Cyan (Azul)
+    weekly: '#10B981', // Emerald 500 (Verde)
+    monthly: '#8B5CF6', // Violet 500 (Roxo)
+    event: '#FF6600', // Gogo Orange (Laranja)
+    sales: '#EF4444', // Red 500 (Vermelho)
 };
 
 const Dashboard = () => {
@@ -834,7 +834,6 @@ const Dashboard = () => {
                                 </CardContent>
                             </Card>
 
-                            {/* CORREÇÃO DE ALINHAMENTO: Usando flex-wrap e justify-end */}
                             <div className="flex flex-wrap justify-end gap-2 mb-4">
                                 <Dialog open={isColorConfigOpen} onOpenChange={setIsColorConfigOpen}>
                                     <DialogTrigger asChild>
