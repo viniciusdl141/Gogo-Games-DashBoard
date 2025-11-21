@@ -19,6 +19,7 @@ interface WLSalesActionMenuProps {
     onDeleteManualMarker: (id: string) => void;
     onClose: () => void; // Adicionado para fechar o diálogo principal
     // Novos props para o resumo diário
+    allWLSales: WLSalesPlatformEntry[]; // Adicionado
     allInfluencerTracking: InfluencerTrackingEntry[];
     allEventTracking: EventTrackingEntry[];
     allPaidTraffic: PaidTrafficEntry[];
@@ -34,6 +35,8 @@ const WLSalesActionMenu: React.FC<WLSalesActionMenuProps> = ({
     onSaveManualMarker,
     onDeleteManualMarker,
     onClose,
+    // Desestruturação corrigida:
+    allWLSales,
     allInfluencerTracking,
     allEventTracking,
     allPaidTraffic,
