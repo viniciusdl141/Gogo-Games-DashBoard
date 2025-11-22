@@ -1,40 +1,56 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+// Importe a biblioteca de IA necessária aqui, por exemplo:
+// import { OpenAI } from 'https://deno.land/x/openai@v4.33.0/mod.ts'; 
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Mock function updated to receive and acknowledge the API key
-function mockAIProcess(rawData: string, gameName: string, aiApiKey: string): any {
-    // ⚠️ ATENÇÃO: Em produção, você deve substituir este mock pela chamada real à API de IA (ex: OpenAI, Gemini).
-    // O prompt deve instruir a IA a retornar um JSON que corresponda às interfaces de trackingData.ts.
+// ⚠️ ESTA FUNÇÃO DEVE SER SUBSTITUÍDA PELA LÓGICA REAL DE CHAMADA À API DE IA
+async function processDataWithAI(rawData: string, gameName: string, aiApiKey: string): Promise<any> {
     
-    console.log(`Simulando processamento de IA para o jogo: ${gameName}. Dados brutos recebidos.`);
-    console.log(`Chave da API recebida (Primeiros 5 caracteres): ${aiApiKey.substring(0, 5)}...`);
-
     // --- INÍCIO DA LÓGICA REAL DA IA ---
-    // Aqui é onde você inicializaria o cliente da IA usando a chave fornecida:
+    
+    // 1. Verifique se a chave da API foi fornecida
+    if (!aiApiKey) {
+        throw new Error("Chave da API da IA não fornecida.");
+    }
+
+    // 2. Inicialize o cliente da IA usando a chave fornecida (Exemplo com OpenAI):
     /*
-    // Exemplo de inicialização do cliente OpenAI (requer importação e configuração corretas para Deno)
-    // const openai = new OpenAI({ apiKey: aiApiKey });
-    // const response = await openai.chat.completions.create({
-    //     model: "gpt-4o-mini",
-    //     messages: [{ role: "user", content: `Process the following raw data for game ${gameName} and return a JSON array matching the trackingData structure: ${rawData}` }],
-    //     response_format: { type: "json_object" },
-    // });
-    // const structuredData = JSON.parse(response.choices[0].message.content);
-    // return structuredData;
+    try {
+        const openai = new OpenAI({ apiKey: aiApiKey });
+        
+        const prompt = `Você é um assistente de processamento de dados de jogos. Analise o seguinte texto bruto para o jogo ${gameName} e converta-o em um objeto JSON estritamente seguindo as interfaces TypeScript fornecidas (InfluencerTrackingEntry, EventTrackingEntry, PaidTrafficEntry, WLSalesPlatformEntry, DemoTrackingEntry, TrafficEntry, ManualEventMarker). Retorne APENAS o objeto JSON estruturado. Dados brutos: ${rawData}`;
+
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini", // Use um modelo adequado
+            messages: [{ role: "user", content: prompt }],
+            response_format: { type: "json_object" },
+        });
+        
+        const structuredData = JSON.parse(response.choices[0].message.content);
+        return structuredData;
+
+    } catch (e) {
+        console.error("Erro ao chamar a API de IA:", e);
+        throw new Error("Falha na comunicação com a API de IA. Verifique a chave e o serviço.");
+    }
     */
+    
     // --- FIM DA LÓGICA REAL DA IA ---
 
-    // Retorna um mock de dados para que o frontend possa testar a integração
+    // --------------------------------------------------------------------
+    // MOCK DE RETORNO (MANTIDO APENAS PARA GARANTIR QUE O FLUXO FUNCIONE)
+    // --------------------------------------------------------------------
+    console.log(`⚠️ AVISO: Usando MOCK. Chave da API recebida: ${aiApiKey.substring(0, 5)}...`);
+    
     const mockEntry = {
         id: `mock-${Date.now()}`,
         date: new Date().toISOString(),
         game: gameName,
-        wishlists: rawData.length > 50 ? 500 : 100, // Mock logic based on input size
+        wishlists: rawData.length > 50 ? 500 : 100, 
         sales: rawData.length > 50 ? 10 : 5,
         platform: 'Steam',
         variation: 5,
@@ -59,7 +75,6 @@ serve(async (req) => {
   }
 
   try {
-    // Recebe a nova chave aiApiKey
     const { rawData, gameName, aiApiKey } = await req.json();
 
     if (!rawData || !gameName || !aiApiKey) {
@@ -69,11 +84,11 @@ serve(async (req) => {
       });
     }
 
-    // 1. Autenticação (Recomendado: verificar o JWT do usuário aqui)
+    // 1. Autenticação (Opcional, mas recomendado)
     // ...
 
-    // 2. Processar dados usando mock AI (que agora recebe a chave)
-    const structuredData = mockAIProcess(rawData, gameName, aiApiKey);
+    // 2. Processar dados usando a função (MOCK ou REAL)
+    const structuredData = await processDataWithAI(rawData, gameName, aiApiKey);
 
     return new Response(JSON.stringify({ structuredData }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
