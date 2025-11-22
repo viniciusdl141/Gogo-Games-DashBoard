@@ -82,6 +82,7 @@ const Dashboard = () => {
   const [selectedGameName, setSelectedGameName] = useState<string>(trackingData.games[0] || '');
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'All'>('All');
   const [selectedTimeFrame, setSelectedTimeFrame] = useState<TimeFrame>('weekly'); // NEW: Time frame state
+  const [selectedTab, setSelectedTab] = useState('overview'); // NEW: Tab state
   
   const [isAddInfluencerFormOpen, setIsAddInfluencerFormOpen] = useState(false);
   const [isAddEventFormOpen, setIsAddEventFormOpen] = useState(false);
@@ -696,11 +697,13 @@ const Dashboard = () => {
     );
 
     let totalGrowth = 0;
+    let avgDailyGrowthInPeriod = 0; // NEW: Calculate average daily growth specifically for the selected period
+
     if (selectedTimeFrame === 'total') {
         totalGrowth = totalWLIncrease; 
+        avgDailyGrowthInPeriod = totalDaysTrackedForAvg > 0 ? totalWLIncrease / totalDaysTrackedForAvg : 0;
     } else {
         // Calculate growth within the window: sum of variations
-        // We need the WL value from the day *before* the start date limit to calculate the true growth in the period.
         const firstEntryInPeriod = wlEntriesInTimeFrame[0];
         const lastEntryInPeriod = wlEntriesInTimeFrame[wlEntriesInTimeFrame.length - 1];
         
@@ -710,13 +713,19 @@ const Dashboard = () => {
             const wlBeforePeriod = indexBeforeStart >= 0 ? realWLSales[indexBeforeStart].wishlists : 0;
             
             totalGrowth = lastEntryInPeriod.wishlists - wlBeforePeriod;
+
+            // Calculate average daily growth in this specific period
+            const daysInPeriod = (lastEntryInPeriod.date!.getTime() - firstEntryInPeriod.date!.getTime()) / (1000 * 60 * 60 * 24) + 1;
+            avgDailyGrowthInPeriod = daysInPeriod > 0 ? totalGrowth / daysInPeriod : 0;
+
         } else {
             totalGrowth = 0;
+            avgDailyGrowthInPeriod = 0;
         }
     }
 
     const totalDaysTrackedForAvg = realWLSales.length > 0 ? (realWLSales[realWLSales.length - 1].date!.getTime() - realWLSales[0].date!.getTime()) / (1000 * 60 * 60 * 24) + 1 : 0;
-    const avgDailyGrowth = totalDaysTrackedForAvg > 0 ? totalWLIncrease / totalDaysTrackedForAvg : 0;
+    // We use avgDailyGrowthInPeriod for the KPI card, which is calculated above.
     
     // 5. Calculate Conversion Rates
     
@@ -772,13 +781,13 @@ const Dashboard = () => {
         totalInfluencerViews,
         totalEventViews,
         totalImpressions,
-        totalWLGenerated, // Included here
+        totalWLGenerated,
         totalSales,
         totalWishlists,
         investmentSources,
         launchDate,
-        avgDailyGrowth,
-        totalGrowth, // Use the time-frame specific growth
+        avgDailyGrowth: avgDailyGrowthInPeriod, // Use the period-specific average
+        totalGrowth, 
         visitorToWlConversionRate,
         wlToSalesConversionRate,
     };
@@ -932,7 +941,7 @@ const Dashboard = () => {
 
             {filteredData && (
                 <>
-                    <Tabs defaultValue="overview" className="w-full">
+                    <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
                         <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b border-border bg-card text-muted-foreground rounded-t-lg p-0 h-auto shadow-md">
                             <TabsTrigger value="overview" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Visão Geral</TabsTrigger>
                             <TabsTrigger value="wl-sales" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Wishlists</TabsTrigger>
@@ -966,6 +975,7 @@ const Dashboard = () => {
                                 onTimeFrameChange={setSelectedTimeFrame}
                                 visitorToWlConversionRate={filteredData.kpis.visitorToWlConversionRate}
                                 wlToSalesConversionRate={filteredData.kpis.wlToSalesConversionRate}
+                                onCardClick={(tab: 'wl-sales' | 'traffic') => setSelectedTab(tab)} // Passar função de clique
                             />
                             
                             <ResultSummaryPanel data={filteredData.resultSummary} />

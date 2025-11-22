@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import KpiCard from './KpiCard';
-import { TrendingUp, Percent, DollarSign, List, CalendarDays, Clock } from 'lucide-react';
+import { TrendingUp, Percent, DollarSign, List, CalendarDays, Clock, MousePointerClick } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ interface WlConversionKpisPanelProps {
     onTimeFrameChange: (timeFrame: TimeFrame) => void;
     visitorToWlConversionRate: number;
     wlToSalesConversionRate: number;
+    onCardClick: (tab: 'wl-sales' | 'traffic') => void; // Novo prop para navegação
 }
 
 const formatPercentage = (value: number): string => {
@@ -40,11 +41,34 @@ const WlConversionKpisPanel: React.FC<WlConversionKpisPanelProps> = ({
     onTimeFrameChange,
     visitorToWlConversionRate,
     wlToSalesConversionRate,
+    onCardClick,
 }) => {
     // Determine trend for total growth visualization
     const growthTrend = totalGrowth > 0 ? 'text-green-500' : totalGrowth < 0 ? 'text-red-500' : 'text-muted-foreground';
     const growthIcon = totalGrowth > 0 ? <TrendingUp className="h-4 w-4 text-green-500" /> : <Clock className="h-4 w-4 text-muted-foreground" />;
-    const growthTitle = timeFrame === 'total' ? 'Crescimento Total WL' : `Crescimento WL (${timeFrameLabels[timeFrame]})`;
+    
+    const avgGrowthTitle = `Crescimento Diário Médio WL (${timeFrameLabels[timeFrame]})`;
+    const totalGrowthTitle = `Crescimento Total WL (${timeFrameLabels[timeFrame]})`;
+
+    // Componente auxiliar para tornar o KpiCard clicável
+    const ClickableKpiCard: React.FC<{ title: string, value: string | number, icon: React.ReactNode, description: React.ReactNode, targetTab: 'wl-sales' | 'traffic' }> = ({ title, value, icon, description, targetTab }) => (
+        <div 
+            onClick={() => onCardClick(targetTab)} 
+            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02]"
+        >
+            <KpiCard 
+                title={title} 
+                value={value} 
+                icon={icon} 
+                description={
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">{description}</p>
+                        <MousePointerClick className="h-3 w-3 text-gogo-cyan/70" />
+                    </div>
+                }
+            />
+        </div>
+    );
 
     return (
         <Card className="shadow-xl border border-border">
@@ -67,36 +91,40 @@ const WlConversionKpisPanel: React.FC<WlConversionKpisPanelProps> = ({
             <CardContent>
                 <div className="grid gap-6 md:grid-cols-4">
                     
-                    {/* 1. Crescimento Diário Médio WL (Sempre total) */}
-                    <KpiCard 
-                        title="Crescimento Diário Médio WL" 
+                    {/* 1. Crescimento Diário Médio WL (Período Selecionado) */}
+                    <ClickableKpiCard 
+                        title={avgGrowthTitle} 
                         value={formatNumber(avgDailyGrowth.toFixed(0))} 
                         icon={<TrendingUp className="h-4 w-4 text-gogo-cyan" />} 
-                        description="Média de wishlists ganhas por dia (período total)."
+                        description="Média de wishlists ganhas por dia no período."
+                        targetTab="wl-sales"
                     />
 
                     {/* 2. Crescimento Total no Período Selecionado */}
-                    <KpiCard 
-                        title={growthTitle} 
+                    <ClickableKpiCard 
+                        title={totalGrowthTitle} 
                         value={formatNumber(totalGrowth)} 
                         icon={growthIcon} 
                         description={<span className={growthTrend}>Total de wishlists ganhas no período selecionado.</span>}
+                        targetTab="wl-sales"
                     />
 
                     {/* 3. Conversão Visitante -> WL */}
-                    <KpiCard 
+                    <ClickableKpiCard 
                         title="Conversão Visitante -> WL" 
                         value={formatPercentage(visitorToWlConversionRate)} 
                         icon={<Percent className="h-4 w-4 text-gogo-orange" />} 
                         description="Taxa de conversão da página Steam (Visitas -> WL)."
+                        targetTab="traffic"
                     />
 
                     {/* 4. Conversão WL -> Vendas */}
-                    <KpiCard 
+                    <ClickableKpiCard 
                         title="Conversão WL -> Vendas" 
                         value={formatPercentage(wlToSalesConversionRate)} 
                         icon={<DollarSign className="h-4 w-4 text-gogo-cyan" />} 
                         description="Taxa de conversão pós-lançamento (WL -> Vendas)."
+                        targetTab="wl-sales"
                     />
                 </div>
             </CardContent>
