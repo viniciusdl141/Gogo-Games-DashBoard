@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { WlDetails, ReviewEntry, BundleEntry } from '@/data/trackingData';
+import { WlDetails, ReviewEntry, BundleEntry, TrafficEntry, Platform } from '@/data/trackingData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDate, formatCurrency } from '@/lib/utils';
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, MessageSquare, Package } from 'lucide-react';
+import { Trash2, Plus, MessageSquare, Package, Globe } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,7 +32,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import AddBundleForm from './AddBundleForm'; // Novo Import
+import AddBundleForm from './AddBundleForm'; 
+import AddTrafficForm from './AddTrafficForm'; // Importar o formulário de tráfego
 import {
     Form,
     FormControl,
@@ -40,7 +41,7 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
-} from '@/components/ui/form'; // <-- Adicionado importações do Form
+} from '@/components/ui/form'; 
 
 // --- Forms for adding new entries (moved AddReviewForm here for encapsulation) ---
 
@@ -268,12 +269,14 @@ const BundleTable: React.FC<{ bundles: BundleEntry[], onDelete: (id: string) => 
 interface WlDetailsManagerProps {
     details: WlDetails;
     gameName: string;
+    allGames: string[]; // Adicionado para passar a lista de jogos para AddTrafficForm
     onUpdateDetails: (game: string, newDetails: Partial<WlDetails>) => void;
+    onAddTraffic: (data: { game: string, platform: Platform, source: string, startDate: string, endDate: string, visits: number, impressions?: number, clicks?: number }) => void; // Novo prop para adicionar tráfego
 }
 
-const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, onUpdateDetails }) => {
+const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, allGames, onUpdateDetails, onAddTraffic }) => {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [formType, setFormType] = useState<'review' | 'bundle'>('review');
+    const [formType, setFormType] = useState<'review' | 'bundle' | 'traffic'>('review');
 
     if (!details) return null;
 
@@ -319,6 +322,12 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
         });
         toast.success("Nova entrada de Bundle/DLC adicionada.");
     };
+    
+    const handleSaveTraffic = (values: z.infer<typeof AddTrafficForm>) => {
+        // Ensure the game name is correctly set, even if the form allows selection
+        onAddTraffic({ ...values, game: gameName, platform: values.platform as Platform });
+        setIsDialogOpen(false);
+    };
 
     const handleDeleteReview = (id: string) => {
         onUpdateDetails(gameName, {
@@ -339,8 +348,17 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
             return <AddReviewForm gameName={gameName} onSave={handleSaveReview} onClose={() => setIsDialogOpen(false)} />;
         }
         if (formType === 'bundle') {
-            // Note: AddBundleForm expects props that match its interface
             return <AddBundleForm gameName={gameName} onSave={handleSaveBundle as any} onClose={() => setIsDialogOpen(false)} />;
+        }
+        if (formType === 'traffic') {
+            // Pass the current game name as the default/only option for consistency
+            return (
+                <AddTrafficForm 
+                    games={[gameName]} 
+                    onSave={handleSaveTraffic as any} 
+                    onClose={() => setIsDialogOpen(false)} 
+                />
+            );
         }
         return null;
     };
@@ -368,7 +386,7 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
                             <DialogTitle>Adicionar Novo Detalhe de WL</DialogTitle>
                         </DialogHeader>
                         <div className="p-4 space-y-4">
-                            <Select value={formType} onValueChange={(value: 'review' | 'bundle') => setFormType(value)}>
+                            <Select value={formType} onValueChange={(value: 'review' | 'bundle' | 'traffic') => setFormType(value)}>
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Selecione o tipo de entrada" />
                                 </SelectTrigger>
@@ -378,6 +396,9 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
                                     </SelectItem>
                                     <SelectItem value="bundle">
                                         <Package className="h-4 w-4 inline mr-2" /> Venda de Bundle/DLC
+                                    </SelectItem>
+                                    <SelectItem value="traffic">
+                                        <Globe className="h-4 w-4 inline mr-2" /> Tráfego/Visitas
                                     </SelectItem>
                                 </SelectContent>
                             </Select>

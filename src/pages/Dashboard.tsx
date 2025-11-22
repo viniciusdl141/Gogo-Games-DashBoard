@@ -494,6 +494,7 @@ const Dashboard = () => {
         trafficTracking: [...prevData.trafficTracking, entryToAdd].sort((a, b) => (a.startDate?.getTime() || 0) - (b.startDate?.getTime() || 0)),
     }));
     setIsAddTrafficFormOpen(false);
+    toast.success("Entrada de tráfego/visitas adicionada.");
   }, []);
 
   const handleDeleteTrafficEntry = useCallback((id: string) => {
@@ -1089,7 +1090,9 @@ const Dashboard = () => {
                                 <WlDetailsManager 
                                     details={filteredData.wlDetails} 
                                     gameName={selectedGameName}
+                                    allGames={trackingData.games} // Passando todos os jogos
                                     onUpdateDetails={handleUpdateWlDetails}
+                                    onAddTraffic={handleAddTrafficEntry} // Passando o handler de tráfego
                                 />
                             )}
 
