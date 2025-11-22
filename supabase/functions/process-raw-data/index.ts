@@ -54,10 +54,18 @@ const JSON_SCHEMA_STRING = JSON.stringify(JSON_SCHEMA);
 const SYSTEM_PROMPT = (gameName: string) => `Você é um assistente de processamento de dados de jogos. Sua tarefa é analisar o texto bruto fornecido e convertê-lo em um objeto JSON estritamente seguindo o esquema JSON fornecido. O jogo em questão é ${gameName}.
 
 Instruções Críticas:
-1. Converta todas as datas (Data, Começo, Final, etc.) para o formato ISO 8601 string (YYYY-MM-DDTHH:MM:SS.sssZ).
+1. Converta todas as datas (Data, Começo, Final, etc.) para o formato ISO 8601 string (YYYY-MM-DDTHH:MM:SS.sssZ). Se a data estiver em formato de número serial do Excel, converta-a para a data correta.
 2. Garanta que todos os campos numéricos sejam números (não strings).
 3. O objeto JSON de saída DEVE aderir estritamente ao esquema fornecido.
 4. Se não houver dados para uma categoria, retorne um array vazio para essa chave.
+5. **IMPORTANTE:** Se o dado bruto for uma tabela, use os cabeçalhos da tabela para determinar a qual categoria (influencerTracking, eventTracking, etc.) o dado pertence.
+
+Exemplo de Dados Brutos (Formato de Tabela Simples):
+---
+Game, Influencer, Data, Investimento (R$), Visualizações
+Legacy of Evil, Assopra Fritas, 2024-01-15, 600, 5100
+Hellbrella, Locomotiva, 2024-02-01, 475, 159000
+---
 
 Esquema JSON de Saída: ${JSON_SCHEMA_STRING}`;
 
