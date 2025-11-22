@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Globe } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -38,7 +38,7 @@ import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm';
 import EditWLSalesForm from '@/components/dashboard/EditWLSalesForm';
 import GameSummaryPanel from '@/components/dashboard/GameSummaryPanel';
 import ExportDataButton from '@/components/dashboard/ExportDataButton';
-import { formatCurrency, formatNumber } from '@/lib/utils';
+import { formatCurrency, formatNumber, convertToCSV } from '@/lib/utils'; // Import convertToCSV
 import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
 import AddDemoForm from '@/components/dashboard/AddDemoForm';
@@ -46,8 +46,8 @@ import EditDemoForm from '@/components/dashboard/EditDemoForm';
 import ManualEventMarkerForm from '@/components/dashboard/ManualEventMarkerForm'; 
 import WLSalesActionMenu from '@/components/dashboard/WLSalesActionMenu'; 
 import WlConversionKpisPanel, { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; // Import TimeFrame
-import AddTrafficForm from '@/components/dashboard/AddTrafficForm'; // NEW Import
-import TrafficPanel from '@/components/dashboard/TrafficPanel'; // NEW Import
+import AddTrafficForm from '@/components/dashboard/AddTrafficForm'; 
+import TrafficPanel from '@/components/dashboard/TrafficPanel'; 
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 
@@ -81,8 +81,8 @@ const Dashboard = () => {
   const [trackingData, setTrackingData] = useState(initialRawData);
   const [selectedGameName, setSelectedGameName] = useState<string>(trackingData.games[0] || '');
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'All'>('All');
-  const [selectedTimeFrame, setSelectedTimeFrame] = useState<TimeFrame>('weekly'); // NEW: Time frame state
-  const [selectedTab, setSelectedTab] = useState('overview'); // NEW: Tab state
+  const [selectedTimeFrame, setSelectedTimeFrame] = useState<TimeFrame>('weekly'); 
+  const [selectedTab, setSelectedTab] = useState('overview'); 
   
   const [isAddInfluencerFormOpen, setIsAddInfluencerFormOpen] = useState(false);
   const [isAddEventFormOpen, setIsAddEventFormOpen] = useState(false);
@@ -90,7 +90,7 @@ const Dashboard = () => {
   const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
   const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false);
-  const [isAddTrafficFormOpen, setIsAddTrafficFormOpen] = useState(false); // NEW: Traffic form state
+  // REMOVED: [isAddTrafficFormOpen, setIsAddTrafficFormOpen] = useState(false); 
   const [isColorConfigOpen, setIsColorConfigOpen] = useState(false); 
   
   const [chartColors, setChartColors] = useState<WLSalesChartColors>(defaultChartColors);
@@ -476,7 +476,7 @@ const Dashboard = () => {
     toast.success("Entrada de Demo Tracking removida com sucesso.");
   }, []);
 
-  // --- Traffic Tracking Handlers (NEW) ---
+  // --- Traffic Tracking Handlers (REMOVED from Dashboard scope, kept for WlDetailsManager integration) ---
   const handleAddTrafficEntry = useCallback((newEntry: { game: string, platform: Platform, source: string, startDate: string, endDate: string, visits: number, impressions?: number, clicks?: number }) => {
     const entryToAdd: TrafficEntry = {
         id: generateLocalUniqueId('traffic'),
@@ -493,7 +493,6 @@ const Dashboard = () => {
         ...prevData,
         trafficTracking: [...prevData.trafficTracking, entryToAdd].sort((a, b) => (a.startDate?.getTime() || 0) - (b.startDate?.getTime() || 0)),
     }));
-    setIsAddTrafficFormOpen(false);
     toast.success("Entrada de tráfego/visitas adicionada.");
   }, []);
 
@@ -504,6 +503,51 @@ const Dashboard = () => {
     }));
     toast.success("Entrada de tráfego removida com sucesso.");
   }, []);
+  
+  // --- Backup Handler (NEW) ---
+  const handleCreateBackup = useCallback(() => {
+    try {
+        // Create a snapshot object containing all current tracking data
+        const snapshot = {
+            influencerTracking: trackingData.influencerTracking,
+            influencerSummary: trackingData.influencerSummary,
+            eventTracking: trackingData.eventTracking,
+            paidTraffic: trackingData.paidTraffic,
+            demoTracking: trackingData.demoTracking,
+            wlSales: trackingData.wlSales,
+            trafficTracking: trackingData.trafficTracking,
+            resultSummary: trackingData.resultSummary,
+            wlDetails: trackingData.wlDetails,
+            manualEventMarkers: trackingData.manualEventMarkers,
+            // Include Supabase game data for completeness
+            supabaseGames: supabaseGames,
+        };
+
+        // Convert the snapshot to a JSON string
+        const jsonString = JSON.stringify(snapshot, null, 2);
+        
+        // Trigger download
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const date = new Date().toISOString().split('T')[0];
+        const filename = `gogo_tracking_backup_${date}.json`;
+        
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        toast.success(`Backup completo salvo como ${filename}`);
+    } catch (error) {
+        console.error("Backup failed:", error);
+        toast.error("Falha ao criar o backup.");
+    }
+  }, [trackingData, supabaseGames]);
 
 
   const filteredData = useMemo(() => {
@@ -799,7 +843,7 @@ const Dashboard = () => {
       eventTracking, 
       paidTraffic,
       demoTracking: trackingData.demoTracking.filter(d => d.game.trim() === gameName),
-      trafficTracking, // NEW
+      trafficTracking, 
       wlDetails: trackingData.wlDetails.find(d => d.game.trim() === gameName),
       manualEventMarkers, 
       kpis,
@@ -923,6 +967,18 @@ const Dashboard = () => {
                 </DialogContent>
               </Dialog>
             </div>
+            
+            {/* Backup Button */}
+            <div className="mt-auto pt-4 border-t border-border">
+                <Button 
+                    onClick={handleCreateBackup} 
+                    variant="outline" 
+                    className="w-full text-sm text-gogo-orange border-gogo-orange hover:bg-gogo-orange/10"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    Criar Backup (JSON)
+                </Button>
+            </div>
           </div>
         </ResizablePanel>
         <ResizableHandle withHandle className="bg-border w-2 hover:bg-gogo-cyan transition-colors" />
@@ -944,12 +1000,12 @@ const Dashboard = () => {
                         <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b border-border bg-card text-muted-foreground rounded-t-lg p-0 h-auto shadow-md">
                             <TabsTrigger value="overview" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Visão Geral</TabsTrigger>
                             <TabsTrigger value="wl-sales" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Evolução WL/Vendas</TabsTrigger>
-                            <TabsTrigger value="steam-page" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Página Steam</TabsTrigger> {/* NEW TAB */}
+                            <TabsTrigger value="steam-page" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Página Steam</TabsTrigger> 
                             <TabsTrigger value="comparisons" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Comparações</TabsTrigger>
                             <TabsTrigger value="influencers" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Influencers</TabsTrigger>
                             <TabsTrigger value="events" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Eventos</TabsTrigger>
                             <TabsTrigger value="paid-traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego Pago</TabsTrigger>
-                            <TabsTrigger value="traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego</TabsTrigger>
+                            {/* REMOVED: <TabsTrigger value="traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego</TabsTrigger> */}
                             <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Demo</TabsTrigger>
                         </TabsList>
 
@@ -975,7 +1031,7 @@ const Dashboard = () => {
                                 onTimeFrameChange={setSelectedTimeFrame}
                                 visitorToWlConversionRate={filteredData.kpis.visitorToWlConversionRate}
                                 wlToSalesConversionRate={filteredData.kpis.wlToSalesConversionRate}
-                                onCardClick={(tab: 'wl-sales' | 'traffic') => setSelectedTab(tab)} // Passar função de clique
+                                onCardClick={(tab: 'wl-sales' | 'traffic') => setSelectedTab(tab)} 
                             />
                             
                             <ResultSummaryPanel data={filteredData.resultSummary} />
@@ -1080,7 +1136,7 @@ const Dashboard = () => {
                             )}
                         </TabsContent>
                         
-                        {/* NEW STEAM PAGE TAB */}
+                        {/* STEAM PAGE TAB */}
                         <TabsContent value="steam-page" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             <h2 className="text-2xl font-bold text-gogo-orange mb-4">Detalhes da Página Steam</h2>
                             
@@ -1090,9 +1146,9 @@ const Dashboard = () => {
                                 <WlDetailsManager 
                                     details={filteredData.wlDetails} 
                                     gameName={selectedGameName}
-                                    allGames={trackingData.games} // Passando todos os jogos
+                                    allGames={trackingData.games} 
                                     onUpdateDetails={handleUpdateWlDetails}
-                                    onAddTraffic={handleAddTrafficEntry} // Passando o handler de tráfego
+                                    onAddTraffic={handleAddTrafficEntry} 
                                 />
                             )}
 
@@ -1226,7 +1282,8 @@ const Dashboard = () => {
                             />
                         </TabsContent>
                         
-                        <TabsContent value="traffic" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
+                        {/* REMOVED TRAFFIC TAB CONTENT */}
+                        {/* <TabsContent value="traffic" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
                                     data={filteredData.trafficTracking} 
@@ -1255,7 +1312,7 @@ const Dashboard = () => {
                                 data={filteredData.trafficTracking} 
                                 onDelete={handleDeleteTrafficEntry} 
                             />
-                        </TabsContent>
+                        </TabsContent> */}
 
                         <TabsContent value="demo" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             {/* Conteúdo da aba Demo movido para steam-page, mas mantendo o formulário de edição aqui para consistência se necessário */}
