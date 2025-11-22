@@ -5,14 +5,25 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { invokeAIDataProcessor } from '@/integrations/supabase/functions';
-import { Loader2, Bot, Upload } from 'lucide-react';
+import { Loader2, Bot, Upload, Check, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import AIDataPreview from './AIDataPreview'; // Importar o novo componente
+
+interface StructuredData {
+    influencerTracking: any[];
+    eventTracking: any[];
+    paidTraffic: any[];
+    wlSales: any[];
+    demoTracking: any[];
+    trafficTracking: any[];
+    manualEventMarkers: any[];
+}
 
 interface AIDataProcessorProps {
     gameName: string;
-    onDataProcessed: (data: any) => void;
+    onDataProcessed: (data: StructuredData) => void;
     onClose: () => void;
 }
 
@@ -20,6 +31,7 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
     const [rawData, setRawData] = useState('');
     const [aiApiKey, setAiApiKey] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [processedData, setProcessedData] = useState<StructuredData | null>(null);
 
     const handleProcessData = async () => {
         if (!rawData.trim()) {
@@ -32,18 +44,20 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
         }
 
         setIsLoading(true);
+        setProcessedData(null);
         toast.loading("Enviando dados para a IA processar...", { id: 'ai-processing' });
 
         try {
-            // Pass the API key to the function invocation
             const response = await invokeAIDataProcessor(rawData, gameName, aiApiKey); 
             
             toast.dismiss('ai-processing');
-            toast.success("Dados processados com sucesso pela IA!");
             
-            // Pass structured data back to the dashboard
-            onDataProcessed(response.structuredData);
-            onClose();
+            if (response.structuredData && Object.values(response.structuredData).some(arr => arr.length > 0)) {
+                setProcessedData(response.structuredData as StructuredData);
+                toast.success("Dados processados. Revise e aprove a inserção.");
+            } else {
+                toast.error("A IA retornou dados vazios ou inválidos. Verifique o formato de entrada.");
+            }
 
         } catch (error) {
             console.error("AI Processing Error:", error);
@@ -53,6 +67,37 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
             setIsLoading(false);
         }
     };
+    
+    const handleApprove = () => {
+        if (processedData) {
+            onDataProcessed(processedData);
+            onClose();
+        }
+    };
+
+    const handleCancelPreview = () => {
+        setProcessedData(null);
+        toast.info("Pré-visualização cancelada. Você pode tentar novamente.");
+    };
+
+    if (processedData) {
+        return (
+            <div className="space-y-4">
+                <AIDataPreview data={processedData} />
+                <div className="flex justify-end space-x-2 pt-4 border-t border-border">
+                    <Button type="button" variant="outline" onClick={handleCancelPreview}>
+                        <X className="mr-2 h-4 w-4" /> Cancelar Pré-visualização
+                    </Button>
+                    <Button 
+                        onClick={handleApprove} 
+                        className="bg-gogo-orange hover:bg-gogo-orange/90"
+                    >
+                        <Check className="mr-2 h-4 w-4" /> Aprovar e Inserir Dados
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <Card className="border-none shadow-none">
@@ -66,7 +111,7 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
                     Cole aqui o conteúdo bruto (ex: texto de planilha, CSV, ou dados não estruturados) para que a IA os converta em entradas estruturadas para o jogo **{gameName}**.
                 </p>
                 
-                {/* NEW API KEY INPUT */}
+                {/* API KEY INPUT */}
                 <div className="space-y-2">
                     <Label htmlFor="ai-api-key">Chave da API da IA (Ex: OpenAI, Gemini)</Label>
                     <Input
