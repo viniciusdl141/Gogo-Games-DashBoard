@@ -4,6 +4,7 @@ export interface Game {
   id: string;
   name: string;
   launch_date: string | null; // ISO date string 'YYYY-MM-DD'
+  suggested_price: number | null; // New field
   created_at: string;
 }
 
@@ -13,8 +14,8 @@ export const getGames = async (): Promise<Game[]> => {
   return data;
 };
 
-export const addGame = async (name: string, launch_date: string | null): Promise<Game> => {
-  const { data, error } = await supabase.from('games').insert([{ name, launch_date }]).select().single();
+export const addGame = async (name: string, launch_date: string | null, suggested_price: number | null = null): Promise<Game> => {
+  const { data, error } = await supabase.from('games').insert([{ name, launch_date, suggested_price }]).select().single();
   if (error) throw error;
   return data;
 };

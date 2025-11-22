@@ -30,6 +30,7 @@ interface GameSummaryPanelProps {
     totalEventViews: number; // KPI separado
     totalImpressions: number; // KPI separado
     launchDate: Date | null;
+    suggestedPrice: number; // Novo prop
     investmentSources: { influencers: number, events: number, paidTraffic: number };
     onUpdateLaunchDate: (gameId: string, launchDate: string | null) => void; // Nova prop
 }
@@ -44,10 +45,16 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     totalEventViews,
     totalImpressions,
     launchDate,
+    suggestedPrice, // Receber suggestedPrice
     investmentSources,
     onUpdateLaunchDate
 }) => {
-    const [gamePrice, setGamePrice] = React.useState(19.99);
+    // Usar suggestedPrice como valor inicial, mas permitir edição local
+    const [gamePrice, setGamePrice] = React.useState(suggestedPrice);
+    React.useEffect(() => {
+        setGamePrice(suggestedPrice);
+    }, [suggestedPrice]);
+
     const [revenueShare, setRevenueShare] = React.useState(0.70);
     const [salesBRL, setSalesBRL] = React.useState(0);
     const [salesUSD, setSalesUSD] = React.useState(0);
