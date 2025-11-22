@@ -696,12 +696,13 @@ const Dashboard = () => {
         e.date && (selectedTimeFrame === 'total' || startOfDay(e.date).getTime() >= startDateLimit.getTime())
     );
 
-    let totalGrowth = 0;
-    let avgDailyGrowthInPeriod = 0; // NEW: Calculate average daily growth specifically for the selected period
+    let totalGrowthInPeriod = 0;
+    let avgDailyGrowthInPeriod = 0; 
 
     if (selectedTimeFrame === 'total') {
-        totalGrowth = totalWLIncrease; 
-        avgDailyGrowthInPeriod = totalDaysTrackedForAvg > 0 ? totalWLIncrease / totalDaysTrackedForAvg : 0;
+        totalGrowthInPeriod = totalWLIncrease; 
+        const totalDaysTracked = realWLSales.length > 0 ? (realWLSales[realWLSales.length - 1].date!.getTime() - realWLSales[0].date!.getTime()) / (1000 * 60 * 60 * 24) + 1 : 0;
+        avgDailyGrowthInPeriod = totalDaysTracked > 0 ? totalWLIncrease / totalDaysTracked : 0;
     } else {
         // Calculate growth within the window: sum of variations
         const firstEntryInPeriod = wlEntriesInTimeFrame[0];
@@ -712,20 +713,17 @@ const Dashboard = () => {
             const indexBeforeStart = realWLSales.findIndex(e => e.id === firstEntryInPeriod.id) - 1;
             const wlBeforePeriod = indexBeforeStart >= 0 ? realWLSales[indexBeforeStart].wishlists : 0;
             
-            totalGrowth = lastEntryInPeriod.wishlists - wlBeforePeriod;
+            totalGrowthInPeriod = lastEntryInPeriod.wishlists - wlBeforePeriod;
 
             // Calculate average daily growth in this specific period
             const daysInPeriod = (lastEntryInPeriod.date!.getTime() - firstEntryInPeriod.date!.getTime()) / (1000 * 60 * 60 * 24) + 1;
-            avgDailyGrowthInPeriod = daysInPeriod > 0 ? totalGrowth / daysInPeriod : 0;
+            avgDailyGrowthInPeriod = daysInPeriod > 0 ? totalGrowthInPeriod / daysInPeriod : 0;
 
         } else {
-            totalGrowth = 0;
+            totalGrowthInPeriod = 0;
             avgDailyGrowthInPeriod = 0;
         }
     }
-
-    const totalDaysTrackedForAvg = realWLSales.length > 0 ? (realWLSales[realWLSales.length - 1].date!.getTime() - realWLSales[0].date!.getTime()) / (1000 * 60 * 60 * 24) + 1 : 0;
-    // We use avgDailyGrowthInPeriod for the KPI card, which is calculated above.
     
     // 5. Calculate Conversion Rates
     
@@ -787,7 +785,7 @@ const Dashboard = () => {
         investmentSources,
         launchDate,
         avgDailyGrowth: avgDailyGrowthInPeriod, // Use the period-specific average
-        totalGrowth, 
+        totalGrowth: totalGrowthInPeriod, 
         visitorToWlConversionRate,
         wlToSalesConversionRate,
     };
@@ -944,12 +942,13 @@ const Dashboard = () => {
                     <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
                         <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b border-border bg-card text-muted-foreground rounded-t-lg p-0 h-auto shadow-md">
                             <TabsTrigger value="overview" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Visão Geral</TabsTrigger>
-                            <TabsTrigger value="wl-sales" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Wishlists</TabsTrigger>
+                            <TabsTrigger value="wl-sales" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Evolução WL/Vendas</TabsTrigger>
+                            <TabsTrigger value="steam-page" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Página Steam</TabsTrigger> {/* NEW TAB */}
                             <TabsTrigger value="comparisons" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Comparações</TabsTrigger>
                             <TabsTrigger value="influencers" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Influencers</TabsTrigger>
                             <TabsTrigger value="events" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Eventos</TabsTrigger>
                             <TabsTrigger value="paid-traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego Pago</TabsTrigger>
-                            <TabsTrigger value="traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego</TabsTrigger> {/* NEW TAB */}
+                            <TabsTrigger value="traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego</TabsTrigger>
                             <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Demo</TabsTrigger>
                         </TabsList>
 
@@ -1070,7 +1069,6 @@ const Dashboard = () => {
                                 manualEventMarkers={filteredData.manualEventMarkers}
                                 chartColors={chartColors} // Passando as cores
                             />
-                            <SalesByTypeChart data={filteredData.wlSales} />
                             {isHistoryVisible && (
                                 <WLSalesTablePanel 
                                     data={filteredData.wlSales.filter(e => !e.isPlaceholder)} // Do not show placeholders in table
@@ -1079,13 +1077,46 @@ const Dashboard = () => {
                                     games={trackingData.games}
                                 />
                             )}
-                            {selectedPlatform === 'Steam' && filteredData.wlDetails && (
+                        </TabsContent>
+                        
+                        {/* NEW STEAM PAGE TAB */}
+                        <TabsContent value="steam-page" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
+                            <h2 className="text-2xl font-bold text-gogo-orange mb-4">Detalhes da Página Steam</h2>
+                            
+                            <SalesByTypeChart data={filteredData.wlSales.filter(e => e.platform === 'Steam' || selectedPlatform === 'Steam')} />
+                            
+                            {filteredData.wlDetails && (
                                 <WlDetailsManager 
                                     details={filteredData.wlDetails} 
                                     gameName={selectedGameName}
                                     onUpdateDetails={handleUpdateWlDetails}
                                 />
                             )}
+
+                            <DemoTrackingPanel 
+                                data={filteredData.demoTracking} 
+                                onDeleteTracking={handleDeleteDemoEntry} 
+                                onEditTracking={(entry) => setEditingDemoEntry(entry)}
+                            />
+                            <div className="flex justify-end mb-4 space-x-2">
+                                <Dialog open={isAddDemoFormOpen} onOpenChange={setIsAddDemoFormOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button onClick={() => setIsAddDemoFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
+                                            <Plus className="h-4 w-4 mr-2" /> Adicionar Demo
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[600px]">
+                                        <DialogHeader>
+                                            <DialogTitle>Adicionar Nova Entrada de Demo Tracking</DialogTitle>
+                                        </DialogHeader>
+                                        <AddDemoForm 
+                                            gameName={selectedGameName} 
+                                            onSave={handleAddDemoEntry} 
+                                            onClose={() => setIsAddDemoFormOpen(false)} 
+                                        />
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
                         </TabsContent>
 
                         <TabsContent value="comparisons" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
@@ -1192,7 +1223,6 @@ const Dashboard = () => {
                             />
                         </TabsContent>
                         
-                        {/* NEW TRAFFIC TAB */}
                         <TabsContent value="traffic" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             <div className="flex justify-end mb-4 space-x-2">
                                 <ExportDataButton 
@@ -1225,35 +1255,8 @@ const Dashboard = () => {
                         </TabsContent>
 
                         <TabsContent value="demo" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
-                            <div className="flex justify-end mb-4 space-x-2">
-                                <ExportDataButton 
-                                    data={filteredData.demoTracking} 
-                                    filename={`${selectedGameName}_Demo_Tracking.csv`} 
-                                    label="Demo Tracking"
-                                />
-                                <Dialog open={isAddDemoFormOpen} onOpenChange={setIsAddDemoFormOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button onClick={() => setIsAddDemoFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
-                                            <Plus className="h-4 w-4 mr-2" /> Adicionar Demo
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-[600px]">
-                                        <DialogHeader>
-                                            <DialogTitle>Adicionar Nova Entrada de Demo Tracking</DialogTitle>
-                                        </DialogHeader>
-                                        <AddDemoForm 
-                                            gameName={selectedGameName} 
-                                            onSave={handleAddDemoEntry} 
-                                            onClose={() => setIsAddDemoFormOpen(false)} 
-                                        />
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                            <DemoTrackingPanel 
-                                data={filteredData.demoTracking} 
-                                onDeleteTracking={handleDeleteDemoEntry} 
-                                onEditTracking={(entry) => setEditingDemoEntry(entry)} // Open edit dialog
-                            />
+                            {/* Conteúdo da aba Demo movido para steam-page, mas mantendo o formulário de edição aqui para consistência se necessário */}
+                            <p className="text-muted-foreground">O tracking de Demo foi movido para a aba "Página Steam" para consolidar dados específicos da Steam.</p>
                         </TabsContent>
                     </Tabs>
 
