@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { invokeAIDataProcessor } from '@/integrations/supabase/functions';
 import { Loader2, Bot, Upload } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 interface AIDataProcessorProps {
     gameName: string;
@@ -16,6 +18,7 @@ interface AIDataProcessorProps {
 
 const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProcessed, onClose }) => {
     const [rawData, setRawData] = useState('');
+    const [aiApiKey, setAiApiKey] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const handleProcessData = async () => {
@@ -23,12 +26,17 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
             toast.error("Por favor, insira os dados brutos para processamento.");
             return;
         }
+        if (!aiApiKey.trim()) {
+            toast.error("Por favor, insira a chave da API da IA.");
+            return;
+        }
 
         setIsLoading(true);
         toast.loading("Enviando dados para a IA processar...", { id: 'ai-processing' });
 
         try {
-            const response = await invokeAIDataProcessor(rawData, gameName);
+            // Pass the API key to the function invocation
+            const response = await invokeAIDataProcessor(rawData, gameName, aiApiKey); 
             
             toast.dismiss('ai-processing');
             toast.success("Dados processados com sucesso pela IA!");
@@ -57,6 +65,23 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
                 <p className="text-sm text-muted-foreground">
                     Cole aqui o conteúdo bruto (ex: texto de planilha, CSV, ou dados não estruturados) para que a IA os converta em entradas estruturadas para o jogo **{gameName}**.
                 </p>
+                
+                {/* NEW API KEY INPUT */}
+                <div className="space-y-2">
+                    <Label htmlFor="ai-api-key">Chave da API da IA (Ex: OpenAI, Gemini)</Label>
+                    <Input
+                        id="ai-api-key"
+                        type="password"
+                        placeholder="sk-..."
+                        value={aiApiKey}
+                        onChange={(e) => setAiApiKey(e.target.value)}
+                        disabled={isLoading}
+                    />
+                    <p className="text-xs text-red-500">
+                        ⚠️ **AVISO DE SEGURANÇA:** A chave da API será enviada diretamente do seu navegador para a Edge Function. Em produção, é altamente recomendável armazenar chaves sensíveis como Supabase Secrets.
+                    </p>
+                </div>
+                
                 <Textarea
                     placeholder="Cole seus dados brutos aqui..."
                     value={rawData}
@@ -70,7 +95,7 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
                     </Button>
                     <Button 
                         onClick={handleProcessData} 
-                        disabled={isLoading || !rawData.trim()}
+                        disabled={isLoading || !rawData.trim() || !aiApiKey.trim()}
                         className="bg-gogo-cyan hover:bg-gogo-cyan/90"
                     >
                         {isLoading ? (
@@ -81,9 +106,6 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
                         Processar com IA
                     </Button>
                 </div>
-                <p className="text-xs text-red-500">
-                    ⚠️ **Atenção:** Esta função usa um mock de IA. Para funcionar em produção, você deve configurar uma API de IA real (ex: OpenAI) dentro da Edge Function `process-raw-data`.
-                </p>
             </CardContent>
         </Card>
     );

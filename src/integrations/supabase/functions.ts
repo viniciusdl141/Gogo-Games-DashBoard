@@ -16,10 +16,10 @@ interface AIResponse {
     };
 }
 
-export async function invokeAIDataProcessor(rawData: string, gameName: string): Promise<AIResponse> {
+export async function invokeAIDataProcessor(rawData: string, gameName: string, aiApiKey: string): Promise<AIResponse> {
     // Usamos supabase.functions.invoke para lidar com autenticação e URL base automaticamente
     const { data, error } = await supabase.functions.invoke('process-raw-data', {
-        body: { rawData, gameName },
+        body: { rawData, gameName, aiApiKey }, // Passa aiApiKey no corpo
     });
 
     if (error) {
