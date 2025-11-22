@@ -83,6 +83,19 @@ export interface WLSalesPlatformEntry {
     isPlaceholder?: boolean; // New: Indicates if this entry was generated to fill a gap
 }
 
+// NEW: Manual Traffic/Visit Entry
+export interface TrafficEntry {
+    id: string;
+    game: string;
+    platform: Platform;
+    startDate: Date | null;
+    endDate: Date | null;
+    visits: number; // Total visits/page views
+    impressions: number; // Total impressions (if applicable)
+    clicks: number; // Total clicks (if applicable)
+    source: string; // e.g., 'Steam Analytics', 'Epic Store'
+}
+
 // NEW: Manual Event Marker Interface
 export interface ManualEventMarker {
     id: string;
@@ -138,6 +151,7 @@ export interface TrackingData {
     paidTraffic: PaidTrafficEntry[];
     demoTracking: DemoTrackingEntry[];
     wlSales: WLSalesPlatformEntry[]; // Updated type
+    trafficTracking: TrafficEntry[]; // NEW: Manual traffic tracking
     resultSummary: ResultSummaryEntry[];
     wlDetails: WlDetails[];
     manualEventMarkers: ManualEventMarker[]; // NEW: Manual markers
@@ -411,6 +425,7 @@ export const getTrackingData = (): TrackingData => {
         paidTraffic,
         demoTracking,
         wlSales,
+        trafficTracking: [], // Initialize empty array for manual traffic tracking
         resultSummary,
         wlDetails,
         manualEventMarkers: [], // Initialize empty array for manual markers

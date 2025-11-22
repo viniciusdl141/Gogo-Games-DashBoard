@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { getTrackingData, InfluencerTrackingEntry, InfluencerSummaryEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, WLSalesPlatformEntry, ResultSummaryEntry, WlDetails, SaleType, Platform, ManualEventMarker } from '@/data/trackingData';
+import { getTrackingData, InfluencerTrackingEntry, InfluencerSummaryEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, WLSalesPlatformEntry, ResultSummaryEntry, WlDetails, SaleType, Platform, ManualEventMarker, TrafficEntry } from '@/data/trackingData';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -45,15 +45,17 @@ import AddDemoForm from '@/components/dashboard/AddDemoForm';
 import EditDemoForm from '@/components/dashboard/EditDemoForm';
 import ManualEventMarkerForm from '@/components/dashboard/ManualEventMarkerForm'; 
 import WLSalesActionMenu from '@/components/dashboard/WLSalesActionMenu'; 
-import WlConversionKpisPanel from '@/components/dashboard/WlConversionKpisPanel'; // NEW Import
-import { addDays, isBefore, isEqual, startOfDay } from 'date-fns';
+import WlConversionKpisPanel, { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; // Import TimeFrame
+import AddTrafficForm from '@/components/dashboard/AddTrafficForm'; // NEW Import
+import TrafficPanel from '@/components/dashboard/TrafficPanel'; // NEW Import
+import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 
 // Initialize data once
 const initialRawData = getTrackingData();
 
 // Helper to generate unique IDs locally
-let localIdCounter = initialRawData.influencerTracking.length + initialRawData.eventTracking.length + initialRawData.paidTraffic.length + initialRawData.wlSales.length + initialRawData.demoTracking.length + initialRawData.manualEventMarkers.length;
+let localIdCounter = initialRawData.influencerTracking.length + initialRawData.eventTracking.length + initialRawData.paidTraffic.length + initialRawData.wlSales.length + initialRawData.demoTracking.length + initialRawData.manualEventMarkers.length + initialRawData.trafficTracking.length;
 const generateLocalUniqueId = (prefix: string = 'track') => `${prefix}-${localIdCounter++}`;
 
 const ALL_PLATFORMS: Platform[] = ['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra'];
@@ -79,6 +81,7 @@ const Dashboard = () => {
   const [trackingData, setTrackingData] = useState(initialRawData);
   const [selectedGameName, setSelectedGameName] = useState<string>(trackingData.games[0] || '');
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'All'>('All');
+  const [selectedTimeFrame, setSelectedTimeFrame] = useState<TimeFrame>('weekly'); // NEW: Time frame state
   
   const [isAddInfluencerFormOpen, setIsAddInfluencerFormOpen] = useState(false);
   const [isAddEventFormOpen, setIsAddEventFormOpen] = useState(false);
@@ -86,12 +89,11 @@ const Dashboard = () => {
   const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
   const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false);
-  const [isColorConfigOpen, setIsColorConfigOpen] = useState(false); // Novo estado para config de cores
+  const [isAddTrafficFormOpen, setIsAddTrafficFormOpen] = useState(false); // NEW: Traffic form state
+  const [isColorConfigOpen, setIsColorConfigOpen] = useState(false); 
   
-  // Estado para as cores do gráfico
   const [chartColors, setChartColors] = useState<WLSalesChartColors>(defaultChartColors);
   
-  // Use this state to hold the entry clicked on the chart, triggering the action menu dialog
   const [clickedWLSalesEntry, setClickedWLSalesEntry] = useState<WLSalesPlatformEntry | null>(null);
   const [editingDemoEntry, setEditingDemoEntry] = useState<DemoTrackingEntry | null>(null);
   
@@ -473,6 +475,34 @@ const Dashboard = () => {
     toast.success("Entrada de Demo Tracking removida com sucesso.");
   }, []);
 
+  // --- Traffic Tracking Handlers (NEW) ---
+  const handleAddTrafficEntry = useCallback((newEntry: { game: string, platform: Platform, source: string, startDate: string, endDate: string, visits: number, impressions?: number, clicks?: number }) => {
+    const entryToAdd: TrafficEntry = {
+        id: generateLocalUniqueId('traffic'),
+        game: newEntry.game,
+        platform: newEntry.platform,
+        source: newEntry.source,
+        startDate: new Date(newEntry.startDate),
+        endDate: new Date(newEntry.endDate),
+        visits: newEntry.visits,
+        impressions: newEntry.impressions || 0,
+        clicks: newEntry.clicks || 0,
+    };
+    setTrackingData(prevData => ({
+        ...prevData,
+        trafficTracking: [...prevData.trafficTracking, entryToAdd].sort((a, b) => (a.startDate?.getTime() || 0) - (b.startDate?.getTime() || 0)),
+    }));
+    setIsAddTrafficFormOpen(false);
+  }, []);
+
+  const handleDeleteTrafficEntry = useCallback((id: string) => {
+    setTrackingData(prevData => ({
+      ...prevData,
+      trafficTracking: prevData.trafficTracking.filter(entry => entry.id !== id),
+    }));
+    toast.success("Entrada de tráfego removida com sucesso.");
+  }, []);
+
 
   const filteredData = useMemo(() => {
     if (!selectedGameName) return null;
@@ -515,6 +545,11 @@ const Dashboard = () => {
     // Filter manual markers for the current game
     const manualEventMarkers = trackingData.manualEventMarkers
         .filter(m => m.game.trim() === gameName);
+
+    // Filter manual traffic tracking
+    const trafficTracking = trackingData.trafficTracking
+        .filter(t => t.game.trim() === gameName);
+
 
     // --- Step 4: Inject placeholder entries for event dates without WL data ---
     const platformForInjection: Platform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform; // Default to Steam if 'All' is selected
@@ -632,26 +667,85 @@ const Dashboard = () => {
 
     // --- NEW KPI CALCULATIONS ---
     
-    // 4. Calculate WL Growth Metrics
-    const totalDaysTracked = realWLSales.length > 0 ? (realWLSales[realWLSales.length - 1].date!.getTime() - realWLSales[0].date!.getTime()) / (1000 * 60 * 60 * 24) + 1 : 0;
-    const totalWLIncrease = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists - realWLSales[0].wishlists : 0;
-
-    const avgDailyGrowth = totalDaysTracked > 0 ? totalWLIncrease / totalDaysTracked : 0;
+    // 4. Calculate WL Growth Metrics based on selectedTimeFrame
     
-    // Total growth in the last 7 days (using real entries only)
-    const last7Days = realWLSales.slice(-7);
-    const totalWeeklyGrowth = last7Days.reduce((sum, entry) => sum + entry.variation, 0); 
+    let daysToSubtract = 0;
+    switch (selectedTimeFrame) {
+        case 'weekly': daysToSubtract = 7; break;
+        case 'monthly': daysToSubtract = 30; break;
+        case 'quarterly': daysToSubtract = 90; break;
+        case 'semiannual': daysToSubtract = 180; break;
+        case 'annual': daysToSubtract = 365; break;
+        case 'total': 
+        default: 
+            daysToSubtract = 99999; // Effectively total
+    }
 
+    const today = startOfDay(new Date());
+    const startDateLimit = subDays(today, daysToSubtract);
+
+    // Filter real WL entries within the selected timeframe
+    const wlEntriesInTimeFrame = realWLSales.filter(e => 
+        e.date && (selectedTimeFrame === 'total' || startOfDay(e.date).getTime() >= startDateLimit.getTime())
+    );
+
+    let totalGrowth = 0;
+    if (selectedTimeFrame === 'total') {
+        totalGrowth = totalWLIncrease; // Already calculated as totalWLIncrease
+    } else {
+        // Calculate growth within the window: sum of variations
+        totalGrowth = wlEntriesInTimeFrame.reduce((sum, entry) => sum + entry.variation, 0);
+    }
+
+    const totalDaysTrackedForAvg = realWLSales.length > 0 ? (realWLSales[realWLSales.length - 1].date!.getTime() - realWLSales[0].date!.getTime()) / (1000 * 60 * 60 * 24) + 1 : 0;
+    const avgDailyGrowth = totalDaysTrackedForAvg > 0 ? totalWLIncrease / totalDaysTrackedForAvg : 0;
+    
     // 5. Calculate Conversion Rates
     
     // C. WL-to-Sales Conversion Rate (Post-Launch)
     const wlToSalesSummary = trackingData.resultSummary.find(r => r.game.trim() === gameName && r['Conversão vendas/wl']);
     const wlToSalesConversionRate = Number(wlToSalesSummary?.['Conversão vendas/wl']) || 0;
 
-    // D. Visitor-to-Wishlist Conversion Rate (V2W) - Extracted from raw data
-    const rawTrafficData = rawData['Trafego pago'] as any[];
-    const gameConversionEntry = rawTrafficData.find(item => item.Game_1?.trim() === gameName);
-    const visitorToWlConversionRate = Number(gameConversionEntry?.['Conversão Steam']) || 0;
+    // D. Visitor-to-Wishlist Conversion Rate (V2W) - Use manual traffic data if available
+    let totalVisits = 0;
+    let totalWishlistsInTrafficPeriod = 0;
+    let visitorToWlConversionRate = 0;
+
+    // Find the latest traffic entry for the current game/platform (defaulting to Steam if 'All' selected)
+    const relevantPlatform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform;
+    const latestTrafficEntry = trafficTracking
+        .filter(t => t.platform === relevantPlatform)
+        .sort((a, b) => (b.endDate?.getTime() || 0) - (a.endDate?.getTime() || 0))[0];
+
+    if (latestTrafficEntry && latestTrafficEntry.startDate && latestTrafficEntry.endDate) {
+        totalVisits = latestTrafficEntry.visits;
+        
+        // Calculate WL increase during the traffic period
+        const trafficStart = startOfDay(latestTrafficEntry.startDate).getTime();
+        const trafficEnd = startOfDay(latestTrafficEntry.endDate).getTime();
+
+        const wlEntriesInTrafficPeriod = realWLSales.filter(e => 
+            e.date && startOfDay(e.date).getTime() >= trafficStart && startOfDay(e.date).getTime() <= trafficEnd
+        );
+
+        if (wlEntriesInTrafficPeriod.length > 1) {
+            const initialWL = wlEntriesInTrafficPeriod[0].wishlists - wlEntriesInTrafficPeriod[0].variation; // WL before the period started
+            const finalWL = wlEntriesInTrafficPeriod[wlEntriesInTrafficPeriod.length - 1].wishlists;
+            totalWishlistsInTrafficPeriod = finalWL - initialWL;
+        } else if (wlEntriesInTrafficPeriod.length === 1) {
+             // If only one entry, use its variation
+             totalWishlistsInTrafficPeriod = wlEntriesInTrafficPeriod[0].variation;
+        }
+        
+        if (totalVisits > 0) {
+            visitorToWlConversionRate = totalWishlistsInTrafficPeriod / totalVisits;
+        }
+    } else {
+        // Fallback to static data if no manual traffic entry exists
+        const rawTrafficData = rawData['Trafego pago'] as any[];
+        const gameConversionEntry = rawTrafficData.find(item => item.Game_1?.trim() === gameName);
+        visitorToWlConversionRate = Number(gameConversionEntry?.['Conversão Steam']) || 0;
+    }
     
     // Final KPI object structure:
     const kpis = {
@@ -666,7 +760,7 @@ const Dashboard = () => {
         investmentSources,
         launchDate,
         avgDailyGrowth,
-        totalWeeklyGrowth,
+        totalGrowth, // Use the time-frame specific growth
         visitorToWlConversionRate,
         wlToSalesConversionRate,
     };
@@ -679,11 +773,12 @@ const Dashboard = () => {
       eventTracking, 
       paidTraffic,
       demoTracking: trackingData.demoTracking.filter(d => d.game.trim() === gameName),
+      trafficTracking, // NEW
       wlDetails: trackingData.wlDetails.find(d => d.game.trim() === gameName),
       manualEventMarkers, 
       kpis,
     };
-  }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame]);
+  }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame, selectedTimeFrame]);
 
   // Determine if a manual marker already exists for the selected date
   const existingMarkerForClickedEntry = useMemo(() => {
@@ -827,6 +922,7 @@ const Dashboard = () => {
                             <TabsTrigger value="influencers" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Influencers</TabsTrigger>
                             <TabsTrigger value="events" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Eventos</TabsTrigger>
                             <TabsTrigger value="paid-traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego Pago</TabsTrigger>
+                            <TabsTrigger value="traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego</TabsTrigger> {/* NEW TAB */}
                             <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Demo</TabsTrigger>
                         </TabsList>
 
@@ -845,10 +941,11 @@ const Dashboard = () => {
                                 onUpdateLaunchDate={handleUpdateLaunchDate}
                             />
                             
-                            {/* NEW KPI PANEL */}
                             <WlConversionKpisPanel 
                                 avgDailyGrowth={filteredData.kpis.avgDailyGrowth}
-                                totalWeeklyGrowth={filteredData.kpis.totalWeeklyGrowth}
+                                totalGrowth={filteredData.kpis.totalGrowth}
+                                timeFrame={selectedTimeFrame}
+                                onTimeFrameChange={setSelectedTimeFrame}
                                 visitorToWlConversionRate={filteredData.kpis.visitorToWlConversionRate}
                                 wlToSalesConversionRate={filteredData.kpis.wlToSalesConversionRate}
                             />
@@ -1064,6 +1161,38 @@ const Dashboard = () => {
                                 onDeleteTracking={handleDeletePaidTrafficEntry} 
                                 onEditTracking={handleEditPaidTrafficEntry}
                                 games={trackingData.games}
+                            />
+                        </TabsContent>
+                        
+                        {/* NEW TRAFFIC TAB */}
+                        <TabsContent value="traffic" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
+                            <div className="flex justify-end mb-4 space-x-2">
+                                <ExportDataButton 
+                                    data={filteredData.trafficTracking} 
+                                    filename={`${selectedGameName}_Trafego_Visitas.csv`} 
+                                    label="Tráfego/Visitas"
+                                />
+                                <Dialog open={isAddTrafficFormOpen} onOpenChange={setIsAddTrafficFormOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button onClick={() => setIsAddTrafficFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
+                                            <Plus className="h-4 w-4 mr-2" /> Adicionar Tráfego
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[600px]">
+                                        <DialogHeader>
+                                            <DialogTitle>Adicionar Dados de Tráfego/Visitas</DialogTitle>
+                                        </DialogHeader>
+                                        <AddTrafficForm 
+                                            games={trackingData.games} 
+                                            onSave={(values) => handleAddTrafficEntry({ ...values, platform: values.platform as Platform })} 
+                                            onClose={() => setIsAddTrafficFormOpen(false)} 
+                                        />
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                            <TrafficPanel 
+                                data={filteredData.trafficTracking} 
+                                onDelete={handleDeleteTrafficEntry} 
                             />
                         </TabsContent>
 
