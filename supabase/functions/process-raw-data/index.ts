@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { OpenAI } from 'https://deno.land/x/openai@v4.33.0/mod.ts'; 
-import { GoogleGenAI } from "https://deno.land/x/google_genai@v0.1.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,7 +49,9 @@ const JSON_SCHEMA = {
     required: ["influencerTracking", "eventTracking", "paidTraffic", "wlSales", "demoTracking", "trafficTracking", "manualEventMarkers"]
 };
 
-const SYSTEM_PROMPT = (gameName: string, jsonSchema: string) => `Você é um assistente de processamento de dados de jogos. Sua tarefa é analisar o texto bruto fornecido e convertê-lo em um objeto JSON estritamente seguindo o esquema JSON fornecido. O jogo em questão é ${gameName}.
+const JSON_SCHEMA_STRING = JSON.stringify(JSON_SCHEMA);
+
+const SYSTEM_PROMPT = (gameName: string) => `Você é um assistente de processamento de dados de jogos. Sua tarefa é analisar o texto bruto fornecido e convertê-lo em um objeto JSON estritamente seguindo o esquema JSON fornecido. O jogo em questão é ${gameName}.
 
 Instruções Críticas:
 1. Converta todas as datas (Data, Começo, Final, etc.) para o formato ISO 8601 string (YYYY-MM-DDTHH:MM:SS.sssZ).
@@ -58,61 +59,87 @@ Instruções Críticas:
 3. O objeto JSON de saída DEVE aderir estritamente ao esquema fornecido.
 4. Se não houver dados para uma categoria, retorne um array vazio para essa chave.
 
-Esquema JSON de Saída: ${jsonSchema}`;
+Esquema JSON de Saída: ${JSON_SCHEMA_STRING}`;
 
+// --- OpenAI, Deepseek, Mistral (OpenAI Compatible) ---
 async function callOpenAICompatibleAPI(aiApiKey: string, rawData: string, gameName: string, provider: 'openai' | 'deepseek' | 'mistral'): Promise<any> {
     let baseURL = undefined;
     let model = "gpt-4o-mini";
 
     if (provider === 'deepseek') {
         baseURL = "https://api.deepseek.com/v1";
-        model = "deepseek-coder"; // Modelo DeepSeek para JSON/codificação
+        model = "deepseek-coder";
     } else if (provider === 'mistral') {
         baseURL = "https://api.mistral.ai/v1";
-        model = "mistral-large-latest"; // Modelo Mistral
+        model = "mistral-large-latest";
     }
 
     const openai = new OpenAI({ apiKey: aiApiKey, baseURL });
     
-    const prompt = SYSTEM_PROMPT(gameName, JSON.stringify(JSON_SCHEMA));
+    const prompt = SYSTEM_PROMPT(gameName);
 
-    const response = await openai.chat.completions.create({
-        model: model,
-        messages: [
-            { role: "system", content: prompt },
-            { role: "user", content: `Dados Brutos:\n---\n${rawData}\n---` }
-        ],
-        response_format: { type: "json_object" },
-    });
-    
-    const content = response.choices[0].message.content;
-    if (!content) {
-         throw new Error(`A IA (${provider}) não retornou conteúdo JSON.`);
+    try {
+        const response = await openai.chat.completions.create({
+            model: model,
+            messages: [
+                { role: "system", content: prompt },
+                { role: "user", content: `Dados Brutos:\n---\n${rawData}\n---` }
+            ],
+            response_format: { type: "json_object" },
+        });
+        
+        const content = response.choices[0].message.content;
+        if (!content) {
+             throw new Error(`A IA (${provider}) não retornou conteúdo JSON.`);
+        }
+        return JSON.parse(content);
+    } catch (e) {
+        // Captura erros de rede ou API (como 401 Unauthorized)
+        throw new Error(`Falha na API ${provider}: ${e.message || 'Erro desconhecido.'}`);
     }
-    return JSON.parse(content);
 }
 
+// --- Gemini (using fetch) ---
 async function callGeminiAPI(aiApiKey: string, rawData: string, gameName: string): Promise<any> {
-    const ai = new GoogleGenAI({ apiKey: aiApiKey });
     const model = "gemini-2.5-flash";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${aiApiKey}`;
     
-    const prompt = SYSTEM_PROMPT(gameName, JSON.stringify(JSON_SCHEMA));
+    const prompt = SYSTEM_PROMPT(gameName);
 
-    const response = await ai.models.generateContent({
-        model: model,
-        contents: [
-            { role: "user", parts: [{ text: prompt + `\n\nDados Brutos:\n---\n${rawData}\n---` }] }
-        ],
+    const body = {
+        contents: [{
+            role: "user",
+            parts: [{ text: prompt + `\n\nDados Brutos:\n---\n${rawData}\n---` }]
+        }],
         config: {
             responseMimeType: "application/json",
             responseSchema: JSON_SCHEMA,
         }
+    };
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
     });
 
-    const content = response.text.trim();
-    if (!content) {
-        throw new Error("A IA (Gemini) não retornou conteúdo JSON.");
+    const responseJson = await response.json();
+
+    if (!response.ok) {
+        // Tenta extrair a mensagem de erro do Gemini
+        const errorDetail = responseJson.error?.message || responseJson.error || 'Erro desconhecido na API do Gemini.';
+        throw new Error(`Falha na API Gemini (Status ${response.status}): ${errorDetail}`);
     }
+
+    const content = responseJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    
+    if (!content) {
+        throw new Error("A IA (Gemini) não retornou conteúdo JSON válido.");
+    }
+    
+    // O Gemini pode retornar o JSON como uma string dentro do campo 'text'
     return JSON.parse(content);
 }
 
@@ -123,24 +150,17 @@ async function processDataWithAI(rawData: string, gameName: string, aiApiKey: st
         throw new Error("Chave da API da IA não fornecida.");
     }
 
-    try {
-        switch (aiProvider) {
-            case 'openai':
-                return await callOpenAICompatibleAPI(aiApiKey, rawData, gameName, 'openai');
-            case 'gemini':
-                return await callGeminiAPI(aiApiKey, rawData, gameName);
-            case 'deepseek':
-                return await callOpenAICompatibleAPI(aiApiKey, rawData, gameName, 'deepseek');
-            case 'mistral':
-                return await callOpenAICompatibleAPI(aiApiKey, rawData, gameName, 'mistral');
-            default:
-                throw new Error(`Provedor de IA desconhecido: ${aiProvider}`);
-        }
-    } catch (e) {
-        console.error("Erro ao chamar a API de IA:", e);
-        // Captura o erro específico do OpenAI/Gemini e retorna a mensagem
-        const errorMessage = e.message || "Erro desconhecido ao comunicar com a API de IA.";
-        throw new Error(`Falha na API de IA (${aiProvider}): ${errorMessage}`);
+    switch (aiProvider) {
+        case 'openai':
+            return await callOpenAICompatibleAPI(aiApiKey, rawData, gameName, 'openai');
+        case 'gemini':
+            return await callGeminiAPI(aiApiKey, rawData, gameName);
+        case 'deepseek':
+            return await callOpenAICompatibleAPI(aiApiKey, rawData, gameName, 'deepseek');
+        case 'mistral':
+            return await callOpenAICompatibleAPI(aiApiKey, rawData, gameName, 'mistral');
+        default:
+            throw new Error(`Provedor de IA desconhecido: ${aiProvider}`);
     }
 }
 
