@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Bot, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -47,7 +47,6 @@ import ManualEventMarkerForm from '@/components/dashboard/ManualEventMarkerForm'
 import WLSalesActionMenu from '@/components/dashboard/WLSalesActionMenu'; 
 import WlConversionKpisPanel, { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; // Import TimeFrame
 import AddTrafficForm from '@/components/dashboard/AddTrafficForm'; 
-import TrafficPanel from '@/components/dashboard/TrafficPanel'; 
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 
@@ -90,7 +89,6 @@ const Dashboard = () => {
   const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
   const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false);
-  // REMOVED: [isAddTrafficFormOpen, setIsAddTrafficFormOpen] = useState(false); 
   const [isColorConfigOpen, setIsColorConfigOpen] = useState(false); 
   
   const [chartColors, setChartColors] = useState<WLSalesChartColors>(defaultChartColors);
@@ -476,7 +474,7 @@ const Dashboard = () => {
     toast.success("Entrada de Demo Tracking removida com sucesso.");
   }, []);
 
-  // --- Traffic Tracking Handlers (REMOVED from Dashboard scope, kept for WlDetailsManager integration) ---
+  // --- Traffic Tracking Handlers ---
   const handleAddTrafficEntry = useCallback((newEntry: { game: string, platform: Platform, source: string, startDate: string, endDate: string, visits: number, impressions?: number, clicks?: number }) => {
     const entryToAdd: TrafficEntry = {
         id: generateLocalUniqueId('traffic'),
@@ -496,15 +494,8 @@ const Dashboard = () => {
     toast.success("Entrada de tráfego/visitas adicionada.");
   }, []);
 
-  const handleDeleteTrafficEntry = useCallback((id: string) => {
-    setTrackingData(prevData => ({
-      ...prevData,
-      trafficTracking: prevData.trafficTracking.filter(entry => entry.id !== id),
-    }));
-    toast.success("Entrada de tráfego removida com sucesso.");
-  }, []);
+  // --- Backup/Restore Handlers (Updated) ---
   
-  // --- Backup Handler (NEW) ---
   const handleCreateBackup = useCallback(() => {
     try {
         // Create a snapshot object containing all current tracking data
@@ -519,17 +510,21 @@ const Dashboard = () => {
             resultSummary: trackingData.resultSummary,
             wlDetails: trackingData.wlDetails,
             manualEventMarkers: trackingData.manualEventMarkers,
-            // Include Supabase game data for completeness
             supabaseGames: supabaseGames,
         };
 
-        // Convert the snapshot to a JSON string
-        const jsonString = JSON.stringify(snapshot, null, 2);
+        const jsonString = JSON.stringify(snapshot, (key, value) => {
+            // Custom replacer to convert Date objects to ISO strings
+            if (value instanceof Date) {
+                return value.toISOString();
+            }
+            return value;
+        }, 2);
         
         // Trigger download
         const blob = new Blob([jsonString], { type: 'application/json' });
         const date = new Date().toISOString().split('T')[0];
-        const filename = `gogo_tracking_backup_${date}.json`;
+        const filename = `gogo_tracking_snapshot_${date}.json`;
         
         const link = document.createElement("a");
         if (link.download !== undefined) {
@@ -542,12 +537,70 @@ const Dashboard = () => {
             document.body.removeChild(link);
         }
         
-        toast.success(`Backup completo salvo como ${filename}`);
+        toast.success(`Snapshot salvo como ${filename}`);
     } catch (error) {
-        console.error("Backup failed:", error);
-        toast.error("Falha ao criar o backup.");
+        console.error("Snapshot failed:", error);
+        toast.error("Falha ao criar o snapshot.");
     }
   }, [trackingData, supabaseGames]);
+
+  const handleRestoreBackup = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const content = e.target?.result as string;
+            const snapshot = JSON.parse(content);
+
+            // Function to convert ISO strings back to Date objects
+            const reviveDates = (obj: any): any => {
+                if (typeof obj === 'object' && obj !== null) {
+                    for (const key in obj) {
+                        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                            const value = obj[key];
+                            if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)) {
+                                obj[key] = new Date(value);
+                            } else if (typeof value === 'object' && value !== null) {
+                                obj[key] = reviveDates(value);
+                            }
+                        }
+                    }
+                }
+                return obj;
+            };
+
+            const restoredData = reviveDates(snapshot);
+
+            // Update local tracking data state
+            setTrackingData({
+                games: restoredData.games || trackingData.games, // Keep existing game list structure if not present
+                influencerTracking: restoredData.influencerTracking || [],
+                influencerSummary: restoredData.influencerSummary || [],
+                eventTracking: restoredData.eventTracking || [],
+                paidTraffic: restoredData.paidTraffic || [],
+                demoTracking: restoredData.demoTracking || [],
+                wlSales: restoredData.wlSales || [],
+                trafficTracking: restoredData.trafficTracking || [],
+                resultSummary: restoredData.resultSummary || [],
+                wlDetails: restoredData.wlDetails || [],
+                manualEventMarkers: restoredData.manualEventMarkers || [],
+            });
+            
+            // Note: Supabase games are managed by react-query and should be refreshed separately if needed, 
+            // but for local state integrity, we rely on the local tracking data.
+
+            toast.success("Estado restaurado com sucesso! Use o botão 'Refresh' se o preview não atualizar.");
+            // Clear the file input value to allow restoring the same file again
+            event.target.value = ''; 
+        } catch (error) {
+            console.error("Restore failed:", error);
+            toast.error("Falha ao restaurar o snapshot. Verifique se o arquivo é um JSON válido.");
+        }
+    };
+    reader.readAsText(file);
+  }, [trackingData.games]);
 
 
   const filteredData = useMemo(() => {
@@ -783,8 +836,8 @@ const Dashboard = () => {
 
     // Find the latest traffic entry for the current game/platform (defaulting to Steam if 'All' selected)
     const relevantPlatform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform;
-    const latestTrafficEntry = trafficTracking
-        .filter(t => t.platform === relevantPlatform)
+    const latestTrafficEntry = trackingData.trafficTracking
+        .filter(t => t.game.trim() === gameName && t.platform === relevantPlatform)
         .sort((a, b) => (b.endDate?.getTime() || 0) - (a.endDate?.getTime() || 0))[0];
 
     if (latestTrafficEntry && latestTrafficEntry.startDate && latestTrafficEntry.endDate) {
@@ -968,16 +1021,41 @@ const Dashboard = () => {
               </Dialog>
             </div>
             
-            {/* Backup Button */}
-            <div className="mt-auto pt-4 border-t border-border">
+            {/* Backup/Restore and AI Help Buttons */}
+            <div className="mt-auto pt-4 border-t border-border space-y-2">
+                <Button 
+                    onClick={() => toast.info("Para usar a IA, envie seus documentos ou dados brutos no chat e peça para o Dyad integrá-los ao dashboard.")} 
+                    variant="default" 
+                    className="w-full text-sm bg-gogo-cyan hover:bg-gogo-cyan/90 text-white"
+                >
+                    <Bot className="h-4 w-4 mr-2" /> Ajuda da IA
+                </Button>
                 <Button 
                     onClick={handleCreateBackup} 
                     variant="outline" 
                     className="w-full text-sm text-gogo-orange border-gogo-orange hover:bg-gogo-orange/10"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                    Criar Backup (JSON)
+                    Salvar Snapshot (Undo)
                 </Button>
+                <Label htmlFor="restore-input" className="w-full">
+                    <Button 
+                        asChild
+                        variant="outline" 
+                        className="w-full text-sm text-muted-foreground border-border hover:bg-muted/50"
+                    >
+                        <div className="flex items-center cursor-pointer">
+                            <History className="h-4 w-4 mr-2" /> Restaurar Snapshot
+                            <input 
+                                id="restore-input"
+                                type="file" 
+                                accept=".json" 
+                                onChange={handleRestoreBackup} 
+                                className="hidden"
+                            />
+                        </div>
+                    </Button>
+                </Label>
             </div>
           </div>
         </ResizablePanel>
@@ -1005,7 +1083,6 @@ const Dashboard = () => {
                             <TabsTrigger value="influencers" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Influencers</TabsTrigger>
                             <TabsTrigger value="events" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Eventos</TabsTrigger>
                             <TabsTrigger value="paid-traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego Pago</TabsTrigger>
-                            {/* REMOVED: <TabsTrigger value="traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego</TabsTrigger> */}
                             <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Demo</TabsTrigger>
                         </TabsList>
 
@@ -1282,38 +1359,6 @@ const Dashboard = () => {
                             />
                         </TabsContent>
                         
-                        {/* REMOVED TRAFFIC TAB CONTENT */}
-                        {/* <TabsContent value="traffic" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
-                            <div className="flex justify-end mb-4 space-x-2">
-                                <ExportDataButton 
-                                    data={filteredData.trafficTracking} 
-                                    filename={`${selectedGameName}_Trafego_Visitas.csv`} 
-                                    label="Tráfego/Visitas"
-                                />
-                                <Dialog open={isAddTrafficFormOpen} onOpenChange={setIsAddTrafficFormOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button onClick={() => setIsAddTrafficFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
-                                            <Plus className="h-4 w-4 mr-2" /> Adicionar Tráfego
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-[600px]">
-                                        <DialogHeader>
-                                            <DialogTitle>Adicionar Dados de Tráfego/Visitas</DialogTitle>
-                                        </DialogHeader>
-                                        <AddTrafficForm 
-                                            games={trackingData.games} 
-                                            onSave={(values) => handleAddTrafficEntry({ ...values, platform: values.platform as Platform })} 
-                                            onClose={() => setIsAddTrafficFormOpen(false)} 
-                                        />
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                            <TrafficPanel 
-                                data={filteredData.trafficTracking} 
-                                onDelete={handleDeleteTrafficEntry} 
-                            />
-                        </TabsContent> */}
-
                         <TabsContent value="demo" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             {/* Conteúdo da aba Demo movido para steam-page, mas mantendo o formulário de edição aqui para consistência se necessário */}
                             <p className="text-muted-foreground">O tracking de Demo foi movido para a aba "Página Steam" para consolidar dados específicos da Steam.</p>
