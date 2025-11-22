@@ -657,9 +657,10 @@ const Dashboard = () => {
     const totalEventViews = eventTracking.reduce((sum, item) => sum + item.views, 0);
     const totalImpressions = paidTraffic.reduce((sum, item) => sum + item.impressions, 0);
     
-    const totalWLGenerated = 
-        influencerTracking.reduce((sum, item) => sum + item.estimatedWL, 0) +
-        eventTracking.reduce((sum, item) => sum + item.wlGenerated, 0);
+    // Calculate total WL increase across all time for AVG daily growth calculation
+    const totalWLIncrease = realWLSales.length > 0 
+        ? realWLSales[realWLSales.length - 1].wishlists - (realWLSales[0].wishlists - realWLSales[0].variation)
+        : 0;
     
     // Total Sales and Wishlists (for Game Summary Panel) - based on filtered WL Sales
     const totalSales = realWLSales.reduce((sum, item) => sum + item.sales, 0);
@@ -691,10 +692,22 @@ const Dashboard = () => {
 
     let totalGrowth = 0;
     if (selectedTimeFrame === 'total') {
-        totalGrowth = totalWLIncrease; // Already calculated as totalWLIncrease
+        totalGrowth = totalWLIncrease; 
     } else {
         // Calculate growth within the window: sum of variations
-        totalGrowth = wlEntriesInTimeFrame.reduce((sum, entry) => sum + entry.variation, 0);
+        // We need the WL value from the day *before* the start date limit to calculate the true growth in the period.
+        const firstEntryInPeriod = wlEntriesInTimeFrame[0];
+        const lastEntryInPeriod = wlEntriesInTimeFrame[wlEntriesInTimeFrame.length - 1];
+        
+        if (firstEntryInPeriod && lastEntryInPeriod) {
+            // Find the WL value immediately preceding the start of the period
+            const indexBeforeStart = realWLSales.findIndex(e => e.id === firstEntryInPeriod.id) - 1;
+            const wlBeforePeriod = indexBeforeStart >= 0 ? realWLSales[indexBeforeStart].wishlists : 0;
+            
+            totalGrowth = lastEntryInPeriod.wishlists - wlBeforePeriod;
+        } else {
+            totalGrowth = 0;
+        }
     }
 
     const totalDaysTrackedForAvg = realWLSales.length > 0 ? (realWLSales[realWLSales.length - 1].date!.getTime() - realWLSales[0].date!.getTime()) / (1000 * 60 * 60 * 24) + 1 : 0;
