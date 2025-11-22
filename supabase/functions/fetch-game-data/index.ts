@@ -61,12 +61,12 @@ async function callGeminiWebSearch(aiApiKey: string, gameName: string): Promise<
             role: "user",
             parts: [{ text: prompt }]
         }],
-        config: {
+        // CORREÇÃO: Usar generationConfig para responseSchema e toolConfig para tools
+        generationConfig: {
             responseMimeType: "application/json",
             responseSchema: JSON_SCHEMA,
-            // Habilitar a ferramenta de busca na web (Google Search)
-            tools: [{ googleSearch: {} }],
-        }
+        },
+        tools: [{ googleSearch: {} }], // Ferramenta de busca
     };
 
     const response = await fetch(url, {
@@ -83,15 +83,12 @@ async function callGeminiWebSearch(aiApiKey: string, gameName: string): Promise<
     try {
         responseJson = JSON.parse(responseText);
     } catch {
-        // Se a resposta não for JSON, lança um erro genérico
         throw new Error(`Resposta inválida da API Gemini. Status: ${response.status}. Resposta bruta: ${responseText.substring(0, 200)}...`);
     }
 
 
     if (!response.ok) {
-        // Tenta extrair a mensagem de erro do Gemini
         const errorDetail = responseJson.error?.message || responseJson.error || 'Erro desconhecido na API do Gemini.';
-        // Propaga o erro com a mensagem detalhada
         throw new Error(`Falha na API Gemini (Status ${response.status}): ${errorDetail}`);
     }
 
@@ -101,7 +98,6 @@ async function callGeminiWebSearch(aiApiKey: string, gameName: string): Promise<
         throw new Error("A IA (Gemini) não retornou conteúdo JSON válido.");
     }
     
-    // O Gemini retorna o JSON como uma string dentro do campo 'text'
     try {
         return JSON.parse(content);
     } catch {
@@ -134,7 +130,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Edge Function Error:', error);
     // Retorna o erro com status 500 e Content-Type JSON
-    // O SDK do Supabase deve capturar esta mensagem de erro e passá-la ao cliente.
     return new Response(JSON.stringify({ error: error.message || 'Erro interno desconhecido na Edge Function.' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
