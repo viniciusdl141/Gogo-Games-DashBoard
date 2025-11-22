@@ -2,7 +2,8 @@ import { supabase } from './client';
 
 // NOTE: Replace 'ynlebwtutvyxybqgupke' with your actual Supabase Project ID in a real deployment.
 const PROJECT_ID = 'ynlebwtutvyxybqgupke';
-const EDGE_FUNCTION_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/process-raw-data`;
+const EDGE_FUNCTION_URL_PROCESS = `https://${PROJECT_ID}.supabase.co/functions/v1/process-raw-data`;
+const EDGE_FUNCTION_URL_FETCH_GAME = `https://${PROJECT_ID}.supabase.co/functions/v1/fetch-game-data`; // URL da função de busca
 
 interface AIResponse {
     structuredData: {
@@ -47,12 +48,24 @@ export async function invokeAIDataProcessor(rawData: string, gameName: string, a
 }
 
 export async function invokeGameDataFetcher(gameName: string, aiApiKey: string): Promise<GameDataResponse> {
-    const { data, error } = await supabase.functions.invoke('fetch-game-data', {
-        body: { gameName, aiApiKey },
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token;
+
+    const response = await fetch(EDGE_FUNCTION_URL_FETCH_GAME, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ gameName, aiApiKey }),
     });
 
-    if (error) {
-        throw new Error(`Edge Function Error: ${error.message}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+        // Se a resposta não for 2xx, lança um erro com a mensagem detalhada do corpo
+        const errorMessage = data.error || `Edge Function retornou status ${response.status}.`;
+        throw new Error(`Falha na busca: ${errorMessage}`);
     }
 
     if (data && Array.isArray(data.results)) {
