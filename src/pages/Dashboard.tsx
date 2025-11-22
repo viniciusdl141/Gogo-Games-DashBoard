@@ -835,6 +835,11 @@ const Dashboard = () => {
     const totalSales = realWLSales.reduce((sum, item) => sum + item.sales, 0);
     const totalWishlists = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists : 0;
 
+    // Calculate total WL generated from marketing activities
+    const totalWLGenerated = influencerTracking.reduce((sum, item) => sum + item.estimatedWL, 0) +
+                             eventTracking.reduce((sum, item) => sum + item.wlGenerated, 0) +
+                             paidTraffic.reduce((sum, item) => sum + item.estimatedWishlists, 0);
+
     // --- NEW KPI CALCULATIONS ---
     
     // 4. Calculate WL Growth Metrics based on selectedTimeFrame
