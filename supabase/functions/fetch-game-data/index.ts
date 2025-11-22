@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+// Usando o modelo que suporta grounding (busca na web)
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,6 +35,9 @@ Instruções Críticas:
 Esquema JSON de Saída: ${JSON.stringify(JSON_SCHEMA)}`;
 
 async function callGeminiWebSearch(aiApiKey: string, gameName: string): Promise<any> {
+    // Usando a chave como query parameter
+    const url = `${GEMINI_API_URL}?key=${aiApiKey}`;
+    
     const prompt = SYSTEM_PROMPT(gameName);
 
     const body = {
@@ -48,8 +53,6 @@ async function callGeminiWebSearch(aiApiKey: string, gameName: string): Promise<
         }
     };
 
-    const url = `${GEMINI_API_URL}?key=${aiApiKey}`;
-
     const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -58,10 +61,20 @@ async function callGeminiWebSearch(aiApiKey: string, gameName: string): Promise<
         body: JSON.stringify(body),
     });
 
-    const responseJson = await response.json();
+    const responseText = await response.text();
+    let responseJson;
+
+    try {
+        responseJson = JSON.parse(responseText);
+    } catch {
+        throw new Error(`Resposta inválida da API Gemini. Status: ${response.status}. Resposta bruta: ${responseText.substring(0, 200)}...`);
+    }
+
 
     if (!response.ok) {
+        // Tenta extrair a mensagem de erro do Gemini
         const errorDetail = responseJson.error?.message || responseJson.error || 'Erro desconhecido na API do Gemini.';
+        // Propaga o erro com a mensagem detalhada
         throw new Error(`Falha na API Gemini (Status ${response.status}): ${errorDetail}`);
     }
 
@@ -71,7 +84,12 @@ async function callGeminiWebSearch(aiApiKey: string, gameName: string): Promise<
         throw new Error("A IA (Gemini) não retornou conteúdo JSON válido.");
     }
     
-    return JSON.parse(content);
+    // O Gemini retorna o JSON como uma string dentro do campo 'text'
+    try {
+        return JSON.parse(content);
+    } catch {
+        throw new Error(`A IA retornou JSON malformado: ${content.substring(0, 200)}...`);
+    }
 }
 
 serve(async (req) => {
@@ -101,6 +119,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Edge Function Error:', error);
+    // Retorna o erro com status 500 e Content-Type JSON
     return new Response(JSON.stringify({ error: error.message || 'Erro interno desconhecido na Edge Function.' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
