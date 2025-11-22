@@ -33,6 +33,14 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import AddBundleForm from './AddBundleForm'; // Novo Import
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form'; // <-- Adicionado importações do Form
 
 // --- Forms for adding new entries (moved AddReviewForm here for encapsulation) ---
 
@@ -66,79 +74,91 @@ const AddReviewForm: React.FC<{ gameName: string, onSave: (data: ReviewFormValue
     const ratings = ['Muito Positivas', 'Positivas', 'Neutras', 'Negativas', 'Muito Negativas'];
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
-            <h3 className="text-lg font-semibold">Adicionar Análise de Review</h3>
-            <div className="grid grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Data</FormLabel>
-                            <Input type="date" {...field} />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="rating"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Classificação Steam</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Classificação" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {ratings.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-                <FormField
-                    control={form.control}
-                    name="reviews"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Total Reviews</FormLabel>
-                            <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="positive"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Positivas</FormLabel>
-                            <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="negative"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Negativas</FormLabel>
-                            <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
-            <div className="flex justify-end space-x-2 pt-4">
-                <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-                <Button type="submit" className="bg-gogo-cyan hover:bg-gogo-cyan/90">Salvar Review</Button>
-            </div>
-        </form>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
+                <h3 className="text-lg font-semibold">Adicionar Análise de Review</h3>
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="date"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Data</FormLabel>
+                                <FormControl>
+                                    <Input type="date" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="rating"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Classificação Steam</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Classificação" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {ratings.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="reviews"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Total Reviews</FormLabel>
+                                <FormControl>
+                                    <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="positive"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Positivas</FormLabel>
+                                <FormControl>
+                                    <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="negative"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Negativas</FormLabel>
+                                <FormControl>
+                                    <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+                <div className="flex justify-end space-x-2 pt-4">
+                    <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+                    <Button type="submit" className="bg-gogo-cyan hover:bg-gogo-cyan/90">Salvar Review</Button>
+                </div>
+            </form>
+        </Form>
     );
 };
 
@@ -245,6 +265,12 @@ const BundleTable: React.FC<{ bundles: BundleEntry[], onDelete: (id: string) => 
 
 // --- Main Manager Component ---
 
+interface WlDetailsManagerProps {
+    details: WlDetails;
+    gameName: string;
+    onUpdateDetails: (game: string, newDetails: Partial<WlDetails>) => void;
+}
+
 const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, onUpdateDetails }) => {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [formType, setFormType] = useState<'review' | 'bundle'>('review');
@@ -313,7 +339,8 @@ const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, 
             return <AddReviewForm gameName={gameName} onSave={handleSaveReview} onClose={() => setIsDialogOpen(false)} />;
         }
         if (formType === 'bundle') {
-            return <AddBundleForm gameName={gameName} onSave={handleSaveBundle} onClose={() => setIsDialogOpen(false)} />;
+            // Note: AddBundleForm expects props that match its interface
+            return <AddBundleForm gameName={gameName} onSave={handleSaveBundle as any} onClose={() => setIsDialogOpen(false)} />;
         }
         return null;
     };
