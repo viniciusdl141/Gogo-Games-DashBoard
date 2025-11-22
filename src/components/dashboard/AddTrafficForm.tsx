@@ -45,8 +45,8 @@ const AddTrafficForm: React.FC<AddTrafficFormProps> = ({ games, onSave, onClose 
         resolver: zodResolver(formSchema),
         defaultValues: {
             game: games[0] || '',
-            platform: 'Steam',
-            source: 'Steam Analytics',
+            platform: 'Steam', // Default para Steam
+            source: 'Steam Analytics', // Default para Steam Analytics
             startDate: new Date().toISOString().split('T')[0],
             endDate: new Date().toISOString().split('T')[0],
             visits: 0,
@@ -121,7 +121,6 @@ const AddTrafficForm: React.FC<AddTrafficFormProps> = ({ games, onSave, onClose 
                                 <FormControl>
                                     <Input placeholder="Ex: Steam Analytics" {...field} />
                                 </FormControl>
-                                <FormMessage />
                             </FormItem>
                         )}
                     />
