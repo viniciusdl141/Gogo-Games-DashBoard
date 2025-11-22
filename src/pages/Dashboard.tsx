@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { getTrackingData, InfluencerTrackingEntry, InfluencerSummaryEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, WLSalesPlatformEntry, ResultSummaryEntry, WlDetails, SaleType, Platform, ManualEventMarker, TrafficEntry } from '@/data/trackingData';
+import { getTrackingData, InfluencerTrackingEntry, InfluencerSummaryEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, WLSalesPlatformEntry, ResultSummaryEntry, WlDetails, SaleType, Platform, ManualEventMarker, TrafficEntry, TrackingData } from '@/data/trackingData';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
@@ -47,6 +47,7 @@ import ManualEventMarkerForm from '@/components/dashboard/ManualEventMarkerForm'
 import WLSalesActionMenu from '@/components/dashboard/WLSalesActionMenu'; 
 import WlConversionKpisPanel, { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; // Import TimeFrame
 import AddTrafficForm from '@/components/dashboard/AddTrafficForm'; 
+import AIDataProcessor from '@/components/dashboard/AIDataProcessor'; // NEW IMPORT
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 
@@ -91,12 +92,11 @@ const Dashboard = () => {
   const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false);
   const [isColorConfigOpen, setIsColorConfigOpen] = useState(false); 
   
-  const [chartColors, setChartColors] = useState<WLSalesChartColors>(defaultChartColors);
-  
   const [clickedWLSalesEntry, setClickedWLSalesEntry] = useState<WLSalesPlatformEntry | null>(null);
   const [editingDemoEntry, setEditingDemoEntry] = useState<DemoTrackingEntry | null>(null);
   
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
+  const [isAIDataProcessorOpen, setIsAIDataProcessorOpen] = useState(false); // NEW STATE
 
   // Fetch games from Supabase
   const { data: supabaseGames, refetch: refetchSupabaseGames } = useQuery<SupabaseGame[], Error>({
@@ -199,6 +199,76 @@ const Dashboard = () => {
         toast.error("Falha ao atualizar data de lançamento.");
     }
   }, [refetchSupabaseGames, supabaseGames, selectedGameName]);
+
+
+  // --- AI Data Processing Handler ---
+  const handleAIDataProcessed = useCallback((structuredData: any) => {
+    setTrackingData(prevData => {
+        const gameName = selectedGameName;
+        const newTrackingData = { ...prevData };
+
+        // Helper to process arrays, convert dates, and assign IDs
+        const processArray = (key: keyof TrackingData, prefix: string, data: any[]) => {
+            if (!Array.isArray(data)) return;
+
+            const processedData = data.map(item => {
+                const newItem = { ...item, id: generateLocalUniqueId(prefix), game: gameName };
+                
+                // Convert date strings back to Date objects
+                if (item.date && typeof item.date === 'string') {
+                    newItem.date = startOfDay(new Date(item.date));
+                }
+                if (item.startDate && typeof item.startDate === 'string') {
+                    newItem.startDate = startOfDay(new Date(item.startDate));
+                }
+                if (item.endDate && typeof item.endDate === 'string') {
+                    newItem.endDate = startOfDay(new Date(item.endDate));
+                }
+                
+                return newItem;
+            }).filter(item => item.game === gameName); // Ensure data belongs to the current game
+
+            // Merge new data, ensuring WL Sales recalculation if needed
+            if (key === 'wlSales') {
+                // Filter out existing WL entries for the current game/platform before merging
+                const existingWLSalesForOtherGames = prevData.wlSales.filter(e => e.game !== gameName);
+                const existingWLSalesForCurrentGame = prevData.wlSales.filter(e => e.game === gameName);
+                
+                // Merge new AI data with existing data for the current game
+                const updatedWLSalesForCurrentGame = [...existingWLSalesForCurrentGame, ...processedData];
+                
+                // Identify platforms affected by the new data
+                const platformsAffected = new Set(processedData.map(d => d.platform || 'Steam'));
+                
+                let finalWLSales = [...existingWLSalesForOtherGames];
+                
+                // Recalculate variations for all affected platforms in the current game
+                platformsAffected.forEach(platform => {
+                    const entriesForPlatform = updatedWLSalesForCurrentGame.filter(e => e.platform === platform);
+                    const recalculatedEntries = recalculateWLSales(entriesForPlatform, gameName, platform as Platform);
+                    finalWLSales = finalWLSales.filter(e => e.game !== gameName || e.platform !== platform).concat(recalculatedEntries);
+                });
+                
+                newTrackingData.wlSales = finalWLSales;
+            } else {
+                // For other types, merge and replace existing entries for the current game
+                const existingEntries = prevData[key].filter((e: any) => e.game !== gameName);
+                newTrackingData[key] = [...existingEntries, ...processedData];
+            }
+        };
+
+        // Process each type of data returned by the AI
+        processArray('influencerTracking', 'ai-inf', structuredData.influencerTracking || []);
+        processArray('eventTracking', 'ai-evt', structuredData.eventTracking || []);
+        processArray('paidTraffic', 'ai-paid', structuredData.paidTraffic || []);
+        processArray('wlSales', 'ai-wl', structuredData.wlSales || []);
+        processArray('demoTracking', 'ai-demo', structuredData.demoTracking || []);
+        processArray('trafficTracking', 'ai-traffic', structuredData.trafficTracking || []);
+        processArray('manualEventMarkers', 'ai-marker', structuredData.manualEventMarkers || []);
+
+        return newTrackingData;
+    });
+  }, [selectedGameName, recalculateWLSales]);
 
 
   // --- WL/Sales Handlers ---
@@ -761,11 +831,6 @@ const Dashboard = () => {
         ? realWLSales[realWLSales.length - 1].wishlists - (realWLSales[0].wishlists - realWLSales[0].variation)
         : 0;
     
-    // Calculate total WL generated from campaigns (Influencers + Events)
-    const totalWLGenerated = 
-        influencerTracking.reduce((sum, item) => sum + item.estimatedWL, 0) +
-        eventTracking.reduce((sum, item) => sum + item.wlGenerated, 0);
-
     // Total Sales and Wishlists (for Game Summary Panel) - based on filtered WL Sales
     const totalSales = realWLSales.reduce((sum, item) => sum + item.sales, 0);
     const totalWishlists = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists : 0;
@@ -1021,15 +1086,28 @@ const Dashboard = () => {
               </Dialog>
             </div>
             
+            {/* AI Data Processor Button added here */}
+            <Dialog open={isAIDataProcessorOpen} onOpenChange={setIsAIDataProcessorOpen}>
+                <DialogTrigger asChild>
+                    <Button 
+                        onClick={() => setIsAIDataProcessorOpen(true)} 
+                        variant="default" 
+                        className="w-full text-sm mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90 text-white"
+                    >
+                        <Bot className="h-4 w-4 mr-2" /> Processar Dados com IA
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[700px]">
+                    <AIDataProcessor 
+                        gameName={selectedGameName}
+                        onDataProcessed={handleAIDataProcessed}
+                        onClose={() => setIsAIDataProcessorOpen(false)}
+                    />
+                </DialogContent>
+            </Dialog>
+            
             {/* Backup/Restore and AI Help Buttons */}
             <div className="mt-auto pt-4 border-t border-border space-y-2">
-                <Button 
-                    onClick={() => toast.info("Para usar a IA, envie seus documentos ou dados brutos no chat e peça para o Dyad integrá-los ao dashboard.")} 
-                    variant="default" 
-                    className="w-full text-sm bg-gogo-cyan hover:bg-gogo-cyan/90 text-white"
-                >
-                    <Bot className="h-4 w-4 mr-2" /> Ajuda da IA
-                </Button>
                 <Button 
                     onClick={handleCreateBackup} 
                     variant="outline" 
