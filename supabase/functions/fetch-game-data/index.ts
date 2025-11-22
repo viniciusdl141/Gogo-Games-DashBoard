@@ -47,6 +47,7 @@ Instruções Críticas:
 1. Use a ferramenta Google Search para encontrar informações públicas sobre o jogo na Steam ou em lojas de console.
 2. Para cada resultado, forneça o nome, a data de lançamento (YYYY-MM-DD, ou null), o preço sugerido em BRL (Reais, ou 0) e a fonte.
 3. O objeto JSON de saída DEVE aderir estritamente ao esquema fornecido.
+4. Sua resposta DEVE ser APENAS o objeto JSON. Não inclua texto explicativo ou markdown blocks (como \`\`\`json).
 
 Esquema JSON de Saída: ${JSON.stringify(JSON_SCHEMA)}`;
 
@@ -61,11 +62,7 @@ async function callGeminiWebSearch(aiApiKey: string, gameName: string): Promise<
             role: "user",
             parts: [{ text: prompt }]
         }],
-        // CORREÇÃO: Usar generationConfig para responseSchema e toolConfig para tools
-        generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: JSON_SCHEMA,
-        },
+        // Removendo generationConfig para permitir o uso de tools
         tools: [{ googleSearch: {} }], // Ferramenta de busca
     };
 
@@ -99,9 +96,16 @@ async function callGeminiWebSearch(aiApiKey: string, gameName: string): Promise<
     }
     
     try {
+        // Tenta analisar o JSON retornado
         return JSON.parse(content);
     } catch {
-        throw new Error(`A IA retornou JSON malformado: ${content.substring(0, 200)}...`);
+        // Se falhar, tenta limpar o conteúdo (removendo markdown blocks)
+        const cleanedContent = content.replace(/```json\s*|```/g, '').trim();
+        try {
+            return JSON.parse(cleanedContent);
+        } catch {
+            throw new Error(`A IA retornou JSON malformado: ${content.substring(0, 200)}...`);
+        }
     }
 }
 
