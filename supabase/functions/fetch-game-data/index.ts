@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
-// Usando o modelo que suporta grounding (busca na web)
 const GEMINI_MODEL = "gemini-2.5-flash";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
@@ -12,25 +11,42 @@ const corsHeaders = {
 const JSON_SCHEMA = {
     type: "object",
     properties: {
-        launchDate: {
-            type: "string",
-            description: "Data de lançamento do jogo no formato YYYY-MM-DD. Se não for encontrada, use null."
-        },
-        suggestedPrice: {
-            type: "number",
-            description: "Preço sugerido do jogo em BRL (Reais). Se não for encontrado, use null."
+        results: {
+            type: "array",
+            description: "Lista de 3 a 5 resultados de jogos relevantes encontrados na Steam ou em lojas de console.",
+            items: {
+                type: "object",
+                properties: {
+                    name: {
+                        type: "string",
+                        description: "Nome completo do jogo."
+                    },
+                    launchDate: {
+                        type: "string",
+                        description: "Data de lançamento do jogo no formato YYYY-MM-DD. Se não for encontrada, use null."
+                    },
+                    suggestedPrice: {
+                        type: "number",
+                        description: "Preço sugerido do jogo em BRL (Reais). Se não for encontrado, use 0."
+                    },
+                    source: {
+                        type: "string",
+                        description: "Fonte principal da informação (ex: Steam, PlayStation Store)."
+                    }
+                },
+                required: ["name", "launchDate", "suggestedPrice", "source"]
+            }
         }
     },
-    required: ["launchDate", "suggestedPrice"]
+    required: ["results"]
 };
 
-const SYSTEM_PROMPT = (gameName: string) => `Você é um assistente de busca de dados de jogos. Sua tarefa é buscar na web (usando a ferramenta Google Search) a data de lançamento e o preço sugerido na Steam para o jogo "${gameName}".
+const SYSTEM_PROMPT = (gameName: string) => `Você é um assistente de busca de dados de jogos. Sua tarefa é buscar na web (usando a ferramenta Google Search) e retornar uma lista de 3 a 5 resultados de jogos que correspondam ao termo de busca "${gameName}".
 
 Instruções Críticas:
-1. Use a ferramenta Google Search para encontrar informações públicas sobre o jogo na Steam.
-2. Converta a data de lançamento para o formato ISO 8601 string (YYYY-MM-DD).
-3. Converta o preço sugerido para um número (BRL). Se o preço for listado em USD, tente converter para BRL se possível, ou use o valor numérico mais provável. Se não for encontrado, use 0.
-4. O objeto JSON de saída DEVE aderir estritamente ao esquema fornecido.
+1. Use a ferramenta Google Search para encontrar informações públicas sobre o jogo na Steam ou em lojas de console.
+2. Para cada resultado, forneça o nome, a data de lançamento (YYYY-MM-DD, ou null), o preço sugerido em BRL (Reais, ou 0) e a fonte.
+3. O objeto JSON de saída DEVE aderir estritamente ao esquema fornecido.
 
 Esquema JSON de Saída: ${JSON.stringify(JSON_SCHEMA)}`;
 
@@ -72,9 +88,7 @@ async function callGeminiWebSearch(aiApiKey: string, gameName: string): Promise<
 
 
     if (!response.ok) {
-        // Tenta extrair a mensagem de erro do Gemini
         const errorDetail = responseJson.error?.message || responseJson.error || 'Erro desconhecido na API do Gemini.';
-        // Propaga o erro com a mensagem detalhada
         throw new Error(`Falha na API Gemini (Status ${response.status}): ${errorDetail}`);
     }
 
@@ -84,7 +98,6 @@ async function callGeminiWebSearch(aiApiKey: string, gameName: string): Promise<
         throw new Error("A IA (Gemini) não retornou conteúdo JSON válido.");
     }
     
-    // O Gemini retorna o JSON como uma string dentro do campo 'text'
     try {
         return JSON.parse(content);
     } catch {
@@ -109,17 +122,13 @@ serve(async (req) => {
 
     const structuredData = await callGeminiWebSearch(aiApiKey, gameName);
 
-    // Ensure the returned data adheres to the expected structure
-    const launchDate = structuredData.launchDate || null;
-    const suggestedPrice = structuredData.suggestedPrice || null;
-
-    return new Response(JSON.stringify({ launchDate, suggestedPrice }), {
+    // Retorna a lista de resultados
+    return new Response(JSON.stringify(structuredData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error) {
     console.error('Edge Function Error:', error);
-    // Retorna o erro com status 500 e Content-Type JSON
     return new Response(JSON.stringify({ error: error.message || 'Erro interno desconhecido na Edge Function.' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

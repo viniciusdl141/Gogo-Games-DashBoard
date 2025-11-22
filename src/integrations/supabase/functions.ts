@@ -16,9 +16,15 @@ interface AIResponse {
     };
 }
 
-interface GameDataResponse {
+export interface GameOption {
+    name: string;
     launchDate: string | null;
     suggestedPrice: number | null;
+    source: string;
+}
+
+interface GameDataResponse {
+    results: GameOption[];
 }
 
 export async function invokeAIDataProcessor(rawData: string, gameName: string, aiApiKey: string, aiProvider: string): Promise<AIResponse> {
@@ -49,7 +55,7 @@ export async function invokeGameDataFetcher(gameName: string, aiApiKey: string):
         throw new Error(`Edge Function Error: ${error.message}`);
     }
 
-    if (data && (data.launchDate !== undefined || data.suggestedPrice !== undefined)) {
+    if (data && Array.isArray(data.results)) {
         return data as GameDataResponse;
     }
 
