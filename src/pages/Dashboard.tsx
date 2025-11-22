@@ -662,6 +662,11 @@ const Dashboard = () => {
         ? realWLSales[realWLSales.length - 1].wishlists - (realWLSales[0].wishlists - realWLSales[0].variation)
         : 0;
     
+    // Calculate total WL generated from campaigns (Influencers + Events)
+    const totalWLGenerated = 
+        influencerTracking.reduce((sum, item) => sum + item.estimatedWL, 0) +
+        eventTracking.reduce((sum, item) => sum + item.wlGenerated, 0);
+
     // Total Sales and Wishlists (for Game Summary Panel) - based on filtered WL Sales
     const totalSales = realWLSales.reduce((sum, item) => sum + item.sales, 0);
     const totalWishlists = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists : 0;
@@ -767,7 +772,7 @@ const Dashboard = () => {
         totalInfluencerViews,
         totalEventViews,
         totalImpressions,
-        totalWLGenerated,
+        totalWLGenerated, // Included here
         totalSales,
         totalWishlists,
         investmentSources,
