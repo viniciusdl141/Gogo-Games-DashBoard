@@ -48,6 +48,7 @@ import WLSalesActionMenu from '@/components/dashboard/WLSalesActionMenu';
 import WlConversionKpisPanel, { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; // Import TimeFrame
 import AddTrafficForm from '@/components/dashboard/AddTrafficForm'; 
 import AIDataProcessor from '@/components/dashboard/AIDataProcessor'; // NEW IMPORT
+import AddGameModal from '@/components/dashboard/AddGameModal'; // NEW IMPORT
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 
@@ -1035,22 +1036,14 @@ const Dashboard = () => {
             <Card className="p-6 shadow-xl border border-border">
                 <h1 className="text-2xl font-bold mb-4 text-gogo-cyan">Dashboard de Rastreamento</h1>
                 <p className="text-muted-foreground">Nenhum dado de rastreamento encontrado.</p>
-                <Dialog open={isAddGameFormOpen} onOpenChange={setIsAddGameFormOpen}>
-                    <DialogTrigger asChild>
-                        <Button onClick={() => setIsAddGameFormOpen(true)} className="mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90">
-                            <Plus className="h-4 w-4 mr-2" /> Adicionar Primeiro Jogo
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[400px]">
-                        <DialogHeader>
-                            <DialogTitle>Adicionar Novo Jogo</DialogTitle>
-                        </DialogHeader>
-                        <AddGameForm 
-                            onSave={handleAddGame} 
-                            onClose={() => setIsAddGameFormOpen(false)} 
-                        />
-                    </DialogContent>
-                </Dialog>
+                <Button onClick={() => setIsAddGameFormOpen(true)} className="mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90">
+                    <Plus className="h-4 w-4 mr-2" /> Adicionar Primeiro Jogo
+                </Button>
+                <AddGameModal 
+                    isOpen={isAddGameFormOpen} 
+                    onClose={() => setIsAddGameFormOpen(false)} 
+                    onSave={handleAddGame} 
+                />
             </Card>
         </div>
     );
@@ -1080,22 +1073,15 @@ const Dashboard = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Dialog open={isAddGameFormOpen} onOpenChange={setIsAddGameFormOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => setIsAddGameFormOpen(true)} className="w-full bg-gogo-orange hover:bg-gogo-orange/90 text-white">
-                    <Plus className="h-4 w-4 mr-2" /> Adicionar Novo Jogo
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[400px]">
-                  <DialogHeader>
-                    <DialogTitle>Adicionar Novo Jogo</DialogTitle>
-                  </DialogHeader>
-                  <AddGameForm 
-                    onSave={handleAddGame} 
-                    onClose={() => setIsAddGameFormOpen(false)} 
-                  />
-                </DialogContent>
-              </Dialog>
+              
+              <Button onClick={() => setIsAddGameFormOpen(true)} className="w-full bg-gogo-orange hover:bg-gogo-orange/90 text-white">
+                <Plus className="h-4 w-4 mr-2" /> Adicionar Novo Jogo
+              </Button>
+              <AddGameModal 
+                isOpen={isAddGameFormOpen} 
+                onClose={() => setIsAddGameFormOpen(false)} 
+                onSave={handleAddGame} 
+              />
             </div>
             
             {/* AI Data Processor Button added here */}

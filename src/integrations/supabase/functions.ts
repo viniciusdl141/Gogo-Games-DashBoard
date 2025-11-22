@@ -16,6 +16,11 @@ interface AIResponse {
     };
 }
 
+interface GameDataResponse {
+    launchDate: string | null;
+    suggestedPrice: number | null;
+}
+
 export async function invokeAIDataProcessor(rawData: string, gameName: string, aiApiKey: string, aiProvider: string): Promise<AIResponse> {
     // Usamos supabase.functions.invoke para lidar com autenticação e URL base automaticamente
     const { data, error } = await supabase.functions.invoke('process-raw-data', {
@@ -33,4 +38,20 @@ export async function invokeAIDataProcessor(rawData: string, gameName: string, a
     }
 
     throw new Error("Estrutura de resposta inválida do processador de IA.");
+}
+
+export async function invokeGameDataFetcher(gameName: string, aiApiKey: string): Promise<GameDataResponse> {
+    const { data, error } = await supabase.functions.invoke('fetch-game-data', {
+        body: { gameName, aiApiKey },
+    });
+
+    if (error) {
+        throw new Error(`Edge Function Error: ${error.message}`);
+    }
+
+    if (data && (data.launchDate !== undefined || data.suggestedPrice !== undefined)) {
+        return data as GameDataResponse;
+    }
+
+    throw new Error("Estrutura de resposta inválida do buscador de dados de jogos.");
 }
