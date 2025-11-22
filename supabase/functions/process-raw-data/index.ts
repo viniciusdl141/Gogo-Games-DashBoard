@@ -91,8 +91,9 @@ async function processDataWithAI(rawData: string, gameName: string, aiApiKey: st
 
     } catch (e) {
         console.error("Erro ao chamar a API de IA:", e);
-        // Retorna o erro de forma clara para o frontend
-        throw new Error(`Falha na comunicação com a API de IA: ${e.message}. Verifique se a chave é válida e se o modelo está acessível.`);
+        // Captura o erro específico do OpenAI, que pode ser um objeto complexo
+        const errorMessage = e.message || "Erro desconhecido ao comunicar com a API de IA.";
+        throw new Error(`Falha na API de IA: ${errorMessage}`);
     }
 }
 
@@ -105,7 +106,7 @@ serve(async (req) => {
     const { rawData, gameName, aiApiKey } = await req.json();
 
     if (!rawData || !gameName || !aiApiKey) {
-      return new Response(JSON.stringify({ error: 'Missing rawData, gameName, or aiApiKey' }), {
+      return new Response(JSON.stringify({ error: 'Dados de entrada incompletos (rawData, gameName, ou aiApiKey faltando).' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -120,7 +121,8 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Edge Function Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    // Retorna o erro com status 500 e Content-Type JSON
+    return new Response(JSON.stringify({ error: error.message || 'Erro interno desconhecido na Edge Function.' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
