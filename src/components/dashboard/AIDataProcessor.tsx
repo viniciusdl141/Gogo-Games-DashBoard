@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import AIDataPreview from './AIDataPreview'; // Importar o novo componente
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface StructuredData {
     influencerTracking: any[];
@@ -27,9 +28,17 @@ interface AIDataProcessorProps {
     onClose: () => void;
 }
 
+const AI_PROVIDERS = [
+    { value: 'openai', label: 'OpenAI (GPT-4o-mini)' },
+    { value: 'gemini', label: 'Google Gemini (2.5 Flash)' },
+    { value: 'deepseek', label: 'DeepSeek (deepseek-coder)' },
+    { value: 'mistral', label: 'Mistral AI (mistral-large)' },
+];
+
 const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProcessed, onClose }) => {
     const [rawData, setRawData] = useState('');
     const [aiApiKey, setAiApiKey] = useState('');
+    const [aiProvider, setAiProvider] = useState(AI_PROVIDERS[0].value);
     const [isLoading, setIsLoading] = useState(false);
     const [processedData, setProcessedData] = useState<StructuredData | null>(null);
 
@@ -42,13 +51,18 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
             toast.error("Por favor, insira a chave da API da IA.");
             return;
         }
+        if (!aiProvider) {
+            toast.error("Por favor, selecione um provedor de IA.");
+            return;
+        }
 
         setIsLoading(true);
         setProcessedData(null);
         toast.loading("Enviando dados para a IA processar...", { id: 'ai-processing' });
 
         try {
-            const response = await invokeAIDataProcessor(rawData, gameName, aiApiKey); 
+            // A Edge Function agora espera o provedor e a chave
+            const response = await invokeAIDataProcessor(rawData, gameName, aiApiKey, aiProvider); 
             
             toast.dismiss('ai-processing');
             
@@ -62,7 +76,8 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
         } catch (error) {
             console.error("AI Processing Error:", error);
             toast.dismiss('ai-processing');
-            toast.error(`Falha no processamento da IA: ${error.message}. Verifique o console.`);
+            // O erro agora deve conter a mensagem detalhada da Edge Function
+            toast.error(`Falha no processamento da IA: ${error.message}. Verifique a chave da API e o provedor.`);
         } finally {
             setIsLoading(false);
         }
@@ -111,21 +126,38 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
                     Cole aqui o conteúdo bruto (ex: texto de planilha, CSV, ou dados não estruturados) para que a IA os converta em entradas estruturadas para o jogo **{gameName}**.
                 </p>
                 
-                {/* API KEY INPUT */}
-                <div className="space-y-2">
-                    <Label htmlFor="ai-api-key">Chave da API da IA (Ex: OpenAI, Gemini)</Label>
-                    <Input
-                        id="ai-api-key"
-                        type="password"
-                        placeholder="sk-..."
-                        value={aiApiKey}
-                        onChange={(e) => setAiApiKey(e.target.value)}
-                        disabled={isLoading}
-                    />
-                    <p className="text-xs text-red-500">
-                        ⚠️ **AVISO DE SEGURANÇA:** A chave da API será enviada diretamente do seu navegador para a Edge Function. Em produção, é altamente recomendável armazenar chaves sensíveis como Supabase Secrets.
-                    </p>
+                {/* AI PROVIDER SELECTION */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="ai-provider-select">Provedor de IA</Label>
+                        <Select onValueChange={setAiProvider} defaultValue={aiProvider}>
+                            <SelectTrigger id="ai-provider-select">
+                                <SelectValue placeholder="Selecione o Provedor" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {AI_PROVIDERS.map(p => (
+                                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    {/* API KEY INPUT */}
+                    <div className="space-y-2">
+                        <Label htmlFor="ai-api-key">Chave da API da IA</Label>
+                        <Input
+                            id="ai-api-key"
+                            type="password"
+                            placeholder="sk-..."
+                            value={aiApiKey}
+                            onChange={(e) => setAiApiKey(e.target.value)}
+                            disabled={isLoading}
+                        />
+                    </div>
                 </div>
+                <p className="text-xs text-red-500">
+                    ⚠️ **AVISO DE SEGURANÇA:** A chave da API é enviada diretamente do seu navegador para a Edge Function.
+                </p>
                 
                 <Textarea
                     placeholder="Cole seus dados brutos aqui..."
@@ -140,7 +172,7 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
                     </Button>
                     <Button 
                         onClick={handleProcessData} 
-                        disabled={isLoading || !rawData.trim() || !aiApiKey.trim()}
+                        disabled={isLoading || !rawData.trim() || !aiApiKey.trim() || !aiProvider}
                         className="bg-gogo-cyan hover:bg-gogo-cyan/90"
                     >
                         {isLoading ? (
