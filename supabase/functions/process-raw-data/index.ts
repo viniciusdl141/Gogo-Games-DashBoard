@@ -102,6 +102,7 @@ async function callOpenAICompatibleAPI(aiApiKey: string, rawData: string, gameNa
 // --- Gemini (using fetch) ---
 async function callGeminiAPI(aiApiKey: string, rawData: string, gameName: string): Promise<any> {
     const model = "gemini-2.5-flash";
+    // Usando a chave como query parameter
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${aiApiKey}`;
     
     const prompt = SYSTEM_PROMPT(gameName);
