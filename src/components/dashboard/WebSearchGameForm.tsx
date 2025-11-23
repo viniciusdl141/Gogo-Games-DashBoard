@@ -15,10 +15,11 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { Loader2, Search, Check, Calendar, DollarSign, Gamepad } from 'lucide-react';
+import { Loader2, Search, Check, Calendar, DollarSign, Gamepad, MessageSquare, Building2 } from 'lucide-react';
 import { invokeGameDataFetcher, GameOption } from '@/integrations/supabase/functions';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 const formSchema = z.object({
     gameName: z.string().min(1, "O nome do jogo é obrigatório."),
@@ -75,7 +76,8 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
     
     const handleSelectGame = (game: GameOption) => {
         const launchDate = game.launchDate || null;
-        const suggestedPrice = game.suggestedPrice || 0;
+        // Usamos o suggestedPrice (BRL) para salvar no banco de dados
+        const suggestedPrice = game.suggestedPrice || 0; 
         
         onSave(game.name.trim(), launchDate, suggestedPrice);
         toast.success(`Jogo "${game.name}" selecionado e salvo.`);
@@ -139,25 +141,59 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
                     </h4>
                     {results.map((game, index) => (
                         <Card key={index} className="p-3 hover:bg-muted/50 transition-colors">
-                            <CardContent className="p-0 flex justify-between items-center">
-                                <div className="space-y-1">
-                                    <p className="font-bold text-sm">{game.name}</p>
-                                    <div className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
-                                        <span className="flex items-center">
-                                            <Calendar className="h-3 w-3 mr-1" /> 
-                                            {game.launchDate ? formatDate(new Date(game.launchDate)) : 'Data N/A'}
-                                        </span>
-                                        <span className="flex items-center">
-                                            <DollarSign className="h-3 w-3 mr-1" /> 
-                                            {game.suggestedPrice ? formatCurrency(game.suggestedPrice) : 'Preço N/A'}
-                                        </span>
-                                        <span className="text-xs italic">({game.source})</span>
+                            <CardContent className="p-0 flex justify-between items-start">
+                                <div className="flex space-x-3">
+                                    {game.capsuleImageUrl && (
+                                        <img 
+                                            src={game.capsuleImageUrl} 
+                                            alt={`Cápsula de ${game.name}`} 
+                                            className="w-20 h-auto object-cover rounded-md hidden sm:block"
+                                        />
+                                    )}
+                                    <div className="space-y-1 flex-1">
+                                        <p className="font-bold text-sm">{game.name}</p>
+                                        
+                                        {/* Preços e Reviews */}
+                                        <div className="flex flex-wrap gap-2 text-xs">
+                                            {game.reviewSummary && (
+                                                <Badge variant="default" className="bg-gogo-cyan hover:bg-gogo-cyan/90">
+                                                    <MessageSquare className="h-3 w-3 mr-1" /> {game.reviewSummary} ({formatNumber(game.reviewCount || 0)})
+                                                </Badge>
+                                            )}
+                                            <Badge variant="secondary" className="flex items-center">
+                                                <DollarSign className="h-3 w-3 mr-1" /> USD: {formatCurrency(game.priceUSD || 0).replace('R$', 'USD')}
+                                            </Badge>
+                                            <Badge variant="secondary" className="flex items-center">
+                                                <DollarSign className="h-3 w-3 mr-1" /> BRL: {formatCurrency(game.suggestedPrice || 0)}
+                                            </Badge>
+                                        </div>
+
+                                        {/* Data e Desenvolvedora */}
+                                        <div className="flex flex-wrap gap-x-3 text-xs text-muted-foreground pt-1">
+                                            <span className="flex items-center">
+                                                <Calendar className="h-3 w-3 mr-1" /> 
+                                                Lançamento: {game.launchDate ? formatDate(new Date(game.launchDate)) : 'N/A'}
+                                            </span>
+                                            {game.developer && (
+                                                <span className="flex items-center">
+                                                    <Building2 className="h-3 w-3 mr-1" /> 
+                                                    Dev: {game.developer}
+                                                </span>
+                                            )}
+                                            {game.publisher && (
+                                                <span className="flex items-center">
+                                                    <Building2 className="h-3 w-3 mr-1" /> 
+                                                    Pub: {game.publisher}
+                                                </span>
+                                            )}
+                                            <span className="text-xs italic">({game.source})</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <Button 
                                     size="sm" 
                                     onClick={() => handleSelectGame(game)}
-                                    className="bg-gogo-cyan hover:bg-gogo-cyan/90"
+                                    className="bg-gogo-cyan hover:bg-gogo-cyan/90 flex-shrink-0 ml-4"
                                 >
                                     <Check className="h-4 w-4" />
                                 </Button>

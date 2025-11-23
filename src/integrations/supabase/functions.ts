@@ -20,7 +20,13 @@ interface AIResponse {
 export interface GameOption {
     name: string;
     launchDate: string | null;
-    suggestedPrice: number | null;
+    suggestedPrice: number | null; // Price in BRL
+    priceUSD: number | null; // New: Price in USD
+    reviewCount: number | null; // New: Total reviews
+    reviewSummary: string | null; // New: Review classification
+    developer: string | null; // New: Developer name
+    publisher: string | null; // New: Publisher name
+    capsuleImageUrl: string | null; // New: Image URL
     source: string;
 }
 

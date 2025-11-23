@@ -29,12 +29,36 @@ const JSON_SCHEMA = {
                         type: "number",
                         description: "Preço sugerido do jogo em BRL (Reais). Se não for encontrado, use 0."
                     },
+                    priceUSD: {
+                        type: "number",
+                        description: "Preço sugerido do jogo em USD (Dólares). Se não for encontrado, use 0."
+                    },
+                    reviewCount: {
+                        type: "number",
+                        description: "Número total de avaliações (reviews) na Steam. Se não for encontrado, use 0."
+                    },
+                    reviewSummary: {
+                        type: "string",
+                        description: "Resumo da classificação das avaliações (ex: 'Muito Positivas', 'Neutras'). Se não for encontrado, use null."
+                    },
+                    developer: {
+                        type: "string",
+                        description: "Nome da desenvolvedora principal. Se não for encontrado, use null."
+                    },
+                    publisher: {
+                        type: "string",
+                        description: "Nome da distribuidora principal. Se não for encontrado, use null."
+                    },
+                    capsuleImageUrl: {
+                        type: "string",
+                        description: "URL da imagem da cápsula (capa) do jogo na Steam. Se não for encontrada, use null."
+                    },
                     source: {
                         type: "string",
                         description: "Fonte principal da informação (ex: Steam, PlayStation Store)."
                     }
                 },
-                required: ["name", "launchDate", "suggestedPrice", "source"]
+                required: ["name", "launchDate", "suggestedPrice", "priceUSD", "reviewCount", "reviewSummary", "developer", "publisher", "capsuleImageUrl", "source"]
             }
         }
     },
@@ -45,7 +69,7 @@ const SYSTEM_PROMPT = (gameName: string) => `Você é um assistente de busca de 
 
 Instruções Críticas:
 1. Use a ferramenta Google Search para encontrar informações públicas sobre o jogo na Steam ou em lojas de console.
-2. Para cada resultado, forneça o nome, a data de lançamento (YYYY-MM-DD, ou null), o preço sugerido em BRL (Reais, ou 0) e a fonte.
+2. Para cada resultado, forneça o nome, a data de lançamento (YYYY-MM-DD, ou null), o preço sugerido em BRL (Reais, ou 0), o preço em USD (ou 0), o número de avaliações, o resumo da classificação, a desenvolvedora, a distribuidora e a URL da imagem da cápsula (capa).
 3. O objeto JSON de saída DEVE aderir estritamente ao esquema fornecido.
 4. Sua resposta DEVE ser APENAS o objeto JSON. Não inclua texto explicativo ou markdown blocks (como \`\`\`json).
 
