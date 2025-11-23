@@ -49,6 +49,7 @@ import WlConversionKpisPanel, { TimeFrame } from '@/components/dashboard/WlConve
 import AddTrafficForm from '@/components/dashboard/AddTrafficForm'; 
 import AIDataProcessor from '@/components/dashboard/AIDataProcessor'; // NEW IMPORT
 import AddGameModal from '@/components/dashboard/AddGameModal'; // NEW IMPORT
+import DeleteGameButton from '@/components/dashboard/DeleteGameButton'; // NEW IMPORT
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 
@@ -201,6 +202,45 @@ const Dashboard = () => {
         toast.error("Falha ao atualizar data de lançamento.");
     }
   }, [refetchSupabaseGames, supabaseGames, selectedGameName, selectedGame?.suggested_price]);
+
+  const handleDeleteGame = useCallback(async (gameId: string) => {
+    const gameToDelete = allAvailableGames.find(g => g.id === gameId);
+    if (!gameToDelete) return;
+
+    try {
+        // 1. Delete from Supabase if it has a real ID
+        if (!gameId.startsWith('game-')) { // Assuming local IDs start with 'game-'
+            await deleteGameFromSupabase(gameId);
+        }
+        
+        // 2. Remove from local tracking data (all entries associated with this game name)
+        setTrackingData(prevData => {
+            const gameName = gameToDelete.name;
+            return {
+                ...prevData,
+                games: prevData.games.filter(name => name !== gameName),
+                influencerTracking: prevData.influencerTracking.filter(e => e.game !== gameName),
+                eventTracking: prevData.eventTracking.filter(e => e.game !== gameName),
+                paidTraffic: prevData.paidTraffic.filter(e => e.game !== gameName),
+                demoTracking: prevData.demoTracking.filter(e => e.game !== gameName),
+                wlSales: prevData.wlSales.filter(e => e.game !== gameName),
+                trafficTracking: prevData.trafficTracking.filter(e => e.game !== gameName),
+                resultSummary: prevData.resultSummary.filter(e => e.game !== gameName),
+                wlDetails: prevData.wlDetails.filter(e => e.game !== gameName),
+                manualEventMarkers: prevData.manualEventMarkers.filter(e => e.game !== gameName),
+            };
+        });
+
+        // 3. Refetch Supabase games and update selected game
+        refetchSupabaseGames();
+        setSelectedGameName(allAvailableGames.filter(g => g.id !== gameId)[0]?.name || '');
+        
+        toast.success(`Jogo "${gameToDelete.name}" excluído com sucesso.`);
+    } catch (error) {
+        console.error("Error deleting game:", error);
+        toast.error("Falha ao excluir jogo.");
+    }
+  }, [allAvailableGames, refetchSupabaseGames]);
 
 
   // --- AI Data Processing Handler ---
@@ -1077,11 +1117,6 @@ const Dashboard = () => {
               <Button onClick={() => setIsAddGameFormOpen(true)} className="w-full bg-gogo-orange hover:bg-gogo-orange/90 text-white">
                 <Plus className="h-4 w-4 mr-2" /> Adicionar Novo Jogo
               </Button>
-              <AddGameModal 
-                isOpen={isAddGameFormOpen} 
-                onClose={() => setIsAddGameFormOpen(false)} 
-                onSave={handleAddGame} 
-              />
             </div>
             
             {/* AI Data Processor Button added here */}
@@ -1104,6 +1139,15 @@ const Dashboard = () => {
                 </DialogContent>
             </Dialog>
             
+            {/* Delete Game Button */}
+            {selectedGame && (
+                <DeleteGameButton 
+                    gameId={selectedGame.id}
+                    gameName={selectedGame.name}
+                    onDelete={handleDeleteGame}
+                />
+            )}
+
             {/* Backup/Restore and AI Help Buttons */}
             <div className="mt-auto pt-4 border-t border-border space-y-2">
                 <Button 
