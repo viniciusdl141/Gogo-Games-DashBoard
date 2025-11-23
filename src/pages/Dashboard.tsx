@@ -1532,6 +1532,13 @@ const Dashboard = () => {
         </ResizablePanel>
       </ResizablePanelGroup>
       <MadeWithDyad />
+      
+      {/* RENDERIZANDO O MODAL DE ADICIONAR JOGO AQUI */}
+      <AddGameModal 
+          isOpen={isAddGameFormOpen} 
+          onClose={() => setIsAddGameFormOpen(false)} 
+          onSave={handleAddGame} 
+      />
     </div>
   );
 };
