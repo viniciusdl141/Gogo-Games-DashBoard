@@ -17,7 +17,7 @@ import {
 import { toast } from 'sonner';
 import { Loader2, Search, Check, Calendar, DollarSign, Gamepad, MessageSquare, Building2 } from 'lucide-react';
 import { invokeGameDataFetcher, GameOption } from '@/integrations/supabase/functions';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, formatNumber } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
