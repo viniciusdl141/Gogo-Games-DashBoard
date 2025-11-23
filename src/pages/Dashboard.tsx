@@ -182,7 +182,7 @@ const Dashboard = () => {
     }
   }, [allAvailableGames, refetchSupabaseGames]);
 
-  const handleUpdateLaunchDate = useCallback(async (gameId: string, launchDate: string | null) => {
+  const handleUpdateLaunchDate = useCallback(async (gameId: string, launchDate: string | null, capsuleImageUrl: string | null) => {
     try {
         // Check if the game exists in Supabase by its ID
         const gameInSupabase = supabaseGames.find(g => g.id === gameId);
@@ -190,19 +190,19 @@ const Dashboard = () => {
         if (!gameInSupabase) {
             // If the game is not in Supabase (it has a local ID), add it first
             // We use selectedGameName here because gameId might be a local ID
-            await addGameToSupabase(selectedGameName, launchDate, selectedGame?.suggested_price || null, selectedGame?.capsule_image_url || null);
-            toast.success(`Jogo "${selectedGameName}" adicionado ao Supabase com data de lançamento.`);
+            await addGameToSupabase(selectedGameName, launchDate, selectedGame?.suggested_price || null, capsuleImageUrl);
+            toast.success(`Jogo "${selectedGameName}" adicionado ao Supabase com metadados.`);
         } else {
-            // If the game exists in Supabase, just update its launch date
-            await updateGameInSupabase(gameId, { launch_date: launchDate });
-            toast.success(`Data de lançamento para "${selectedGameName}" atualizada.`);
+            // If the game exists in Supabase, just update its metadata
+            await updateGameInSupabase(gameId, { launch_date: launchDate, capsule_image_url: capsuleImageUrl });
+            toast.success(`Metadados para "${selectedGameName}" atualizados.`);
         }
         refetchSupabaseGames(); // Always refetch to ensure UI is in sync
     } catch (error) {
         console.error("Error updating launch date:", error);
-        toast.error("Falha ao atualizar data de lançamento.");
+        toast.error("Falha ao atualizar metadados.");
     }
-  }, [refetchSupabaseGames, supabaseGames, selectedGameName, selectedGame?.suggested_price, selectedGame?.capsule_image_url]);
+  }, [refetchSupabaseGames, supabaseGames, selectedGameName, selectedGame?.suggested_price]);
 
   const handleDeleteGame = useCallback(async (gameId: string) => {
     const gameToDelete = allAvailableGames.find(g => g.id === gameId);

@@ -18,8 +18,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import LaunchTimer from './LaunchTimer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import EditLaunchDateForm from './EditLaunchDateForm';
-import GameCapsule from './GameCapsule'; // Importar o novo componente
+import EditGameMetadataForm from './EditGameMetadataForm'; // Importar o novo nome
+import GameCapsule from './GameCapsule'; 
 
 interface GameSummaryPanelProps {
     gameId: string; // Adicionado gameId
@@ -34,7 +34,7 @@ interface GameSummaryPanelProps {
     suggestedPrice: number; // Novo prop
     capsuleImageUrl: string | null; // NOVO PROP
     investmentSources: { influencers: number, events: number, paidTraffic: number };
-    onUpdateLaunchDate: (gameId: string, launchDate: string | null) => void; // Nova prop
+    onUpdateLaunchDate: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null) => void; // Assinatura atualizada
 }
 
 const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({ 
@@ -80,7 +80,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
 
     const totalManualSales = salesBRL + salesUSD;
     const grossManualRevenue = totalManualSales * gamePrice;
-    const netManualRevenue = grossManualRevenue * revenueShare;
+    const netManualRevenue = netManualRevenue * revenueShare;
     const netManualProfit = netManualRevenue - totalInvestment;
     const roiManualPercentage = totalInvestment > 0 ? (netManualProfit / totalInvestment) * 100 : 0;
 
@@ -112,17 +112,18 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                                 className="bg-gogo-orange hover:bg-gogo-orange/90 text-white"
                                 onClick={() => setIsLaunchDateDialogOpen(true)}
                             >
-                                <CalendarDays className="h-4 w-4 mr-2" /> Editar Lançamento
+                                <CalendarDays className="h-4 w-4 mr-2" /> Editar Metadados
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[400px]">
                             <DialogHeader>
-                                <DialogTitle>Editar Data de Lançamento</DialogTitle>
+                                <DialogTitle>Editar Metadados do Jogo</DialogTitle>
                             </DialogHeader>
-                            <EditLaunchDateForm 
+                            <EditGameMetadataForm 
                                 gameId={gameId}
                                 gameName={gameName}
                                 currentLaunchDate={launchDate}
+                                currentCapsuleImageUrl={capsuleImageUrl}
                                 onSave={onUpdateLaunchDate}
                                 onClose={() => setIsLaunchDateDialogOpen(false)}
                             />

@@ -18,38 +18,42 @@ import { toast } from 'sonner';
 
 const formSchema = z.object({
     launchDate: z.string().nullable().optional(), // YYYY-MM-DD format
+    capsuleImageUrl: z.string().url("Deve ser uma URL válida.").nullable().optional().or(z.literal('')), // Novo campo
 });
 
-type LaunchDateFormValues = z.infer<typeof formSchema>;
+type GameMetadataFormValues = z.infer<typeof formSchema>;
 
-interface EditLaunchDateFormProps {
+interface EditGameMetadataFormProps {
     gameId: string;
     gameName: string;
     currentLaunchDate: Date | null;
-    onSave: (gameId: string, launchDate: string | null) => void;
+    currentCapsuleImageUrl: string | null; // Novo prop
+    onSave: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null) => void;
     onClose: () => void;
 }
 
-const EditLaunchDateForm: React.FC<EditLaunchDateFormProps> = ({ gameId, gameName, currentLaunchDate, onSave, onClose }) => {
+const EditGameMetadataForm: React.FC<EditGameMetadataFormProps> = ({ gameId, gameName, currentLaunchDate, currentCapsuleImageUrl, onSave, onClose }) => {
     const defaultDateString = currentLaunchDate ? currentLaunchDate.toISOString().split('T')[0] : '';
 
-    const form = useForm<LaunchDateFormValues>({
+    const form = useForm<GameMetadataFormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             launchDate: defaultDateString,
+            capsuleImageUrl: currentCapsuleImageUrl || '',
         },
     });
 
-    const onSubmit = (values: LaunchDateFormValues) => {
-        onSave(gameId, values.launchDate || null);
-        toast.success(`Data de lançamento para "${gameName}" atualizada.`);
+    const onSubmit = (values: GameMetadataFormValues) => {
+        const imageUrl = values.capsuleImageUrl?.trim() || null;
+        onSave(gameId, values.launchDate || null, imageUrl);
+        toast.success(`Metadados para "${gameName}" atualizados.`);
         onClose();
     };
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
-                <h3 className="text-lg font-semibold">Editar Data de Lançamento para {gameName}</h3>
+                <h3 className="text-lg font-semibold">Editar Metadados do Jogo: {gameName}</h3>
                 
                 <FormField
                     control={form.control}
@@ -68,14 +72,32 @@ const EditLaunchDateForm: React.FC<EditLaunchDateFormProps> = ({ gameId, gameNam
                         </FormItem>
                     )}
                 />
+                
+                <FormField
+                    control={form.control}
+                    name="capsuleImageUrl"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>URL da Imagem da Cápsula</FormLabel>
+                            <FormControl>
+                                <Input 
+                                    placeholder="https://..." 
+                                    {...field} 
+                                    value={field.value || ''}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
                 <div className="flex justify-end space-x-2 pt-4">
                     <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-                    <Button type="submit" className="bg-gogo-cyan hover:bg-gogo-cyan/90">Salvar Data</Button>
+                    <Button type="submit" className="bg-gogo-cyan hover:bg-gogo-cyan/90">Salvar Alterações</Button>
                 </div>
             </form>
         </Form>
     );
 };
 
-export default EditLaunchDateForm;
+export default EditGameMetadataForm;
