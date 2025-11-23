@@ -17,8 +17,9 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import LaunchTimer from './LaunchTimer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import EditLaunchDateForm from './EditLaunchDateForm';
+import GameCapsule from './GameCapsule'; // Importar o novo componente
 
 interface GameSummaryPanelProps {
     gameId: string; // Adicionado gameId
@@ -31,6 +32,7 @@ interface GameSummaryPanelProps {
     totalImpressions: number; // KPI separado
     launchDate: Date | null;
     suggestedPrice: number; // Novo prop
+    capsuleImageUrl: string | null; // NOVO PROP
     investmentSources: { influencers: number, events: number, paidTraffic: number };
     onUpdateLaunchDate: (gameId: string, launchDate: string | null) => void; // Nova prop
 }
@@ -45,7 +47,8 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     totalEventViews,
     totalImpressions,
     launchDate,
-    suggestedPrice, // Receber suggestedPrice
+    suggestedPrice, 
+    capsuleImageUrl, // Receber capsuleImageUrl
     investmentSources,
     onUpdateLaunchDate
 }) => {
@@ -85,7 +88,16 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-2xl">Resumo Geral do Jogo: {gameName}</CardTitle>
+                <div className="flex items-start space-x-4">
+                    <GameCapsule 
+                        imageUrl={capsuleImageUrl} 
+                        gameName={gameName} 
+                        className="w-32 h-12 flex-shrink-0" 
+                    />
+                    <div>
+                        <CardTitle className="text-2xl">Resumo Geral do Jogo: {gameName}</CardTitle>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent className="space-y-6">
                 

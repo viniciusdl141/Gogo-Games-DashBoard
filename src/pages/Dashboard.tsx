@@ -117,11 +117,11 @@ const Dashboard = () => {
       combinedGamesMap.set(game.name, game);
     });
 
-    // Add games from local data if not already in Supabase, without launch_date/price
+    // Add games from local data if not already in Supabase, without launch_date/price/image
     trackingData.games.forEach(gameName => {
       if (!combinedGamesMap.has(gameName)) {
         // Assign a temporary local ID if not in Supabase
-        combinedGamesMap.set(gameName, { id: generateLocalUniqueId('game'), name: gameName, launch_date: null, suggested_price: null, created_at: new Date().toISOString() });
+        combinedGamesMap.set(gameName, { id: generateLocalUniqueId('game'), name: gameName, launch_date: null, suggested_price: null, capsule_image_url: null, created_at: new Date().toISOString() });
       }
     });
 
@@ -165,13 +165,14 @@ const Dashboard = () => {
   }, []);
 
   // --- Game Management Handlers ---
-  const handleAddGame = useCallback(async (gameName: string, launchDate: string | null, suggestedPrice: number) => {
+  const handleAddGame = useCallback(async (gameName: string, launchDate: string | null, suggestedPrice: number, capsuleImageUrl: string | null) => {
     if (allAvailableGames.some(g => g.name === gameName)) {
         toast.error(`O jogo "${gameName}" já existe.`);
         return;
     }
     try {
-        await addGameToSupabase(gameName, launchDate, suggestedPrice);
+        // Pass capsuleImageUrl to addGameToSupabase
+        await addGameToSupabase(gameName, launchDate, suggestedPrice, capsuleImageUrl);
         refetchSupabaseGames(); // Refresh games from Supabase
         toast.success(`Jogo "${gameName}" adicionado com sucesso!`);
         setSelectedGameName(gameName);
@@ -189,7 +190,7 @@ const Dashboard = () => {
         if (!gameInSupabase) {
             // If the game is not in Supabase (it has a local ID), add it first
             // We use selectedGameName here because gameId might be a local ID
-            await addGameToSupabase(selectedGameName, launchDate, selectedGame?.suggested_price || null);
+            await addGameToSupabase(selectedGameName, launchDate, selectedGame?.suggested_price || null, selectedGame?.capsule_image_url || null);
             toast.success(`Jogo "${selectedGameName}" adicionado ao Supabase com data de lançamento.`);
         } else {
             // If the game exists in Supabase, just update its launch date
@@ -201,7 +202,7 @@ const Dashboard = () => {
         console.error("Error updating launch date:", error);
         toast.error("Falha ao atualizar data de lançamento.");
     }
-  }, [refetchSupabaseGames, supabaseGames, selectedGameName, selectedGame?.suggested_price]);
+  }, [refetchSupabaseGames, supabaseGames, selectedGameName, selectedGame?.suggested_price, selectedGame?.capsule_image_url]);
 
   const handleDeleteGame = useCallback(async (gameId: string) => {
     const gameToDelete = allAvailableGames.find(g => g.id === gameId);
@@ -726,6 +727,7 @@ const Dashboard = () => {
     const gameId = selectedGame?.id || '';
     const launchDate = selectedGame?.launch_date ? new Date(selectedGame.launch_date) : null;
     const suggestedPrice = selectedGame?.suggested_price || 19.99; // Use suggested price
+    const capsuleImageUrl = selectedGame?.capsule_image_url || null; // NEW: Get capsule image URL
 
     // 1. Filter and enhance data, recalculating dynamic fields
     const influencerTracking = trackingData.influencerTracking
@@ -1000,6 +1002,7 @@ const Dashboard = () => {
         investmentSources,
         launchDate,
         suggestedPrice, // Pass suggested price
+        capsuleImageUrl, // NEW: Pass capsule image URL
         avgDailyGrowth: avgDailyGrowthInPeriod, // Use the period-specific average
         totalGrowth: totalGrowthInPeriod, 
         visitorToWlConversionRate,
@@ -1219,8 +1222,9 @@ const Dashboard = () => {
                                 launchDate={filteredData.kpis.launchDate}
                                 investmentSources={filteredData.kpis.investmentSources}
                                 onUpdateLaunchDate={handleUpdateLaunchDate}
-                                // Pass suggested price to GameSummaryPanel
+                                // Pass suggested price and image URL
                                 suggestedPrice={filteredData.kpis.suggestedPrice} 
+                                capsuleImageUrl={filteredData.kpis.capsuleImageUrl}
                             />
                             
                             <WlConversionKpisPanel 
