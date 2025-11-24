@@ -495,9 +495,10 @@ const Dashboard: React.FC = () => {
                 <AddGameModal 
                     isOpen={isAddGameModalOpen}
                     onClose={() => setIsAddGameModalOpen(false)}
-                    onSave={async (gameName, launchDate, suggestedPrice, capsuleImageUrl) => {
+                    onSave={async (gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary) => {
                         try {
-                            await addGame(gameName, launchDate, suggestedPrice, capsuleImageUrl);
+                            // Passando todos os 8 argumentos para addGame
+                            await addGame(gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary);
                             invalidateGames();
                             setSelectedGame(gameName);
                             setIsAddGameModalOpen(false);
@@ -759,9 +760,9 @@ const Dashboard: React.FC = () => {
             <AddGameModal 
                 isOpen={isAddGameModalOpen}
                 onClose={() => setIsAddGameModalOpen(false)}
-                onSave={async (gameName, launchDate, suggestedPrice, capsuleImageUrl) => {
+                onSave={async (gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary) => {
                     try {
-                        await addGame(gameName, launchDate, suggestedPrice, capsuleImageUrl);
+                        await addGame(gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary);
                         invalidateGames();
                         setSelectedGame(gameName);
                         setIsAddGameModalOpen(false);

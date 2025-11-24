@@ -10,7 +10,16 @@ import WebSearchGameForm from './WebSearchGameForm';
 interface AddGameModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (gameName: string, launchDate: string | null, suggestedPrice: number, capsuleImageUrl: string | null) => void;
+    onSave: (
+        gameName: string, 
+        launchDate: string | null, 
+        suggestedPrice: number, 
+        capsuleImageUrl: string | null,
+        priceUsd: number | null,
+        developer: string | null,
+        publisher: string | null,
+        reviewSummary: string | null
+    ) => void;
 }
 
 const AddGameModal: React.FC<AddGameModalProps> = ({ isOpen, onClose, onSave }) => {
@@ -35,7 +44,7 @@ const AddGameModal: React.FC<AddGameModalProps> = ({ isOpen, onClose, onSave }) 
                     
                     <TabsContent value="manual">
                         <AddGameForm 
-                            onSave={(gameName, launchDate, suggestedPrice) => onSave(gameName, launchDate, suggestedPrice, null)} 
+                            onSave={(gameName, launchDate, suggestedPrice) => onSave(gameName, launchDate, suggestedPrice, null, null, null, null, null)} 
                             onClose={onClose} 
                         />
                     </TabsContent>
