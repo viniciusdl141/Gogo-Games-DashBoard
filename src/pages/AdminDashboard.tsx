@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import StudioList from '@/components/admin/StudioList';
 import GameAssignment from '@/components/admin/GameAssignment';
+import CreateDefaultStudio from '@/components/admin/CreateDefaultStudio';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const AdminDashboard: React.FC = () => {
@@ -58,6 +59,9 @@ const AdminDashboard: React.FC = () => {
 
     return (
         <div className="min-h-screen p-4 md:p-8 font-sans gaming-background">
+            {/* Componente que cria o estúdio padrão automaticamente */}
+            <CreateDefaultStudio />
+
             <header className="flex items-center justify-between mb-8 pb-4 border-b border-border">
                 <div className="flex flex-col">
                     <h1 className="text-3xl font-extrabold text-gogo-orange drop-shadow-md flex items-center">
