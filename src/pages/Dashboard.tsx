@@ -52,6 +52,7 @@ import AddGameModal from '@/components/dashboard/AddGameModal'; // NEW IMPORT
 import DeleteGameButton from '@/components/dashboard/DeleteGameButton'; // NEW IMPORT
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
+import EditGameGeneralInfoForm from '@/components/dashboard/EditGameGeneralInfoForm'; // NOVO IMPORT
 
 // Initialize data once
 const initialRawData = getTrackingData();
@@ -195,12 +196,12 @@ const Dashboard = () => {
         } else {
             // If the game exists in Supabase, just update its metadata
             await updateGameInSupabase(gameId, { launch_date: launchDate, capsule_image_url: capsuleImageUrl });
-            toast.success(`Metadados para "${selectedGameName}" atualizados.`);
+            toast.success(`Informações gerais para "${selectedGameName}" atualizadas.`);
         }
         refetchSupabaseGames(); // Always refetch to ensure UI is in sync
     } catch (error) {
         console.error("Error updating launch date:", error);
-        toast.error("Falha ao atualizar metadados.");
+        toast.error("Falha ao atualizar informações gerais.");
     }
   }, [refetchSupabaseGames, supabaseGames, selectedGameName, selectedGame?.suggested_price]);
 

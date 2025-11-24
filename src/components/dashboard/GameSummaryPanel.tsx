@@ -18,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import LaunchTimer from './LaunchTimer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import EditGameMetadataForm from './EditGameMetadataForm'; // Importar o novo nome
+import EditGameGeneralInfoForm from './EditGameGeneralInfoForm'; // Importar o novo nome
 import GameCapsule from './GameCapsule'; 
 
 interface GameSummaryPanelProps {
@@ -116,14 +116,14 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                                 className="bg-gogo-orange hover:bg-gogo-orange/90 text-white"
                                 onClick={() => setIsLaunchDateDialogOpen(true)}
                             >
-                                <CalendarDays className="h-4 w-4 mr-2" /> Editar Metadados
+                                <CalendarDays className="h-4 w-4 mr-2" /> Editar Informações Gerais
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[400px]">
                             <DialogHeader>
-                                <DialogTitle>Editar Metadados do Jogo</DialogTitle>
+                                <DialogTitle>Editar Informações Gerais</DialogTitle>
                             </DialogHeader>
-                            <EditGameMetadataForm 
+                            <EditGameGeneralInfoForm 
                                 gameId={gameId}
                                 gameName={gameName}
                                 currentLaunchDate={launchDate}

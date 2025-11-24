@@ -23,7 +23,7 @@ const formSchema = z.object({
 
 type GameMetadataFormValues = z.infer<typeof formSchema>;
 
-interface EditGameMetadataFormProps {
+interface EditGameGeneralInfoFormProps {
     gameId: string;
     gameName: string;
     currentLaunchDate: Date | null;
@@ -32,7 +32,7 @@ interface EditGameMetadataFormProps {
     onClose: () => void;
 }
 
-const EditGameMetadataForm: React.FC<EditGameMetadataFormProps> = ({ gameId, gameName, currentLaunchDate, currentCapsuleImageUrl, onSave, onClose }) => {
+const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ gameId, gameName, currentLaunchDate, currentCapsuleImageUrl, onSave, onClose }) => {
     const defaultDateString = currentLaunchDate ? currentLaunchDate.toISOString().split('T')[0] : '';
 
     const form = useForm<GameMetadataFormValues>({
@@ -46,14 +46,14 @@ const EditGameMetadataForm: React.FC<EditGameMetadataFormProps> = ({ gameId, gam
     const onSubmit = (values: GameMetadataFormValues) => {
         const imageUrl = values.capsuleImageUrl?.trim() || null;
         onSave(gameId, values.launchDate || null, imageUrl);
-        toast.success(`Metadados para "${gameName}" atualizados.`);
+        toast.success(`Informações gerais para "${gameName}" atualizadas.`);
         onClose();
     };
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
-                <h3 className="text-lg font-semibold">Editar Metadados do Jogo: {gameName}</h3>
+                <h3 className="text-lg font-semibold">Editar Informações Gerais do Jogo: {gameName}</h3>
                 
                 <FormField
                     control={form.control}
@@ -100,4 +100,4 @@ const EditGameMetadataForm: React.FC<EditGameMetadataFormProps> = ({ gameId, gam
     );
 };
 
-export default EditGameMetadataForm;
+export default EditGameGeneralInfoForm;
