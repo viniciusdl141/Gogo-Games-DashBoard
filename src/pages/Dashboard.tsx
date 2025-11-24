@@ -55,6 +55,7 @@ import DeleteGameButton from '@/components/dashboard/DeleteGameButton'; // NEW I
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import EditGameGeneralInfoForm from '@/components/dashboard/EditGameGeneralInfoForm'; // NOVO IMPORT
+import { Link } from 'react-router-dom'; // Import Link for navigation
 
 // Initialize data once
 const initialRawData = getTrackingData();
@@ -829,7 +830,13 @@ const Dashboard = () => {
                 frequency: 'Diário',
                 isPlaceholder: true,
             };
-            finalWLSales.push(placeholderEntry);
+            // Only add placeholder if it's an event date or if it's the first date and we have no real data yet
+            const isEventDate = eventTracking.some(e => e.startDate && e.endDate && startOfDay(e.startDate).getTime() <= dateTimestamp && startOfDay(e.endDate).getTime() >= dateTimestamp) ||
+                                manualEventMarkers.some(m => startOfDay(m.date).getTime() === dateTimestamp);
+            
+            if (isEventDate || finalWLSales.length === 0) {
+                finalWLSales.push(placeholderEntry);
+            }
         }
     }
 
@@ -1101,14 +1108,16 @@ const Dashboard = () => {
                 {isAdmin ? 'Admin' : 'Dashboard'}
             </h2>
             
+            {/* NEW: Admin Dashboard Link */}
             {isAdmin && (
-                <Button 
-                    onClick={() => window.location.href = '/admin'} 
-                    variant="outline" 
-                    className="w-full mb-4 text-gogo-orange border-gogo-orange hover:bg-gogo-orange/10"
-                >
-                    <Settings className="h-4 w-4 mr-2" /> Gerenciar Estúdios
-                </Button>
+                <Link to="/admin" className="w-full mb-4">
+                    <Button 
+                        variant="outline" 
+                        className="w-full text-gogo-orange border-gogo-orange hover:bg-gogo-orange/10"
+                    >
+                        <Settings className="h-4 w-4 mr-2" /> Gerenciar Estúdios
+                    </Button>
+                </Link>
             )}
 
             <div className="flex-grow space-y-4">
