@@ -103,7 +103,10 @@ export const getAllStudiosForSelection = async (): Promise<Studio[]> => {
     // We need to ensure RLS allows reading all studios for selection during onboarding.
     // Assuming RLS is configured to allow authenticated users to read all studios for this purpose.
     const { data, error } = await supabase.from('studios').select('*').order('name');
-    if (error) throw error;
+    if (error) {
+        console.error("Error fetching studios for selection:", error);
+        throw error;
+    }
     return data;
 };
 
@@ -112,7 +115,7 @@ export const linkProfileToStudio = async (userId: string, studioId: string): Pro
     // NOTE: The profiles table currently doesn't have a studio_id column. 
     // We must update the studio table to set the user as the owner, or update the profile table to link the studio.
     // Since the current schema links the studio to the owner (1:1), we must update the studio's owner_id.
-    // HOWEVER, if multiple users belong to one studio, we need a many-to-many relationship or a studio_id column in profiles.
+    // However, if multiple users belong to one studio, we need a many-to-many relationship or a studio_id column in profiles.
     
     // Based on the current schema (Studio has owner_id), let's assume the user is becoming the owner of the selected studio.
     // This is likely incorrect for a multi-user scenario.
