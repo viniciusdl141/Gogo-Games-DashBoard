@@ -129,25 +129,22 @@ const Dashboard = () => {
   const allAvailableGames = useMemo(() => {
     const combinedGamesMap = new Map<string, SupabaseGame>();
     
-    // 1. Add games from Supabase, filtered by studio_id if not admin
+    // 1. Add games from Supabase (already filtered by RLS/studio_id)
     supabaseGames.forEach(game => {
-      if (isAdmin || game.studio_id === userStudioId) {
         combinedGamesMap.set(game.name, game);
-      }
     });
 
-    // 2. Add games from local data if not already in Supabase, without launch_date/price/image
+    // 2. Add games from local data if not already in Supabase
     trackingData.games.forEach(gameName => {
       if (!combinedGamesMap.has(gameName)) {
         // Assign a temporary local ID if not in Supabase
-        // NOTE: Local games are currently not filtered by studio_id as they lack this metadata.
-        // For multi-tenancy, we assume local data is only relevant if no Supabase data exists yet.
+        // These local games are visible to everyone until they are explicitly added to Supabase
         combinedGamesMap.set(gameName, { id: generateLocalUniqueId('game'), name: gameName, launch_date: null, suggested_price: null, capsule_image_url: null, studio_id: null, created_at: new Date().toISOString() });
       }
     });
 
     return Array.from(combinedGamesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [supabaseGames, trackingData.games, isAdmin, userStudioId]);
+  }, [supabaseGames, trackingData.games]);
 
   // Set initial selected game based on combined list
   React.useEffect(() => {

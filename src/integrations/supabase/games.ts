@@ -11,7 +11,10 @@ export interface Game {
 }
 
 export const getGames = async (): Promise<Game[]> => {
-  // Fetch games and join with studios to get studio name if needed later, but for now, just fetch game data
+  // O RLS (Row Level Security) na tabela 'games' já garante que:
+  // 1. Administradores vejam todos os jogos.
+  // 2. Usuários autenticados vejam apenas jogos onde game.studio_id corresponde ao profiles.studio_id.
+  // Portanto, basta selecionar todos os jogos e o Supabase fará a filtragem de segurança.
   const { data, error } = await supabase.from('games').select('*').order('name');
   if (error) throw error;
   return data as Game[];
