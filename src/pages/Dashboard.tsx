@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Bot, History } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Bot, History, LogOut, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -19,6 +19,8 @@ import {
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useQuery } from '@tanstack/react-query';
 import { getGames, addGame as addGameToSupabase, updateGame as updateGameInSupabase, deleteGame as deleteGameFromSupabase, Game as SupabaseGame } from '@/integrations/supabase/games';
+import { supabase } from '@/integrations/supabase/client';
+import { useSession } from '@/components/SessionContextProvider';
 import { rawData } from '@/data/rawTrackingData'; // Import rawData
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
@@ -81,8 +83,12 @@ const defaultChartColors: WLSalesChartColors = {
 };
 
 const Dashboard = () => {
+  const { profile, isLoading: isSessionLoading } = useSession();
+  const isAdmin = profile?.role === 'admin';
+  const userStudioId = profile?.studio_id;
+
   const [trackingData, setTrackingData] = useState(initialRawData);
-  const [selectedGameName, setSelectedGameName] = useState<string>(trackingData.games[0] || '');
+  const [selectedGameName, setSelectedGameName] = useState<string>('');
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'All'>('All');
   const [selectedTimeFrame, setSelectedTimeFrame] = useState<TimeFrame>('weekly'); 
   const [selectedTab, setSelectedTab] = useState('overview'); 
@@ -102,23 +108,24 @@ const Dashboard = () => {
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
   const [isAIDataProcessorOpen, setIsAIDataProcessorOpen] = useState(false);
 
-  // Fetch games from Supabase
-  const { data: supabaseGames, refetch: refetchSupabaseGames } = useQuery<SupabaseGame[], Error>({
-    queryKey: ['supabaseGames'],
+  // Fetch games from Supabase (RLS filters automatically)
+  const { data: supabaseGames, refetch: refetchSupabaseGames, isLoading: isLoadingGames } = useQuery<SupabaseGame[], Error>({
+    queryKey: ['supabaseGames', userStudioId, isAdmin],
     queryFn: getGames,
     initialData: [],
+    enabled: !isSessionLoading, // Only fetch once session is loaded
   });
 
-  // Combine local games with Supabase games, prioritizing Supabase for launch dates and price
+  // Combine local games with Supabase games, prioritizing Supabase for metadata
   const allAvailableGames = useMemo(() => {
     const combinedGamesMap = new Map<string, SupabaseGame>();
     
-    // Add games from Supabase
+    // 1. Add games visible via RLS (Supabase)
     supabaseGames.forEach(game => {
       combinedGamesMap.set(game.name, game);
     });
 
-    // Add games from local data if not already in Supabase, without launch_date/price/image
+    // 2. Add games from local data if they exist in trackingData but not in Supabase (e.g., old entries)
     trackingData.games.forEach(gameName => {
       if (!combinedGamesMap.has(gameName)) {
         // Assign a temporary local ID if not in Supabase
@@ -128,10 +135,11 @@ const Dashboard = () => {
             launch_date: null, 
             suggested_price: null, 
             capsule_image_url: null, 
-            price_usd: null, // NEW
-            developer: null, // NEW
-            publisher: null, // NEW
-            review_summary: null, // NEW
+            price_usd: null, 
+            developer: null, 
+            publisher: null, 
+            review_summary: null, 
+            studio_id: null, // Local data games have no studio ID initially
             created_at: new Date().toISOString() 
         });
       }
@@ -145,7 +153,6 @@ const Dashboard = () => {
     if (allAvailableGames.length > 0 && !selectedGameName) {
       setSelectedGameName(allAvailableGames[0].name);
     } else if (allAvailableGames.length > 0 && !allAvailableGames.some(g => g.name === selectedGameName)) {
-      // If the previously selected game is no longer in the list (e.g., deleted), select the first one
       setSelectedGameName(allAvailableGames[0].name);
     }
   }, [allAvailableGames, selectedGameName]);
@@ -182,71 +189,59 @@ const Dashboard = () => {
         toast.error(`O jogo "${gameName}" já existe.`);
         return;
     }
+    
+    // Assign game to user's studio if they are not admin, otherwise assign null (admin handles assignment later)
+    const studioId = isAdmin ? null : userStudioId;
+
     try {
-        await addGameToSupabase(gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary);
+        await addGameToSupabase(gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary, studioId);
         refetchSupabaseGames(); // Refresh games from Supabase
         toast.success(`Jogo "${gameName}" adicionado com sucesso!`);
         setSelectedGameName(gameName);
     } catch (error) {
         console.error("Error adding game:", error);
-        toast.error("Falha ao adicionar jogo.");
+        toast.error("Falha ao adicionar jogo. Verifique suas permissões.");
     }
-  }, [allAvailableGames, refetchSupabaseGames]);
+  }, [allAvailableGames, refetchSupabaseGames, isAdmin, userStudioId]);
 
-  const handleUpdateGeneralInfo = useCallback(async (gameId: string, updates: { 
-    launchDate: string | null, 
-    capsuleImageUrl: string | null, 
-    suggestedPrice: number | null,
-    priceUsd: number | null,
-    developer: string | null,
-    publisher: string | null,
-    reviewSummary: string | null,
-  }) => {
+  const handleUpdateGeneralInfo = useCallback(async (gameId: string, updates: Partial<SupabaseGame>) => {
     try {
         const gameInSupabase = supabaseGames.find(g => g.id === gameId);
         
-        const updatePayload: Partial<SupabaseGame> = {
-            launch_date: updates.launchDate,
-            capsule_image_url: updates.capsuleImageUrl,
-            suggested_price: updates.suggestedPrice,
-            price_usd: updates.priceUsd,
-            developer: updates.developer,
-            publisher: updates.publisher,
-            review_summary: updates.reviewSummary,
-        };
-
         if (!gameInSupabase) {
             // If the game is not in Supabase (it has a local ID), add it first
+            const studioId = isAdmin ? null : userStudioId;
             await addGameToSupabase(
                 selectedGameName, 
-                updates.launchDate, 
-                updates.suggestedPrice, 
-                updates.capsuleImageUrl,
-                updates.priceUsd,
-                updates.developer,
-                updates.publisher,
-                updates.reviewSummary
+                updates.launch_date || null, 
+                updates.suggested_price || null, 
+                updates.capsule_image_url || null,
+                updates.price_usd || null,
+                updates.developer || null,
+                updates.publisher || null,
+                updates.review_summary || null,
+                studioId
             );
             toast.success(`Jogo "${selectedGameName}" adicionado ao Supabase com metadados.`);
         } else {
             // If the game exists in Supabase, just update its metadata
-            await updateGameInSupabase(gameId, updatePayload);
+            await updateGameInSupabase(gameId, updates);
             toast.success(`Informações gerais para "${selectedGameName}" atualizadas.`);
         }
         refetchSupabaseGames(); // Always refetch to ensure UI is in sync
     } catch (error) {
         console.error("Error updating general info:", error);
-        toast.error("Falha ao atualizar informações gerais.");
+        toast.error("Falha ao atualizar informações gerais. Verifique se você tem permissão.");
     }
-  }, [refetchSupabaseGames, supabaseGames, selectedGameName]);
+  }, [refetchSupabaseGames, supabaseGames, selectedGameName, isAdmin, userStudioId]);
 
   const handleDeleteGame = useCallback(async (gameId: string) => {
     const gameToDelete = allAvailableGames.find(g => g.id === gameId);
     if (!gameToDelete) return;
 
     try {
-        // 1. Delete from Supabase if it has a real ID
-        if (!gameId.startsWith('game-')) { // Assuming local IDs start with 'game-'
+        // 1. Delete from Supabase if it has a real ID (RLS handles permission check)
+        if (!gameId.startsWith('game-')) { 
             await deleteGameFromSupabase(gameId);
         }
         
@@ -275,7 +270,7 @@ const Dashboard = () => {
         toast.success(`Jogo "${gameToDelete.name}" excluído com sucesso.`);
     } catch (error) {
         console.error("Error deleting game:", error);
-        toast.error("Falha ao excluir jogo.");
+        toast.error("Falha ao excluir jogo. Verifique se você tem permissão.");
     }
   }, [allAvailableGames, refetchSupabaseGames]);
 
@@ -288,7 +283,7 @@ const Dashboard = () => {
 
         // Helper to process arrays, convert dates, and assign IDs
         const processArray = (key: keyof TrackingData, prefix: string, data: any[]) => {
-            if (!Array.isArray(data)) return;
+            if (!Array.isArray(data)) return [];
 
             const processedData = data.map(item => {
                 const newItem = { ...item, id: generateLocalUniqueId(prefix), game: gameName };
@@ -334,24 +329,26 @@ const Dashboard = () => {
                 const existingEntries = prevData[key].filter((e: any) => e.game !== gameName);
                 newTrackingData[key] = [...existingEntries, ...processedData];
             }
+            return newTrackingData[key];
         };
 
         // Process each type of data returned by the AI
-        processArray('influencerTracking', 'ai-inf', structuredData.influencerTracking || []);
-        processArray('eventTracking', 'ai-evt', structuredData.eventTracking || []);
-        processArray('paidTraffic', 'ai-paid', structuredData.paidTraffic || []);
-        processArray('wlSales', 'ai-wl', structuredData.wlSales || []);
-        processArray('demoTracking', 'ai-demo', structuredData.demoTracking || []);
-        processArray('trafficTracking', 'ai-traffic', structuredData.trafficTracking || []);
-        processArray('manualEventMarkers', 'ai-marker', structuredData.manualEventMarkers || []);
+        newTrackingData.influencerTracking = processArray('influencerTracking', 'ai-inf', structuredData.influencerTracking || []);
+        newTrackingData.eventTracking = processArray('eventTracking', 'ai-evt', structuredData.eventTracking || []);
+        newTrackingData.paidTraffic = processArray('paidTraffic', 'ai-paid', structuredData.paidTraffic || []);
+        processArray('wlSales', 'ai-wl', structuredData.wlSales || []); // wlSales is handled internally due to recalculation
+        newTrackingData.demoTracking = processArray('demoTracking', 'ai-demo', structuredData.demoTracking || []);
+        newTrackingData.trafficTracking = processArray('trafficTracking', 'ai-traffic', structuredData.trafficTracking || []);
+        newTrackingData.manualEventMarkers = processArray('manualEventMarkers', 'ai-marker', structuredData.manualEventMarkers || []);
 
         return newTrackingData;
     });
   }, [selectedGameName, recalculateWLSales]);
 
 
-  // --- WL/Sales Handlers ---
-
+  // --- WL/Sales Handlers (omitted for brevity, assume they use setTrackingData correctly) ---
+  // ... (All other handlers remain the same, using setTrackingData) ...
+  
   const handleEditWLSalesEntry = useCallback((updatedEntry: WLSalesPlatformEntry) => {
     setTrackingData(prevData => {
         const updatedWLSales = prevData.wlSales.map(entry => 
@@ -412,22 +409,17 @@ const Dashboard = () => {
   }, [recalculateWLSales]);
 
   const handleChartPointClick = useCallback((entry: WLSalesPlatformEntry) => {
-    // Set the clicked entry to open the action menu dialog
     setClickedWLSalesEntry(entry);
   }, []);
 
-  // --- Manual Event Marker Handlers ---
-  
   const handleSaveManualMarker = useCallback((values: { date: string, name: string }) => {
     const dateObject = startOfDay(new Date(values.date));
     
-    // Check if a marker already exists for this date/game
     const existingMarker = trackingData.manualEventMarkers.find(m => 
         m.game === selectedGameName && startOfDay(m.date).getTime() === dateObject.getTime()
     );
 
     if (existingMarker) {
-        // Update existing marker
         setTrackingData(prevData => ({
             ...prevData,
             manualEventMarkers: prevData.manualEventMarkers.map(m => 
@@ -435,7 +427,6 @@ const Dashboard = () => {
             ),
         }));
     } else {
-        // Add new marker
         const newMarker: ManualEventMarker = {
             id: generateLocalUniqueId('manual-event'),
             game: selectedGameName,
@@ -447,7 +438,7 @@ const Dashboard = () => {
             manualEventMarkers: [...prevData.manualEventMarkers, newMarker],
         }));
     }
-    setClickedWLSalesEntry(null); // Close the action menu
+    setClickedWLSalesEntry(null); 
   }, [selectedGameName, trackingData.manualEventMarkers]);
 
   const handleDeleteManualMarker = useCallback((id: string) => {
@@ -455,12 +446,9 @@ const Dashboard = () => {
         ...prevData,
         manualEventMarkers: prevData.manualEventMarkers.filter(m => m.id !== id),
     }));
-    setClickedWLSalesEntry(null); // Close the action menu
+    setClickedWLSalesEntry(null); 
   }, []);
 
-
-  // --- Influencer Handlers ---
-  
   const handleEditInfluencerEntry = useCallback((updatedEntry: InfluencerTrackingEntry) => {
     setTrackingData(prevData => ({
         ...prevData,
@@ -493,8 +481,6 @@ const Dashboard = () => {
     }));
     setIsAddInfluencerFormOpen(false);
   }, []);
-
-  // --- Event Handlers ---
 
   const handleEditEventEntry = useCallback((updatedEntry: EventTrackingEntry) => {
     setTrackingData(prevData => ({
@@ -532,8 +518,6 @@ const Dashboard = () => {
     }));
     setIsAddEventFormOpen(false);
   }, []);
-
-  // --- Paid Traffic Handlers ---
 
   const handleEditPaidTrafficEntry = useCallback((updatedEntry: PaidTrafficEntry) => {
     setTrackingData(prevData => ({
@@ -573,8 +557,6 @@ const Dashboard = () => {
     setIsAddPaidTrafficFormOpen(false);
   }, []);
 
-  // --- WL Details Handlers ---
-
   const handleUpdateWlDetails = useCallback((game: string, newDetails: Partial<WlDetails>) => {
     setTrackingData(prevData => {
         const updatedWlDetails = prevData.wlDetails.map(detail => {
@@ -583,7 +565,6 @@ const Dashboard = () => {
             }
             return detail;
         });
-        // If details for this game don't exist, create a new entry
         if (!updatedWlDetails.some(d => d.game === game)) {
             updatedWlDetails.push({ game, reviews: [], bundles: [], traffic: [], ...newDetails });
         }
@@ -591,13 +572,12 @@ const Dashboard = () => {
     });
   }, []);
 
-  // --- Demo Tracking Handlers ---
   const handleAddDemoEntry = useCallback((newEntry: Omit<DemoTrackingEntry, 'id' | 'date'> & { date: string }) => {
     const dateObject = new Date(newEntry.date);
     const entryToAdd: DemoTrackingEntry = {
         ...newEntry,
         id: generateLocalUniqueId('demo'),
-        game: selectedGameName, // Associate with the currently selected game
+        game: selectedGameName, 
         date: dateObject,
     };
     setTrackingData(prevData => ({
@@ -615,7 +595,7 @@ const Dashboard = () => {
             entry.id === updatedEntry.id ? updatedEntry : entry
         ).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)),
     }));
-    setEditingDemoEntry(null); // Close dialog
+    setEditingDemoEntry(null); 
     toast.success("Entrada de Demo Tracking atualizada.");
   }, []);
 
@@ -627,7 +607,6 @@ const Dashboard = () => {
     toast.success("Entrada de Demo Tracking removida com sucesso.");
   }, []);
 
-  // --- Traffic Tracking Handlers ---
   const handleAddTrafficEntry = useCallback((newEntry: { game: string, platform: Platform, source: string, startDate: string, endDate: string, visits: number, impressions?: number, clicks?: number }) => {
     const entryToAdd: TrafficEntry = {
         id: generateLocalUniqueId('traffic'),
@@ -647,11 +626,8 @@ const Dashboard = () => {
     toast.success("Entrada de tráfego/visitas adicionada.");
   }, []);
 
-  // --- Backup/Restore Handlers (Updated) ---
-  
   const handleCreateBackup = useCallback(() => {
     try {
-        // Create a snapshot object containing all current tracking data
         const snapshot = {
             influencerTracking: trackingData.influencerTracking,
             influencerSummary: trackingData.influencerSummary,
@@ -667,14 +643,12 @@ const Dashboard = () => {
         };
 
         const jsonString = JSON.stringify(snapshot, (key, value) => {
-            // Custom replacer to convert Date objects to ISO strings
             if (value instanceof Date) {
                 return value.toISOString();
             }
             return value;
         }, 2);
         
-        // Trigger download
         const blob = new Blob([jsonString], { type: 'application/json' });
         const date = new Date().toISOString().split('T')[0];
         const filename = `gogo_tracking_snapshot_${date}.json`;
@@ -707,7 +681,6 @@ const Dashboard = () => {
             const content = e.target?.result as string;
             const snapshot = JSON.parse(content);
 
-            // Function to convert ISO strings back to Date objects
             const reviveDates = (obj: any): any => {
                 if (typeof obj === 'object' && obj !== null) {
                     for (const key in obj) {
@@ -726,9 +699,8 @@ const Dashboard = () => {
 
             const restoredData = reviveDates(snapshot);
 
-            // Update local tracking data state
             setTrackingData({
-                games: restoredData.games || trackingData.games, // Keep existing game list structure if not present
+                games: restoredData.games || trackingData.games, 
                 influencerTracking: restoredData.influencerTracking || [],
                 influencerSummary: restoredData.influencerSummary || [],
                 eventTracking: restoredData.eventTracking || [],
@@ -741,11 +713,6 @@ const Dashboard = () => {
                 manualEventMarkers: restoredData.manualEventMarkers || [],
             });
             
-            // Note: Supabase games are managed by react-query and should be refreshed separately if needed, 
-            // but for local state integrity, we rely on the local tracking data.
-
-            toast.success("Estado restaurado com sucesso! Use o botão 'Refresh' se o preview não atualizar.");
-            // Clear the file input value to allow restoring the same file again
             event.target.value = ''; 
         } catch (error) {
             console.error("Restore failed:", error);
@@ -764,10 +731,10 @@ const Dashboard = () => {
     const launchDate = selectedGame?.launch_date ? new Date(selectedGame.launch_date) : null;
     const suggestedPrice = selectedGame?.suggested_price || 19.99;
     const capsuleImageUrl = selectedGame?.capsule_image_url || null;
-    const priceUsd = selectedGame?.price_usd || null; // NEW
-    const developer = selectedGame?.developer || null; // NEW
-    const publisher = selectedGame?.publisher || null; // NEW
-    const reviewSummary = selectedGame?.review_summary || null; // NEW
+    const priceUsd = selectedGame?.price_usd || null; 
+    const developer = selectedGame?.developer || null; 
+    const publisher = selectedGame?.publisher || null; 
+    const reviewSummary = selectedGame?.review_summary || null; 
 
     // 1. Filter and enhance data, recalculating dynamic fields
     const influencerTracking = trackingData.influencerTracking
@@ -810,14 +777,12 @@ const Dashboard = () => {
 
 
     // --- Step 4: Inject placeholder entries for event dates without WL data ---
-    const platformForInjection: Platform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform; // Default to Steam if 'All' is selected
+    const platformForInjection: Platform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform; 
 
-    // Encontrar a data mais antiga de um registro real de WL
     const minRealWLDateTimestamp = realWLSales.length > 0 
         ? Math.min(...realWLSales.map(e => startOfDay(e.date!).getTime()))
         : null;
 
-    // Encontrar todas as datas relevantes (WL reais + eventos automáticos + eventos manuais)
     const allDates = new Set<number>();
     realWLSales.forEach(e => e.date && allDates.add(startOfDay(e.date).getTime()));
     eventTracking.forEach(e => {
@@ -835,15 +800,12 @@ const Dashboard = () => {
 
     let sortedDates = Array.from(allDates).sort((a, b) => a - b);
     
-    // CRITICAL FIX: Se houver dados reais de WL, comece a linha do tempo apenas a partir da data do primeiro registro real de WL.
     if (minRealWLDateTimestamp !== null) {
         sortedDates = sortedDates.filter(dateTimestamp => dateTimestamp >= minRealWLDateTimestamp);
     }
     
-    // Map of real WL entries by date timestamp
     const realWLSalesMap = new Map(realWLSales.map(e => [startOfDay(e.date!).getTime(), e]));
 
-    // Iterate through all relevant dates and create the final list, filling gaps with placeholders
     let lastWLValue = 0; 
     const finalWLSales: WLSalesPlatformEntry[] = [];
 
@@ -852,18 +814,16 @@ const Dashboard = () => {
         const existingRealEntry = realWLSalesMap.get(dateTimestamp);
 
         if (existingRealEntry) {
-            // Use real entry and update lastWLValue
             finalWLSales.push(existingRealEntry);
             lastWLValue = existingRealEntry.wishlists;
         } else {
-            // Create placeholder entry
             const placeholderEntry: WLSalesPlatformEntry = {
                 id: generateLocalUniqueId('wl-placeholder'),
                 date: date,
                 game: gameName,
                 platform: platformForInjection,
-                wishlists: lastWLValue, // Use the last known real WL value
-                sales: 0, // Sales must be 0 or null for placeholders
+                wishlists: lastWLValue, 
+                sales: 0, 
                 variation: 0,
                 saleType: 'Padrão',
                 frequency: 'Diário',
@@ -910,27 +870,21 @@ const Dashboard = () => {
 
     const totalInvestment = investmentSources.influencers + investmentSources.events + investmentSources.paidTraffic;
 
-    // Separar Visualizações e Impressões
     const totalInfluencerViews = influencerTracking.reduce((sum, item) => sum + item.views, 0);
     const totalEventViews = eventTracking.reduce((sum, item) => sum + item.views, 0);
     const totalImpressions = paidTraffic.reduce((sum, item) => sum + item.impressions, 0);
     
-    // Calculate total WL increase across all time for AVG daily growth calculation
     const totalWLIncrease = realWLSales.length > 0 
         ? realWLSales[realWLSales.length - 1].wishlists - (realWLSales[0].wishlists - realWLSales[0].variation)
         : 0;
     
-    // Total Sales and Wishlists (for Game Summary Panel) - based on filtered WL Sales
     const totalSales = realWLSales.reduce((sum, item) => sum + item.sales, 0);
     const totalWishlists = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists : 0;
 
-    // Calculate total WL generated from marketing activities
     const totalWLGenerated = influencerTracking.reduce((sum, item) => sum + item.estimatedWL, 0) +
                              eventTracking.reduce((sum, item) => sum + item.wlGenerated, 0) +
                              paidTraffic.reduce((sum, item) => sum + item.estimatedWishlists, 0);
 
-    // --- NEW KPI CALCULATIONS ---
-    
     // 4. Calculate WL Growth Metrics based on selectedTimeFrame
     
     let daysToSubtract = 0;
@@ -942,13 +896,12 @@ const Dashboard = () => {
         case 'annual': daysToSubtract = 365; break;
         case 'total': 
         default: 
-            daysToSubtract = 99999; // Effectively total
+            daysToSubtract = 99999; 
     }
 
     const today = startOfDay(new Date());
     const startDateLimit = subDays(today, daysToSubtract);
 
-    // Filter real WL entries within the selected timeframe
     const wlEntriesInTimeFrame = realWLSales.filter(e => 
         e.date && (selectedTimeFrame === 'total' || startOfDay(e.date).getTime() >= startDateLimit.getTime())
     );
@@ -961,18 +914,15 @@ const Dashboard = () => {
         const totalDaysTracked = realWLSales.length > 0 ? (realWLSales[realWLSales.length - 1].date!.getTime() - realWLSales[0].date!.getTime()) / (1000 * 60 * 60 * 24) + 1 : 0;
         avgDailyGrowthInPeriod = totalDaysTracked > 0 ? totalWLIncrease / totalDaysTracked : 0;
     } else {
-        // Calculate growth within the window: sum of variations
         const firstEntryInPeriod = wlEntriesInTimeFrame[0];
         const lastEntryInPeriod = wlEntriesInTimeFrame[wlEntriesInTimeFrame.length - 1];
         
         if (firstEntryInPeriod && lastEntryInPeriod) {
-            // Find the WL value immediately preceding the start of the period
             const indexBeforeStart = realWLSales.findIndex(e => e.id === firstEntryInPeriod.id) - 1;
             const wlBeforePeriod = indexBeforeStart >= 0 ? realWLSales[indexBeforeStart].wishlists : 0;
             
             totalGrowthInPeriod = lastEntryInPeriod.wishlists - wlBeforePeriod;
 
-            // Calculate average daily growth in this specific period
             const daysInPeriod = (lastEntryInPeriod.date!.getTime() - firstEntryInPeriod.date!.getTime()) / (1000 * 60 * 60 * 24) + 1;
             avgDailyGrowthInPeriod = daysInPeriod > 0 ? totalGrowthInPeriod / daysInPeriod : 0;
 
@@ -984,16 +934,13 @@ const Dashboard = () => {
     
     // 5. Calculate Conversion Rates
     
-    // C. WL-to-Sales Conversion Rate (Post-Launch)
     const wlToSalesSummary = trackingData.resultSummary.find(r => r.game.trim() === gameName && r['Conversão vendas/wl']);
     const wlToSalesConversionRate = Number(wlToSalesSummary?.['Conversão vendas/wl']) || 0;
 
-    // D. Visitor-to-Wishlist Conversion Rate (V2W) - Use manual traffic data if available
     let totalVisits = 0;
     let totalWishlistsInTrafficPeriod = 0;
     let visitorToWlConversionRate = 0;
 
-    // Find the latest traffic entry for the current game/platform (defaulting to Steam if 'All' selected)
     const relevantPlatform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform;
     const latestTrafficEntry = trackingData.trafficTracking
         .filter(t => t.game.trim() === gameName && t.platform === relevantPlatform)
@@ -1002,7 +949,6 @@ const Dashboard = () => {
     if (latestTrafficEntry && latestTrafficEntry.startDate && latestTrafficEntry.endDate) {
         totalVisits = latestTrafficEntry.visits;
         
-        // Calculate WL increase during the traffic period
         const trafficStart = startOfDay(latestTrafficEntry.startDate).getTime();
         const trafficEnd = startOfDay(latestTrafficEntry.endDate).getTime();
 
@@ -1011,11 +957,10 @@ const Dashboard = () => {
         );
 
         if (wlEntriesInTrafficPeriod.length > 1) {
-            const initialWL = wlEntriesInTrafficPeriod[0].wishlists - wlEntriesInTrafficPeriod[0].variation; // WL before the period started
+            const initialWL = wlEntriesInTrafficPeriod[0].wishlists - wlEntriesInTrafficPeriod[0].variation; 
             const finalWL = wlEntriesInTrafficPeriod[wlEntriesInTrafficPeriod.length - 1].wishlists;
             totalWishlistsInTrafficPeriod = finalWL - initialWL;
         } else if (wlEntriesInTrafficPeriod.length === 1) {
-             // If only one entry, use its variation
              totalWishlistsInTrafficPeriod = wlEntriesInTrafficPeriod[0].variation;
         }
         
@@ -1023,13 +968,11 @@ const Dashboard = () => {
             visitorToWlConversionRate = totalWishlistsInTrafficPeriod / totalVisits;
         }
     } else {
-        // Fallback to static data if no manual traffic entry exists
         const rawTrafficData = rawData['Trafego pago'] as any[];
         const gameConversionEntry = rawTrafficData.find(item => item.Game_1?.trim() === gameName);
         visitorToWlConversionRate = Number(gameConversionEntry?.['Conversão Steam']) || 0;
     }
     
-    // Final KPI object structure:
     const kpis = {
         gameId,
         totalInvestment,
@@ -1043,10 +986,10 @@ const Dashboard = () => {
         launchDate,
         suggestedPrice,
         capsuleImageUrl,
-        priceUsd, // NEW
-        developer, // NEW
-        publisher, // NEW
-        reviewSummary, // NEW
+        priceUsd, 
+        developer, 
+        publisher, 
+        reviewSummary, 
         avgDailyGrowth: avgDailyGrowthInPeriod,
         totalGrowth: totalGrowthInPeriod, 
         visitorToWlConversionRate,
@@ -1066,16 +1009,19 @@ const Dashboard = () => {
       manualEventMarkers, 
       kpis,
     };
-  }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame, selectedTimeFrame]);
+  }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame, selectedTimeFrame, supabaseGames]);
 
-  // Determine if a manual marker already exists for the selected date
   const existingMarkerForClickedEntry = useMemo(() => {
     if (!clickedWLSalesEntry || !clickedWLSalesEntry.date) return undefined;
     const dateTimestamp = startOfDay(clickedWLSalesEntry.date).getTime();
     return filteredData?.manualEventMarkers.find(m => startOfDay(m.date).getTime() === dateTimestamp);
   }, [clickedWLSalesEntry, filteredData]);
   
-  // Componente de Configuração de Cores
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.info("Sessão encerrada.");
+  };
+
   const ColorConfigForm = () => (
     <div className="space-y-4 p-4">
         <h3 className="text-lg font-semibold">Configuração de Cores do Gráfico WL/Vendas</h3>
@@ -1116,27 +1062,33 @@ const Dashboard = () => {
   );
 
 
-  // Renderização condicional para quando não há jogos
+  if (isSessionLoading || isLoadingGames) {
+    return (
+        <div className="min-h-screen flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-gogo-cyan" />
+        </div>
+    );
+  }
+
   if (allAvailableGames.length === 0) {
     return (
         <div className="min-h-screen flex items-center justify-center p-8 bg-background text-foreground gaming-background">
             <Card className="p-6 shadow-xl border border-border">
                 <h1 className="text-2xl font-bold mb-4 text-gogo-cyan">Dashboard de Rastreamento</h1>
-                <p className="text-muted-foreground">Nenhum dado de rastreamento encontrado.</p>
+                <p className="text-muted-foreground">Nenhum jogo encontrado para o seu estúdio.</p>
                 <Button onClick={() => setIsAddGameFormOpen(true)} className="mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90">
-                    <Plus className="h-4 w-4 mr-2" /> Adicionar Primeiro Jogo
+                    <Plus className="h-4 w-4 mr-2" /> Adicionar Jogo
                 </Button>
                 <AddGameModal 
                     isOpen={isAddGameFormOpen} 
                     onClose={() => setIsAddGameFormOpen(false)} 
-                    onSave={handleAddGame} 
+                    onSave={(gameName, launchDate, suggestedPrice, capsuleImageUrl) => handleAddGame(gameName, launchDate, suggestedPrice, capsuleImageUrl, null, null, null, null)} 
                 />
             </Card>
         </div>
     );
   }
 
-  // Renderização principal
   return (
     <div className="min-h-screen p-4 md:p-8 font-sans gaming-background">
       <ResizablePanelGroup
@@ -1145,7 +1097,20 @@ const Dashboard = () => {
       >
         <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-muted/20 border-r border-border shadow-inner">
           <div className="flex flex-col h-full">
-            <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">Selecione um Jogo</h2>
+            <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">
+                {isAdmin ? 'Admin' : 'Dashboard'}
+            </h2>
+            
+            {isAdmin && (
+                <Button 
+                    onClick={() => window.location.href = '/admin'} 
+                    variant="outline" 
+                    className="w-full mb-4 text-gogo-orange border-gogo-orange hover:bg-gogo-orange/10"
+                >
+                    <Settings className="h-4 w-4 mr-2" /> Gerenciar Estúdios
+                </Button>
+            )}
+
             <div className="flex-grow space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="game-select" className="font-semibold text-foreground">Jogo:</Label>
@@ -1195,7 +1160,7 @@ const Dashboard = () => {
                 />
             )}
 
-            {/* Backup/Restore and AI Help Buttons */}
+            {/* Backup/Restore and Logout Buttons */}
             <div className="mt-auto pt-4 border-t border-border space-y-2">
                 <Button 
                     onClick={handleCreateBackup} 
@@ -1223,6 +1188,9 @@ const Dashboard = () => {
                         </div>
                     </Button>
                 </Label>
+                <Button onClick={handleLogout} variant="secondary" className="w-full mt-2">
+                    <LogOut className="h-4 w-4 mr-2" /> Sair
+                </Button>
             </div>
           </div>
         </ResizablePanel>
@@ -1250,7 +1218,6 @@ const Dashboard = () => {
                             <TabsTrigger value="influencers" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Influencers</TabsTrigger>
                             <TabsTrigger value="events" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Eventos</TabsTrigger>
                             <TabsTrigger value="paid-traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego Pago</TabsTrigger>
-                            <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Demo</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="overview" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
@@ -1266,7 +1233,6 @@ const Dashboard = () => {
                                 launchDate={filteredData.kpis.launchDate}
                                 investmentSources={filteredData.kpis.investmentSources}
                                 onUpdateGeneralInfo={async (id, updates) => {
-                                    // Convert updates object to match SupabaseGame interface keys
                                     const payload: Partial<SupabaseGame> = {
                                         launch_date: updates.launchDate,
                                         capsule_image_url: updates.capsuleImageUrl,
@@ -1278,13 +1244,12 @@ const Dashboard = () => {
                                     };
                                     await handleUpdateGeneralInfo(id, payload);
                                 }}
-                                // Pass suggested price and image URL
                                 suggestedPrice={filteredData.kpis.suggestedPrice} 
                                 capsuleImageUrl={filteredData.kpis.capsuleImageUrl}
-                                priceUsd={filteredData.kpis.priceUsd} // NEW
-                                developer={filteredData.kpis.developer} // NEW
-                                publisher={filteredData.kpis.publisher} // NEW
-                                reviewSummary={filteredData.kpis.reviewSummary} // NEW
+                                priceUsd={filteredData.kpis.priceUsd} 
+                                developer={filteredData.kpis.developer} 
+                                publisher={filteredData.kpis.publisher} 
+                                reviewSummary={filteredData.kpis.reviewSummary} 
                             />
                             
                             <WlConversionKpisPanel 
@@ -1336,7 +1301,6 @@ const Dashboard = () => {
                                     variant="outline" 
                                     size="sm" 
                                     onClick={() => {
-                                        // Create a temporary placeholder entry for today to open the action menu
                                         const todayEntry: WLSalesPlatformEntry = {
                                             id: generateLocalUniqueId('temp-today'),
                                             date: startOfDay(new Date()),
@@ -1360,7 +1324,7 @@ const Dashboard = () => {
                                     {isHistoryVisible ? 'Ocultar Histórico' : 'Mostrar Histórico'}
                                 </Button>
                                 <ExportDataButton 
-                                    data={filteredData.wlSales.filter(e => !e.isPlaceholder)} // Do not export placeholders
+                                    data={filteredData.wlSales.filter(e => !e.isPlaceholder)} 
                                     filename={`${selectedGameName}_${selectedPlatform}_WL_Vendas.csv`} 
                                     label="WL/Vendas"
                                 />
@@ -1387,11 +1351,11 @@ const Dashboard = () => {
                                 onPointClick={handleChartPointClick} 
                                 eventTracking={filteredData.eventTracking}
                                 manualEventMarkers={filteredData.manualEventMarkers}
-                                chartColors={chartColors} // Passando as cores
+                                chartColors={chartColors} 
                             />
                             {isHistoryVisible && (
                                 <WLSalesTablePanel 
-                                    data={filteredData.wlSales.filter(e => !e.isPlaceholder)} // Do not show placeholders in table
+                                    data={filteredData.wlSales.filter(e => !e.isPlaceholder)} 
                                     onDelete={handleDeleteWLSalesEntry} 
                                     onEdit={handleEditWLSalesEntry}
                                     games={trackingData.games}
@@ -1399,7 +1363,6 @@ const Dashboard = () => {
                             )}
                         </TabsContent>
                         
-                        {/* STEAM PAGE TAB */}
                         <TabsContent value="steam-page" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
                             <h2 className="text-2xl font-bold text-gogo-orange mb-4">Detalhes da Página Steam</h2>
                             
@@ -1544,14 +1507,9 @@ const Dashboard = () => {
                                 games={trackingData.games}
                             />
                         </TabsContent>
-                        
-                        <TabsContent value="demo" className="space-y-6 mt-4 p-6 bg-card rounded-b-lg shadow-xl border border-border">
-                            {/* Conteúdo da aba Demo movido para steam-page, mas mantendo o formulário de edição aqui para consistência se necessário */}
-                            <p className="text-muted-foreground">O tracking de Demo foi movido para a aba "Página Steam" para consolidar dados específicos da Steam.</p>
-                        </TabsContent>
                     </Tabs>
 
-                    {/* Dialog for editing Demo Tracking entry */}
+                    {/* Dialogs for editing local data */}
                     <Dialog open={!!editingDemoEntry} onOpenChange={(open) => !open && setEditingDemoEntry(null)}>
                         <DialogContent className="sm:max-w-[600px]">
                             <DialogHeader>
@@ -1567,7 +1525,6 @@ const Dashboard = () => {
                         </DialogContent>
                     </Dialog>
 
-                    {/* NEW: Dialog for WL Sales Action Menu (triggered by chart click or manual button) */}
                     <Dialog open={!!clickedWLSalesEntry} onOpenChange={(open) => !open && setClickedWLSalesEntry(null)}>
                         <DialogContent className={clickedWLSalesEntry?.isPlaceholder ? "sm:max-w-[450px]" : "sm:max-w-[600px]"}>
                             {clickedWLSalesEntry && (
@@ -1579,7 +1536,6 @@ const Dashboard = () => {
                                     onSaveManualMarker={handleSaveManualMarker}
                                     onDeleteManualMarker={handleDeleteManualMarker}
                                     onClose={() => setClickedWLSalesEntry(null)}
-                                    // Pass ALL tracking data for the Daily Summary Panel
                                     allWLSales={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName)}
                                     allInfluencerTracking={trackingData.influencerTracking.filter(e => e.game.trim() === selectedGameName)}
                                     allEventTracking={trackingData.eventTracking.filter(e => e.game.trim() === selectedGameName)}
@@ -1597,7 +1553,6 @@ const Dashboard = () => {
       </ResizablePanelGroup>
       <MadeWithDyad />
       
-      {/* RENDERIZANDO O MODAL DE ADICIONAR JOGO AQUI */}
       <AddGameModal 
           isOpen={isAddGameFormOpen} 
           onClose={() => setIsAddGameFormOpen(false)} 

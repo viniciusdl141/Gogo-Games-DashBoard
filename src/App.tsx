@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import AdminDashboard from "./pages/AdminDashboard";
 import { SessionContextProvider, useSession } from "./components/SessionContextProvider";
 import React from "react";
 import { ThemeProvider } from "@/components/theme-provider"; 
@@ -15,10 +16,10 @@ const queryClient = new QueryClient();
 
 // Componente de rota protegida
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { session, isLoading } = useSession();
+  const { session, isLoading, profile } = useSession();
 
   if (isLoading) {
-    // Mostra um loader enquanto a sessão está sendo carregada
+    // Mostra um loader enquanto a sessão e o perfil estão sendo carregados
     return (
         <div className="min-h-screen flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-gogo-cyan" />
@@ -49,6 +50,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Index />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
                   </ProtectedRoute>
                 } 
               />
