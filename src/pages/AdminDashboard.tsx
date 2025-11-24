@@ -14,10 +14,10 @@ import GameAssignment from '@/components/admin/GameAssignment';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const AdminDashboard: React.FC = () => {
-    const { profile, isLoading } = useSession();
-    const [activeTab, setActiveTab] = useState('studios');
+    const { profile, isLoading, user } = useSession(); // Adicionando 'user'
 
-    if (isLoading) {
+    // Se estiver carregando, ou se o usuário estiver logado mas o perfil ainda não foi carregado, mostre o loader.
+    if (isLoading || (user && !profile)) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-gogo-cyan" />
