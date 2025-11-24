@@ -73,13 +73,12 @@ export const deleteGame = async (id: string): Promise<void> => {
 };
 
 export const getStudioByOwner = async (ownerId: string): Promise<Studio | null> => {
-  const { data, error } = await supabase.from('studios').select('*').eq('owner_id', ownerId).limit(1);
+  // Use .maybeSingle() to handle 0 or 1 result gracefully without throwing an error on 'no rows found'
+  const { data, error } = await supabase.from('studios').select('*').eq('owner_id', ownerId).maybeSingle();
+  
   if (error) throw error;
   
-  if (data && data.length > 0) {
-    return data[0] as Studio;
-  }
-  return null;
+  return data as Studio | null;
 };
 
 export const createStudio = async (name: string, ownerId: string): Promise<Studio> => {
@@ -89,13 +88,12 @@ export const createStudio = async (name: string, ownerId: string): Promise<Studi
 };
 
 export const getProfile = async (userId: string): Promise<Profile | null> => {
-  const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, is_admin').eq('id', userId).limit(1);
+  // Use .maybeSingle() to handle 0 or 1 result gracefully without throwing an error on 'no rows found'
+  const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, is_admin').eq('id', userId).maybeSingle();
+  
   if (error) throw error;
   
-  if (data && data.length > 0) {
-    return data[0] as Profile;
-  }
-  return null;
+  return data as Profile | null;
 };
 
 // --- Admin Functions ---
