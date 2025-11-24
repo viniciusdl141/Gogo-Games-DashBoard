@@ -15,40 +15,32 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Studio } from '@/types/supabase';
 
 const formSchema = z.object({
     gameName: z.string().min(1, "O nome do jogo é obrigatório."),
     launchDate: z.string().nullable().optional(), // YYYY-MM-DD format
     suggestedPrice: z.number().min(0).default(0).optional(), // Suggested price in BRL
-    studioId: z.string().nullable().optional(), // New field for studio assignment
 });
 
 type GameFormValues = z.infer<typeof formSchema>;
 
 interface AddGameFormProps {
-    onSave: (gameName: string, launchDate: string | null, suggestedPrice: number, studioId: string | null) => void;
+    onSave: (gameName: string, launchDate: string | null, suggestedPrice: number) => void;
     onClose: () => void;
-    isAdmin: boolean;
-    studios: Studio[];
-    defaultStudioId: string | null;
 }
 
-const AddGameForm: React.FC<AddGameFormProps> = ({ onSave, onClose, isAdmin, studios, defaultStudioId }) => {
+const AddGameForm: React.FC<AddGameFormProps> = ({ onSave, onClose }) => {
     const form = useForm<GameFormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             gameName: '',
             launchDate: '',
             suggestedPrice: 19.99,
-            studioId: defaultStudioId || '',
         },
     });
 
     const onSubmit = (values: GameFormValues) => {
-        const studioId = isAdmin && values.studioId ? values.studioId : defaultStudioId;
-        onSave(values.gameName.trim(), values.launchDate || null, values.suggestedPrice || 0, studioId);
+        onSave(values.gameName.trim(), values.launchDate || null, values.suggestedPrice || 0);
         onClose();
     };
 
@@ -69,32 +61,6 @@ const AddGameForm: React.FC<AddGameFormProps> = ({ onSave, onClose, isAdmin, stu
                     )}
                 />
                 
-                {isAdmin && (
-                    <FormField
-                        control={form.control}
-                        name="studioId"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Estúdio (Admin)</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione o Estúdio" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="">[Nenhum Estúdio]</SelectItem>
-                                        {studios.map(studio => (
-                                            <SelectItem key={studio.id} value={studio.id}>{studio.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                )}
-
                 <FormField
                     control={form.control}
                     name="launchDate"

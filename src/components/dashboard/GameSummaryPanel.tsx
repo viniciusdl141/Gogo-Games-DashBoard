@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, List, TrendingUp, Info, Eye, Megaphone, CalendarDays } from 'lucide-react';
+import { DollarSign, List, TrendingUp, Info, Eye, Megaphone, CalendarDays, MessageSquare, Building2 } from 'lucide-react';
 import KpiCard from './KpiCard';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -19,11 +19,8 @@ import LaunchTimer from './LaunchTimer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import EditGameGeneralInfoForm from './EditGameGeneralInfoForm';
-import GameCapsule from './GameCapsule'; 
-import { useSession } from '@/components/SessionContextProvider';
-import { Studio } from '@/types/supabase';
-import { useQuery } from '@tanstack/react-query';
-import { getStudios } from '@/integrations/supabase/studios';
+import GameCapsule from './GameCapsule';
+import { Game as SupabaseGame } from '@/integrations/supabase/games'; // Importar o tipo Game
 
 interface GameSummaryPanelProps {
     gameId: string;
@@ -37,9 +34,12 @@ interface GameSummaryPanelProps {
     launchDate: Date | null;
     suggestedPrice: number;
     capsuleImageUrl: string | null;
-    currentStudioId: string | null; // NEW PROP
+    priceUsd: number | null; // NEW
+    developer: string | null; // NEW
+    publisher: string | null; // NEW
+    reviewSummary: string | null; // NEW
     investmentSources: { influencers: number, events: number, paidTraffic: number };
-    onUpdateLaunchDate: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null, studioId: string | null) => void; // UPDATED SIGNATURE
+    onUpdateGeneralInfo: (gameId: string, updates: Partial<SupabaseGame>) => void; // Assinatura atualizada
 }
 
 const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({ 
@@ -53,22 +53,15 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     totalImpressions,
     launchDate,
     suggestedPrice, 
-    capsuleImageUrl, 
-    currentStudioId, // Use new prop
+    capsuleImageUrl,
+    priceUsd, // NEW
+    developer, // NEW
+    publisher, // NEW
+    reviewSummary, // NEW
     investmentSources,
-    onUpdateLaunchDate
+    onUpdateGeneralInfo
 }) => {
-    const { profile } = useSession();
-    const isAdmin = profile?.is_admin || false;
-    
-    // Fetch studios if admin, needed for the Edit form dropdown
-    const { data: studios = [] } = useQuery({
-        queryKey: ['studios'],
-        queryFn: getStudios,
-        enabled: isAdmin,
-        initialData: [],
-    });
-
+    // Usar suggestedPrice como valor inicial, mas permitir edição local
     const [gamePrice, setGamePrice] = React.useState(suggestedPrice);
     React.useEffect(() => {
         setGamePrice(suggestedPrice);
@@ -91,14 +84,15 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
 
     // --- Cálculos de Receita ---
     
+    // 1. Cálculos baseados em totalSales (dados de tracking)
     const grossRevenue = totalSales * gamePrice;
     const netRevenue = grossRevenue * revenueShare;
     const netProfit = netRevenue - totalInvestment;
 
-    // Cálculos baseados em inputs manuais (Calculadora)
+    // 2. Cálculos baseados em inputs manuais (Calculadora)
     const totalManualSales = salesBRL + salesUSD;
     const grossManualRevenue = totalManualSales * gamePrice;
-    const netManualRevenue = grossManualRevenue * revenueShare; 
+    const netManualRevenue = grossManualRevenue * revenueShare;
     const netManualProfit = netManualRevenue - totalInvestment;
     const roiManualPercentage = totalInvestment > 0 ? (netManualProfit / totalInvestment) * 100 : 0;
 
@@ -114,6 +108,23 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                     />
                     <div>
                         <CardTitle className="text-2xl">Resumo Geral do Jogo: {gameName}</CardTitle>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mt-2">
+                            {developer && (
+                                <span className="flex items-center">
+                                    <Building2 className="h-3 w-3 mr-1" /> Dev: {developer}
+                                </span>
+                            )}
+                            {publisher && (
+                                <span className="flex items-center">
+                                    <Building2 className="h-3 w-3 mr-1" /> Pub: {publisher}
+                                </span>
+                            )}
+                            {reviewSummary && (
+                                <span className="flex items-center text-gogo-cyan">
+                                    <MessageSquare className="h-3 w-3 mr-1" /> Reviews: {reviewSummary}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </CardHeader>
@@ -133,7 +144,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                                 <CalendarDays className="h-4 w-4 mr-2" /> Editar Informações Gerais
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[400px]">
+                        <DialogContent className="sm:max-w-[600px]">
                             <DialogHeader>
                                 <DialogTitle>Editar Informações Gerais</DialogTitle>
                             </DialogHeader>
@@ -142,10 +153,20 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                                 gameName={gameName}
                                 currentLaunchDate={launchDate}
                                 currentCapsuleImageUrl={capsuleImageUrl}
-                                currentStudioId={currentStudioId} // Pass current studio ID
-                                isAdmin={isAdmin} // Pass admin status
-                                studios={studios} // Pass studios list
-                                onSave={onUpdateLaunchDate}
+                                currentSuggestedPrice={suggestedPrice}
+                                currentPriceUsd={priceUsd}
+                                currentDeveloper={developer}
+                                currentPublisher={publisher}
+                                currentReviewSummary={reviewSummary}
+                                onSave={(id, updates) => onUpdateGeneralInfo(id, {
+                                    launch_date: updates.launchDate,
+                                    capsule_image_url: updates.capsuleImageUrl,
+                                    suggested_price: updates.suggestedPrice,
+                                    price_usd: updates.priceUsd,
+                                    developer: updates.developer,
+                                    publisher: updates.publisher,
+                                    review_summary: updates.reviewSummary,
+                                })}
                                 onClose={() => setIsLaunchDateDialogOpen(false)}
                             />
                         </DialogContent>
