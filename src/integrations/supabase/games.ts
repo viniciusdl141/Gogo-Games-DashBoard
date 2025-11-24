@@ -4,8 +4,12 @@ export interface Game {
   id: string;
   name: string;
   launch_date: string | null; // ISO date string 'YYYY-MM-DD'
-  suggested_price: number | null; // New field
-  capsule_image_url: string | null; // NEW FIELD
+  suggested_price: number | null; // Price in BRL
+  capsule_image_url: string | null; // Capsule image URL
+  price_usd: number | null; // NEW: Price in USD
+  developer: string | null; // NEW: Developer name
+  publisher: string | null; // NEW: Publisher name
+  review_summary: string | null; // NEW: Review classification summary
   created_at: string;
 }
 
@@ -15,8 +19,8 @@ export const getGames = async (): Promise<Game[]> => {
   return data;
 };
 
-export const addGame = async (name: string, launch_date: string | null, suggested_price: number | null = null, capsule_image_url: string | null = null): Promise<Game> => {
-  const { data, error } = await supabase.from('games').insert([{ name, launch_date, suggested_price, capsule_image_url }]).select().single();
+export const addGame = async (name: string, launch_date: string | null, suggested_price: number | null = null, capsule_image_url: string | null = null, price_usd: number | null = null, developer: string | null = null, publisher: string | null = null, review_summary: string | null = null): Promise<Game> => {
+  const { data, error } = await supabase.from('games').insert([{ name, launch_date, suggested_price, capsule_image_url, price_usd, developer, publisher, review_summary }]).select().single();
   if (error) throw error;
   return data;
 };
