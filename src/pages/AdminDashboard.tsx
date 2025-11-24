@@ -14,10 +14,11 @@ import GameAssignment from '@/components/admin/GameAssignment';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const AdminDashboard: React.FC = () => {
-    const { profile, isLoading, user } = useSession(); // Adicionando 'user'
+    const { profile, isLoading, user } = useSession();
+    const [activeTab, setActiveTab] = useState('studios'); // Adicionando estado para a aba ativa
 
-    // Se estiver carregando, ou se o usuário estiver logado mas o perfil ainda não foi carregado, mostre o loader.
-    if (isLoading || (user && !profile)) {
+    // Se estiver carregando a sessão/perfil, mostre o loader.
+    if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-gogo-cyan" />
@@ -25,7 +26,7 @@ const AdminDashboard: React.FC = () => {
         );
     }
 
-    // Redirecionar se não for admin
+    // Redirecionar se não for admin (inclui o caso onde profile é null após o carregamento)
     if (profile?.role !== 'admin') {
         toast.error("Acesso negado. Apenas administradores podem acessar esta página.");
         return <Navigate to="/" replace />;

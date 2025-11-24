@@ -46,10 +46,10 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
         } else if (data) {
             const fetchedProfile = data as Profile;
             setProfile(fetchedProfile);
-            console.log("Profile fetched successfully:", fetchedProfile); // LOG DE SUCESSO
+            console.log("Profile fetched successfully:", fetchedProfile);
         } else {
             setProfile(null);
-            console.log("Profile not found for user:", currentUser.id); // LOG DE PERFIL NÃO ENCONTRADO
+            console.log("Profile not found for user:", currentUser.id);
         }
     } catch (e) {
         console.error("Unexpected error fetching profile:", e);
@@ -72,7 +72,8 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
         setUser(initialSession?.user || null);
         
         if (initialSession?.user) {
-            await fetchProfile(initialSession.user);
+            // Garante que o fetchProfile seja aguardado, mas não bloqueie o fluxo se falhar
+            await fetchProfile(initialSession.user); 
         }
         setIsLoading(false);
     };
@@ -90,11 +91,9 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
           }
       } else if (event === 'SIGNED_OUT') {
           setProfile(null);
+          setIsLoading(false); // Garante que o carregamento termine no logout
       }
-      // Only set loading to false if it's the initial session load or a sign out event
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') {
-          setIsLoading(false);
-      }
+      // Não precisamos mais do INITIAL_SESSION aqui, pois loadSession já lida com isso.
     });
 
     return () => {
