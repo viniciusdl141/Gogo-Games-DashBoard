@@ -81,6 +81,11 @@ const EditStudioForm: React.FC<EditStudioFormProps> = ({ studio, profiles, onClo
         mutation.mutate(data);
     };
 
+    const getProfileLabel = (p: Profile) => {
+        if (p.email && p.email !== 'N/A (Admin RLS restriction)') return `${p.email} (${p.first_name || 'Sem Nome'})`;
+        return `${p.id.substring(0, 8)}... (${p.first_name || 'Sem Nome'})`;
+    };
+
     return (
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
             <h3 className="text-lg font-semibold">Editar Estúdio: {studio.name}</h3>
@@ -92,13 +97,15 @@ const EditStudioForm: React.FC<EditStudioFormProps> = ({ studio, profiles, onClo
             <div className="space-y-2">
                 <label className="text-sm font-medium">Proprietário (ID do Usuário)</label>
                 <Select onValueChange={(value) => form.setValue('owner_id', value)} defaultValue={studio.owner_id}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Selecione o Proprietário" />
-                    </SelectTrigger>
+                    <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecione o Proprietário" />
+                        </SelectTrigger>
+                    </FormControl>
                     <SelectContent>
                         {profiles.map(p => (
                             <SelectItem key={p.id} value={p.id}>
-                                {p.email || p.id} ({p.first_name})
+                                {getProfileLabel(p)}
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -136,6 +143,11 @@ const AdminUsersPanel: React.FC<{ profiles: Profile[], refetch: () => void }> = 
         },
     });
 
+    const getDisplayEmail = (p: Profile) => {
+        if (p.email && p.email !== 'N/A (Admin RLS restriction)') return p.email;
+        return `${p.id.substring(0, 8)}... (ID)`;
+    };
+
     return (
         <Card>
             <CardHeader><CardTitle className="flex items-center"><User className="h-5 w-5 mr-2" /> Gerenciar Usuários</CardTitle></CardHeader>
@@ -143,7 +155,7 @@ const AdminUsersPanel: React.FC<{ profiles: Profile[], refetch: () => void }> = 
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Email</TableHead>
+                            <TableHead>Email/ID</TableHead>
                             <TableHead>Nome</TableHead>
                             <TableHead className="text-center">Admin</TableHead>
                             <TableHead className="w-[150px] text-center">Ações</TableHead>
@@ -152,7 +164,7 @@ const AdminUsersPanel: React.FC<{ profiles: Profile[], refetch: () => void }> = 
                     <TableBody>
                         {profiles.map(p => (
                             <TableRow key={p.id}>
-                                <TableCell className="font-medium">{p.email}</TableCell>
+                                <TableCell className="font-medium text-sm">{getDisplayEmail(p)}</TableCell>
                                 <TableCell>{p.first_name} {p.last_name}</TableCell>
                                 <TableCell className="text-center">
                                     <Badge variant={p.is_admin ? 'default' : 'secondary'} className={p.is_admin ? 'bg-gogo-orange hover:bg-gogo-orange/90' : ''}>
@@ -198,8 +210,11 @@ const AdminStudiosPanel: React.FC<{ studios: Studio[], profiles: Profile[], refe
         },
     });
 
-    const getOwnerEmail = (ownerId: string) => {
-        return profiles.find(p => p.id === ownerId)?.email || 'Usuário Desconhecido';
+    const getOwnerDisplay = (ownerId: string) => {
+        const profile = profiles.find(p => p.id === ownerId);
+        if (!profile) return 'Usuário Desconhecido';
+        if (profile.email && profile.email !== 'N/A (Admin RLS restriction)') return profile.email;
+        return `${profile.id.substring(0, 8)}...`;
     };
 
     return (
@@ -220,7 +235,7 @@ const AdminStudiosPanel: React.FC<{ studios: Studio[], profiles: Profile[], refe
                             <TableRow key={s.id}>
                                 <TableCell className="font-medium">{s.name}</TableCell>
                                 <TableCell className="text-xs text-muted-foreground">{s.id}</TableCell>
-                                <TableCell>{getOwnerEmail(s.owner_id)}</TableCell>
+                                <TableCell>{getOwnerDisplay(s.owner_id)}</TableCell>
                                 <TableCell className="text-center flex items-center justify-center space-x-2">
                                     <Dialog open={isEditDialogOpen === s.id} onOpenChange={(open) => setIsEditDialogOpen(open ? s.id : null)}>
                                         <DialogTrigger asChild>
@@ -321,9 +336,11 @@ const AdminGamesPanel: React.FC<{ games: Game[], studios: Studio[], refetch: () 
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Vincular ao Estúdio</label>
                     <Select onValueChange={(value) => form.setValue('studio_id', value)} defaultValue={game.studio_id || ''}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Selecione o Estúdio" />
-                        </SelectTrigger>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione o Estúdio" />
+                            </SelectTrigger>
+                        </FormControl>
                         <SelectContent>
                             <SelectItem value="">Nenhum (Global/Admin)</SelectItem>
                             {studios.map(s => (

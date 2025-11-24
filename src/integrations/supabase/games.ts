@@ -97,25 +97,25 @@ export const getProfile = async (userId: string): Promise<Profile | null> => {
 // --- Admin Functions ---
 
 export const getAllProfiles = async (): Promise<Profile[]> => {
-  // Join profiles with auth.users to get email (requires RLS policy on profiles to allow admin to read all)
+  // Fetch only profile data. We cannot reliably fetch email via RLS from auth.users here.
   const { data, error } = await supabase
     .from('profiles')
     .select(`
       id,
       first_name,
       last_name,
-      is_admin,
-      auth_user:auth.users(email)
+      is_admin
     `);
   
   if (error) throw error;
   
+  // NOTE: Email will be 'N/A' in the Admin panel unless we implement a separate mechanism to fetch it.
   return data.map(p => ({
     id: p.id,
     first_name: p.first_name,
     last_name: p.last_name,
     is_admin: p.is_admin,
-    email: (p.auth_user as any)?.email || 'N/A',
+    email: 'N/A (Admin RLS restriction)',
   }));
 };
 
