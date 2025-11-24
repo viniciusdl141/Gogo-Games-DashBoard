@@ -50,12 +50,12 @@ export function useUserStudio(): UserStudioState {
     } catch (error) {
       console.error("Error fetching studio/profile data:", error);
       
-      // Se houver um erro, assumimos que o perfil/estúdio não pôde ser carregado
-      // e definimos como null para evitar que o app trave.
+      // Se houver um erro (ex: RLS bloqueando a leitura), definimos o estado como null
+      // e garantimos que isLoadingStudio seja false.
       setStudio(null);
       setProfile(null);
       
-      // Exibir um erro genérico apenas se o usuário estiver logado e o erro não for apenas 'no rows found'
+      // Exibir um erro genérico apenas se o usuário estiver logado
       if (session) {
           toast.error("Falha ao carregar dados do estúdio/perfil. Verifique as permissões de RLS.");
       }
