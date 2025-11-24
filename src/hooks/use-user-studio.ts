@@ -50,21 +50,20 @@ export function useUserStudio(): UserStudioState {
     } catch (error) {
       console.error("Error fetching studio/profile data:", error);
       
-      // Log the full error object for debugging
-      console.error("FULL SUPABASE ERROR OBJECT:", error); 
-      
-      // Check if the error is a known 'no rows found' error (PGRST116)
-      // If it's not PGRST116, it's a real error (network, RLS violation, etc.)
-      if (error.code !== 'PGRST116') {
-        toast.error("Falha ao carregar dados do estúdio/perfil. Verifique as permissões.");
-      }
-      
+      // Se houver um erro, assumimos que o perfil/estúdio não pôde ser carregado
+      // e definimos como null para evitar que o app trave.
       setStudio(null);
       setProfile(null);
+      
+      // Exibir um erro genérico apenas se o usuário estiver logado e o erro não for apenas 'no rows found'
+      if (session) {
+          toast.error("Falha ao carregar dados do estúdio/perfil. Verifique as permissões de RLS.");
+      }
+      
     } finally {
       setIsLoadingStudio(false);
     }
-  }, [userId, session?.user?.email]);
+  }, [userId, session]);
 
   useEffect(() => {
     if (!isLoadingSession) {
