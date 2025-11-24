@@ -29,7 +29,16 @@ const formSchema = z.object({
 type WebSearchFormValues = z.infer<typeof formSchema>;
 
 interface WebSearchGameFormProps {
-    onSave: (gameName: string, launchDate: string | null, suggestedPrice: number, capsuleImageUrl: string | null) => void;
+    onSave: (
+        gameName: string, 
+        launchDate: string | null, 
+        suggestedPrice: number, 
+        capsuleImageUrl: string | null,
+        priceUsd: number | null,
+        developer: string | null,
+        publisher: string | null,
+        reviewSummary: string | null,
+    ) => void;
     onClose: () => void;
 }
 
@@ -68,7 +77,7 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
         } catch (error) {
             console.error("Web Search Error:", error);
             toast.dismiss('web-search');
-            toast.error(`Falha na busca: ${error.message}. Verifique a chave da API e o nome do jogo.`);
+            toast.error(`Falha na busca: ${error.message}. Verifique a chave da API e o provedor.`);
         } finally {
             setIsLoading(false);
         }
@@ -78,8 +87,12 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
         const launchDate = game.launchDate || null;
         const suggestedPrice = game.suggestedPrice || 0; 
         const capsuleImageUrl = game.capsuleImageUrl || null;
+        const priceUsd = game.priceUSD || null;
+        const developer = game.developer || null;
+        const publisher = game.publisher || null;
+        const reviewSummary = game.reviewSummary || null;
         
-        onSave(game.name.trim(), launchDate, suggestedPrice, capsuleImageUrl);
+        onSave(game.name.trim(), launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary);
         toast.success(`Jogo "${game.name}" selecionado e salvo.`);
         onClose();
     };

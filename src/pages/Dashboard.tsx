@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Bot, History } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Bot, History, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -20,6 +20,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useQuery } from '@tanstack/react-query';
 import { getGames, addGame as addGameToSupabase, updateGame as updateGameInSupabase, deleteGame as deleteGameFromSupabase, Game as SupabaseGame } from '@/integrations/supabase/games';
 import { rawData } from '@/data/rawTrackingData'; // Import rawData
+import { useUserStudio } from '@/hooks/use-user-studio'; // NEW IMPORT
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
@@ -81,6 +82,8 @@ const defaultChartColors: WLSalesChartColors = {
 };
 
 const Dashboard = () => {
+  const { studio, profile, isLoadingStudio, isAdmin } = useUserStudio(); // Use o hook de estúdio
+  
   const [trackingData, setTrackingData] = useState(initialRawData);
   const [selectedGameName, setSelectedGameName] = useState<string>(trackingData.games[0] || '');
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'All'>('All');
@@ -103,9 +106,9 @@ const Dashboard = () => {
   const [isAIDataProcessorOpen, setIsAIDataProcessorOpen] = useState(false);
 
   // Fetch games from Supabase
-  const { data: supabaseGames, refetch: refetchSupabaseGames } = useQuery<SupabaseGame[], Error>({
+  const { data: supabaseGames, refetch: refetchSupabaseGames, isLoading: isLoadingGames } = useQuery<SupabaseGame[], Error>({
     queryKey: ['supabaseGames'],
-    queryFn: getGames,
+    queryFn: getGames, // RLS filters games automatically
     initialData: [],
   });
 
@@ -113,40 +116,45 @@ const Dashboard = () => {
   const allAvailableGames = useMemo(() => {
     const combinedGamesMap = new Map<string, SupabaseGame>();
     
-    // Add games from Supabase
+    // Add games from Supabase (these are already filtered by RLS/Studio)
     supabaseGames.forEach(game => {
       combinedGamesMap.set(game.name, game);
     });
 
-    // Add games from local data if not already in Supabase, without launch_date/price/image
-    trackingData.games.forEach(gameName => {
-      if (!combinedGamesMap.has(gameName)) {
-        // Assign a temporary local ID if not in Supabase
-        combinedGamesMap.set(gameName, { 
-            id: generateLocalUniqueId('game'), 
-            name: gameName, 
-            launch_date: null, 
-            suggested_price: null, 
-            capsule_image_url: null, 
-            price_usd: null, // NEW
-            developer: null, // NEW
-            publisher: null, // NEW
-            review_summary: null, // NEW
-            created_at: new Date().toISOString() 
+    // Add games from local data if not already in Supabase, only if the user is an Admin
+    // In a real multi-tenant app, local data should probably be ignored or migrated.
+    // For now, we allow admins to see local data games too, but they won't have studio_id.
+    if (isAdmin) {
+        trackingData.games.forEach(gameName => {
+            if (!combinedGamesMap.has(gameName)) {
+                combinedGamesMap.set(gameName, { 
+                    id: generateLocalUniqueId('game'), 
+                    name: gameName, 
+                    launch_date: null, 
+                    suggested_price: null, 
+                    capsule_image_url: null, 
+                    price_usd: null, 
+                    developer: null, 
+                    publisher: null, 
+                    review_summary: null, 
+                    studio_id: null, // Local games have no studio ID
+                    created_at: new Date().toISOString() 
+                });
+            }
         });
-      }
-    });
+    }
 
     return Array.from(combinedGamesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [supabaseGames, trackingData.games]);
+  }, [supabaseGames, trackingData.games, isAdmin]);
 
   // Set initial selected game based on combined list
   React.useEffect(() => {
     if (allAvailableGames.length > 0 && !selectedGameName) {
       setSelectedGameName(allAvailableGames[0].name);
     } else if (allAvailableGames.length > 0 && !allAvailableGames.some(g => g.name === selectedGameName)) {
-      // If the previously selected game is no longer in the list (e.g., deleted), select the first one
       setSelectedGameName(allAvailableGames[0].name);
+    } else if (allAvailableGames.length === 0) {
+      setSelectedGameName('');
     }
   }, [allAvailableGames, selectedGameName]);
 
@@ -182,8 +190,15 @@ const Dashboard = () => {
         toast.error(`O jogo "${gameName}" já existe.`);
         return;
     }
+    
+    const targetStudioId = studio?.id || null;
+    if (!targetStudioId && !isAdmin) {
+        toast.error("Erro: Estúdio não encontrado. Tente recarregar ou contate o suporte.");
+        return;
+    }
+
     try {
-        await addGameToSupabase(gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary);
+        await addGameToSupabase(gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary, targetStudioId);
         refetchSupabaseGames(); // Refresh games from Supabase
         toast.success(`Jogo "${gameName}" adicionado com sucesso!`);
         setSelectedGameName(gameName);
@@ -191,7 +206,7 @@ const Dashboard = () => {
         console.error("Error adding game:", error);
         toast.error("Falha ao adicionar jogo.");
     }
-  }, [allAvailableGames, refetchSupabaseGames]);
+  }, [allAvailableGames, refetchSupabaseGames, studio?.id, isAdmin]);
 
   const handleUpdateGeneralInfo = useCallback(async (gameId: string, updates: { 
     launchDate: string | null, 
@@ -204,6 +219,7 @@ const Dashboard = () => {
   }) => {
     try {
         const gameInSupabase = supabaseGames.find(g => g.id === gameId);
+        const targetStudioId = studio?.id || null;
         
         const updatePayload: Partial<SupabaseGame> = {
             launch_date: updates.launchDate,
@@ -215,8 +231,12 @@ const Dashboard = () => {
             review_summary: updates.reviewSummary,
         };
 
-        if (!gameInSupabase) {
+        if (!gameInSupabase || gameId.startsWith('game-')) {
             // If the game is not in Supabase (it has a local ID), add it first
+            if (!targetStudioId && !isAdmin) {
+                toast.error("Erro: Estúdio não encontrado para vincular o jogo.");
+                return;
+            }
             await addGameToSupabase(
                 selectedGameName, 
                 updates.launchDate, 
@@ -225,7 +245,8 @@ const Dashboard = () => {
                 updates.priceUsd,
                 updates.developer,
                 updates.publisher,
-                updates.reviewSummary
+                updates.reviewSummary,
+                targetStudioId
             );
             toast.success(`Jogo "${selectedGameName}" adicionado ao Supabase com metadados.`);
         } else {
@@ -238,7 +259,7 @@ const Dashboard = () => {
         console.error("Error updating general info:", error);
         toast.error("Falha ao atualizar informações gerais.");
     }
-  }, [refetchSupabaseGames, supabaseGames, selectedGameName]);
+  }, [refetchSupabaseGames, supabaseGames, selectedGameName, studio?.id, isAdmin]);
 
   const handleDeleteGame = useCallback(async (gameId: string) => {
     const gameToDelete = allAvailableGames.find(g => g.id === gameId);
@@ -251,6 +272,8 @@ const Dashboard = () => {
         }
         
         // 2. Remove from local tracking data (all entries associated with this game name)
+        // NOTE: We keep this local data manipulation for now, but in a fully DB-backed app, 
+        // deleting the game in Supabase would cascade delete all related tracking data (if RLS allows).
         setTrackingData(prevData => {
             const gameName = gameToDelete.name;
             return {
@@ -1115,21 +1138,34 @@ const Dashboard = () => {
     </div>
   );
 
-
+  if (isLoadingStudio || isLoadingGames) {
+    return (
+        <div className="min-h-screen flex items-center justify-center p-8 bg-background text-foreground gaming-background">
+            <Loader2 className="h-8 w-8 animate-spin text-gogo-cyan" />
+            <p className="ml-3 text-lg">Carregando dados do usuário e jogos...</p>
+        </div>
+    );
+  }
+  
   // Renderização condicional para quando não há jogos
   if (allAvailableGames.length === 0) {
     return (
         <div className="min-h-screen flex items-center justify-center p-8 bg-background text-foreground gaming-background">
             <Card className="p-6 shadow-xl border border-border">
                 <h1 className="text-2xl font-bold mb-4 text-gogo-cyan">Dashboard de Rastreamento</h1>
-                <p className="text-muted-foreground">Nenhum dado de rastreamento encontrado.</p>
+                <p className="text-muted-foreground">
+                    {isAdmin ? 
+                        "Nenhum jogo rastreado. Adicione o primeiro jogo para começar." : 
+                        `Bem-vindo, ${profile?.first_name || 'Usuário'}! Seu estúdio (${studio?.name || 'N/A'}) ainda não tem jogos cadastrados.`
+                    }
+                </p>
                 <Button onClick={() => setIsAddGameFormOpen(true)} className="mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90">
                     <Plus className="h-4 w-4 mr-2" /> Adicionar Primeiro Jogo
                 </Button>
                 <AddGameModal 
                     isOpen={isAddGameFormOpen} 
                     onClose={() => setIsAddGameFormOpen(false)} 
-                    onSave={handleAddGame} 
+                    onSave={(gameName, launchDate, suggestedPrice, capsuleImageUrl) => handleAddGame(gameName, launchDate, suggestedPrice, capsuleImageUrl, null, null, null, null)} 
                 />
             </Card>
         </div>
@@ -1145,11 +1181,26 @@ const Dashboard = () => {
       >
         <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-muted/20 border-r border-border shadow-inner">
           <div className="flex flex-col h-full">
-            <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">Selecione um Jogo</h2>
+            <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">
+                {isAdmin ? "Admin Dashboard" : studio?.name || "Selecione um Jogo"}
+            </h2>
+            
+            {profile && (
+                <div className="mb-4 p-2 border rounded-md bg-background flex items-center justify-between text-sm">
+                    <div className="flex items-center space-x-2">
+                        <User className="h-4 w-4 text-gogo-orange" />
+                        <span>{profile.first_name || 'Usuário'}</span>
+                    </div>
+                    <Badge variant="secondary" className={isAdmin ? "bg-gogo-orange" : "bg-muted"}>
+                        {isAdmin ? "ADMIN" : "ESTÚDIO"}
+                    </Badge>
+                </div>
+            )}
+
             <div className="flex-grow space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="game-select" className="font-semibold text-foreground">Jogo:</Label>
-                <Select onValueChange={setSelectedGameName} defaultValue={selectedGameName}>
+                <Select onValueChange={setSelectedGameName} value={selectedGameName}>
                   <SelectTrigger id="game-select" className="w-full bg-background">
                     <SelectValue placeholder="Selecione um jogo" />
                   </SelectTrigger>
