@@ -50,6 +50,9 @@ export function useUserStudio(): UserStudioState {
     } catch (error) {
       console.error("Error fetching studio/profile data:", error);
       
+      // Log the full error object for debugging
+      console.error("FULL SUPABASE ERROR OBJECT:", error); 
+      
       // Check if the error is a known 'no rows found' error (PGRST116)
       // If it's not PGRST116, it's a real error (network, RLS violation, etc.)
       if (error.code !== 'PGRST116') {
