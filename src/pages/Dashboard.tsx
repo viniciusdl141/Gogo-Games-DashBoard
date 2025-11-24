@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Bot, History } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Bot, History, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -19,6 +19,8 @@ import {
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useQuery } from '@tanstack/react-query';
 import { getGames, addGame as addGameToSupabase, updateGame as updateGameInSupabase, deleteGame as deleteGameFromSupabase, Game as SupabaseGame } from '@/integrations/supabase/games';
+import { getStudios } from '@/integrations/supabase/studios';
+import { useSession } from '@/components/SessionContextProvider';
 import { rawData } from '@/data/rawTrackingData'; // Import rawData
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
@@ -81,8 +83,12 @@ const defaultChartColors: WLSalesChartColors = {
 };
 
 const Dashboard = () => {
+  const { profile, isLoading: isSessionLoading, studio } = useSession();
+  const isAdmin = profile?.is_admin || false;
+  const userStudioId = profile?.studio_id || null;
+
   const [trackingData, setTrackingData] = useState(initialRawData);
-  const [selectedGameName, setSelectedGameName] = useState<string>(trackingData.games[0] || '');
+  const [selectedGameName, setSelectedGameName] = useState<string>('');
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'All'>('All');
   const [selectedTimeFrame, setSelectedTimeFrame] = useState<TimeFrame>('weekly'); 
   const [selectedTab, setSelectedTab] = useState('overview'); 
@@ -94,47 +100,61 @@ const Dashboard = () => {
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
   const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false);
   const [isColorConfigOpen, setIsColorConfigOpen] = useState(false); 
-  const [chartColors, setChartColors] = useState<WLSalesChartColors>(defaultChartColors); // INICIALIZAÇÃO CORRIGIDA
+  const [chartColors, setChartColors] = useState<WLSalesChartColors>(defaultChartColors); 
   
   const [clickedWLSalesEntry, setClickedWLSalesEntry] = useState<WLSalesPlatformEntry | null>(null);
   const [editingDemoEntry, setEditingDemoEntry] = useState<DemoTrackingEntry | null>(null);
   
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
-  const [isAIDataProcessorOpen, setIsAIDataProcessorOpen] = useState(false); // NEW STATE
+  const [isAIDataProcessorOpen, setIsAIDataProcessorOpen] = useState(false); 
 
   // Fetch games from Supabase
-  const { data: supabaseGames, refetch: refetchSupabaseGames } = useQuery<SupabaseGame[], Error>({
+  const { data: supabaseGames, refetch: refetchSupabaseGames, isLoading: isGamesLoading } = useQuery<SupabaseGame[], Error>({
     queryKey: ['supabaseGames'],
     queryFn: getGames,
     initialData: [],
+    enabled: !isSessionLoading, // Only fetch games once session is loaded
   });
+  
+  // Fetch studios (only if admin, needed for forms)
+  const { data: studios = [] } = useQuery({
+    queryKey: ['studios'],
+    queryFn: getStudios,
+    enabled: isAdmin,
+    initialData: [],
+  });
+
 
   // Combine local games with Supabase games, prioritizing Supabase for launch dates and price
   const allAvailableGames = useMemo(() => {
     const combinedGamesMap = new Map<string, SupabaseGame>();
     
-    // Add games from Supabase
+    // 1. Add games from Supabase, filtered by studio_id if not admin
     supabaseGames.forEach(game => {
-      combinedGamesMap.set(game.name, game);
+      if (isAdmin || game.studio_id === userStudioId) {
+        combinedGamesMap.set(game.name, game);
+      }
     });
 
-    // Add games from local data if not already in Supabase, without launch_date/price/image
+    // 2. Add games from local data if not already in Supabase, without launch_date/price/image
     trackingData.games.forEach(gameName => {
       if (!combinedGamesMap.has(gameName)) {
         // Assign a temporary local ID if not in Supabase
-        combinedGamesMap.set(gameName, { id: generateLocalUniqueId('game'), name: gameName, launch_date: null, suggested_price: null, capsule_image_url: null, created_at: new Date().toISOString() });
+        // NOTE: Local games are currently not filtered by studio_id as they lack this metadata.
+        // For multi-tenancy, we assume local data is only relevant if no Supabase data exists yet.
+        combinedGamesMap.set(gameName, { id: generateLocalUniqueId('game'), name: gameName, launch_date: null, suggested_price: null, capsule_image_url: null, studio_id: null, created_at: new Date().toISOString() });
       }
     });
 
     return Array.from(combinedGamesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [supabaseGames, trackingData.games]);
+  }, [supabaseGames, trackingData.games, isAdmin, userStudioId]);
 
   // Set initial selected game based on combined list
   React.useEffect(() => {
     if (allAvailableGames.length > 0 && !selectedGameName) {
       setSelectedGameName(allAvailableGames[0].name);
     } else if (allAvailableGames.length > 0 && !allAvailableGames.some(g => g.name === selectedGameName)) {
-      // If the previously selected game is no longer in the list (e.g., deleted), select the first one
+      // If the previously selected game is no longer in the list (e.g., deleted or filtered out), select the first one
       setSelectedGameName(allAvailableGames[0].name);
     }
   }, [allAvailableGames, selectedGameName]);
@@ -166,14 +186,14 @@ const Dashboard = () => {
   }, []);
 
   // --- Game Management Handlers ---
-  const handleAddGame = useCallback(async (gameName: string, launchDate: string | null, suggestedPrice: number, capsuleImageUrl: string | null) => {
+  const handleAddGame = useCallback(async (gameName: string, launchDate: string | null, suggestedPrice: number, capsuleImageUrl: string | null, studioId: string | null) => {
     if (allAvailableGames.some(g => g.name === gameName)) {
         toast.error(`O jogo "${gameName}" já existe.`);
         return;
     }
     try {
-        // Pass capsuleImageUrl to addGameToSupabase
-        await addGameToSupabase(gameName, launchDate, suggestedPrice, capsuleImageUrl);
+        // Use the studioId passed from the form (which respects admin/non-admin logic)
+        await addGameToSupabase(gameName, launchDate, suggestedPrice, capsuleImageUrl, studioId);
         refetchSupabaseGames(); // Refresh games from Supabase
         toast.success(`Jogo "${gameName}" adicionado com sucesso!`);
         setSelectedGameName(gameName);
@@ -183,19 +203,24 @@ const Dashboard = () => {
     }
   }, [allAvailableGames, refetchSupabaseGames]);
 
-  const handleUpdateLaunchDate = useCallback(async (gameId: string, launchDate: string | null, capsuleImageUrl: string | null) => {
+  const handleUpdateLaunchDate = useCallback(async (gameId: string, launchDate: string | null, capsuleImageUrl: string | null, studioId: string | null) => {
     try {
+        const updates: Partial<SupabaseGame> = { 
+            launch_date: launchDate, 
+            capsule_image_url: capsuleImageUrl,
+            studio_id: studioId, // Include studioId update
+        };
+
         // Check if the game exists in Supabase by its ID
         const gameInSupabase = supabaseGames.find(g => g.id === gameId);
 
         if (!gameInSupabase) {
             // If the game is not in Supabase (it has a local ID), add it first
-            // We use selectedGameName here because gameId might be a local ID
-            await addGameToSupabase(selectedGameName, launchDate, selectedGame?.suggested_price || null, capsuleImageUrl);
+            await addGameToSupabase(selectedGameName, launchDate, selectedGame?.suggested_price || null, capsuleImageUrl, studioId);
             toast.success(`Jogo "${selectedGameName}" adicionado ao Supabase com metadados.`);
         } else {
             // If the game exists in Supabase, just update its metadata
-            await updateGameInSupabase(gameId, { launch_date: launchDate, capsule_image_url: capsuleImageUrl });
+            await updateGameInSupabase(gameId, updates);
             toast.success(`Informações gerais para "${selectedGameName}" atualizadas.`);
         }
         refetchSupabaseGames(); // Always refetch to ensure UI is in sync
@@ -706,10 +731,6 @@ const Dashboard = () => {
                 manualEventMarkers: restoredData.manualEventMarkers || [],
             });
             
-            // Note: Supabase games are managed by react-query and should be refreshed separately if needed, 
-            // but for local state integrity, we rely on the local tracking data.
-
-            toast.success("Estado restaurado com sucesso! Use o botão 'Refresh' se o preview não atualizar.");
             // Clear the file input value to allow restoring the same file again
             event.target.value = ''; 
         } catch (error) {
@@ -722,13 +743,14 @@ const Dashboard = () => {
 
 
   const filteredData = useMemo(() => {
-    if (!selectedGameName) return null;
+    if (!selectedGameName || isGamesLoading) return null;
     
     const gameName = selectedGameName.trim();
     const gameId = selectedGame?.id || '';
     const launchDate = selectedGame?.launch_date ? new Date(selectedGame.launch_date) : null;
     const suggestedPrice = selectedGame?.suggested_price || 19.99; // Use suggested price
     const capsuleImageUrl = selectedGame?.capsule_image_url || null; // NEW: Get capsule image URL
+    const currentStudioId = selectedGame?.studio_id || null; // NEW: Get studio ID
 
     // 1. Filter and enhance data, recalculating dynamic fields
     const influencerTracking = trackingData.influencerTracking
@@ -1004,6 +1026,7 @@ const Dashboard = () => {
         launchDate,
         suggestedPrice, // Pass suggested price
         capsuleImageUrl, // NEW: Pass capsule image URL
+        currentStudioId, // NEW: Pass studio ID
         avgDailyGrowth: avgDailyGrowthInPeriod, // Use the period-specific average
         totalGrowth: totalGrowthInPeriod, 
         visitorToWlConversionRate,
@@ -1023,7 +1046,7 @@ const Dashboard = () => {
       manualEventMarkers, 
       kpis,
     };
-  }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame, selectedTimeFrame]);
+  }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame, selectedTimeFrame, isGamesLoading]);
 
   // Determine if a manual marker already exists for the selected date
   const existingMarkerForClickedEntry = useMemo(() => {
@@ -1074,19 +1097,30 @@ const Dashboard = () => {
 
 
   // Renderização condicional para quando não há jogos
+  if (isSessionLoading || isGamesLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Carregando dados do usuário e jogos...</div>;
+  }
+  
   if (allAvailableGames.length === 0) {
     return (
         <div className="min-h-screen flex items-center justify-center p-8 bg-background text-foreground gaming-background">
             <Card className="p-6 shadow-xl border border-border">
                 <h1 className="text-2xl font-bold mb-4 text-gogo-cyan">Dashboard de Rastreamento</h1>
-                <p className="text-muted-foreground">Nenhum dado de rastreamento encontrado.</p>
+                <p className="text-muted-foreground">
+                    {isAdmin 
+                        ? "Nenhum jogo cadastrado no sistema." 
+                        : `Nenhum jogo atribuído ao seu estúdio (${studio?.name || 'N/A'}).`}
+                </p>
                 <Button onClick={() => setIsAddGameFormOpen(true)} className="mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90">
                     <Plus className="h-4 w-4 mr-2" /> Adicionar Primeiro Jogo
                 </Button>
                 <AddGameModal 
                     isOpen={isAddGameFormOpen} 
                     onClose={() => setIsAddGameFormOpen(false)} 
-                    onSave={handleAddGame} 
+                    onSave={(gameName, launchDate, suggestedPrice, capsuleImageUrl, studioId) => handleAddGame(gameName, launchDate, suggestedPrice, capsuleImageUrl, studioId)} 
+                    isAdmin={isAdmin}
+                    studios={studios}
+                    defaultStudioId={userStudioId}
                 />
             </Card>
         </div>
@@ -1102,7 +1136,18 @@ const Dashboard = () => {
       >
         <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-muted/20 border-r border-border shadow-inner">
           <div className="flex flex-col h-full">
-            <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">Selecione um Jogo</h2>
+            <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">
+                {studio ? studio.name : 'Dashboard'}
+            </h2>
+            
+            {isAdmin && (
+                <a href="/admin/studios" className="mb-4">
+                    <Button variant="outline" className="w-full text-sm text-gogo-orange border-gogo-orange hover:bg-gogo-orange/10">
+                        <Building2 className="h-4 w-4 mr-2" /> Gerenciar Estúdios
+                    </Button>
+                </a>
+            )}
+
             <div className="flex-grow space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="game-select" className="font-semibold text-foreground">Jogo:</Label>
@@ -1226,6 +1271,7 @@ const Dashboard = () => {
                                 // Pass suggested price and image URL
                                 suggestedPrice={filteredData.kpis.suggestedPrice} 
                                 capsuleImageUrl={filteredData.kpis.capsuleImageUrl}
+                                currentStudioId={filteredData.kpis.currentStudioId} // Pass studio ID
                             />
                             
                             <WlConversionKpisPanel 
@@ -1543,6 +1589,9 @@ const Dashboard = () => {
           isOpen={isAddGameFormOpen} 
           onClose={() => setIsAddGameFormOpen(false)} 
           onSave={handleAddGame} 
+          isAdmin={isAdmin}
+          studios={studios}
+          defaultStudioId={userStudioId}
       />
     </div>
   );

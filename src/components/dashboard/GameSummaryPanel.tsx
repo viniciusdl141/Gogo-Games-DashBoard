@@ -18,23 +18,28 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import LaunchTimer from './LaunchTimer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import EditGameGeneralInfoForm from './EditGameGeneralInfoForm'; // Importar o novo nome
+import EditGameGeneralInfoForm from './EditGameGeneralInfoForm';
 import GameCapsule from './GameCapsule'; 
+import { useSession } from '@/components/SessionContextProvider';
+import { Studio } from '@/types/supabase';
+import { useQuery } from '@tanstack/react-query';
+import { getStudios } from '@/integrations/supabase/studios';
 
 interface GameSummaryPanelProps {
-    gameId: string; // Adicionado gameId
+    gameId: string;
     gameName: string;
     totalSales: number;
     totalWishlists: number;
     totalInvestment: number;
-    totalInfluencerViews: number; // KPI separado
-    totalEventViews: number; // KPI separado
-    totalImpressions: number; // KPI separado
+    totalInfluencerViews: number;
+    totalEventViews: number;
+    totalImpressions: number;
     launchDate: Date | null;
-    suggestedPrice: number; // Novo prop
-    capsuleImageUrl: string | null; // NOVO PROP
+    suggestedPrice: number;
+    capsuleImageUrl: string | null;
+    currentStudioId: string | null; // NEW PROP
     investmentSources: { influencers: number, events: number, paidTraffic: number };
-    onUpdateLaunchDate: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null) => void; // Assinatura atualizada
+    onUpdateLaunchDate: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null, studioId: string | null) => void; // UPDATED SIGNATURE
 }
 
 const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({ 
@@ -48,11 +53,22 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     totalImpressions,
     launchDate,
     suggestedPrice, 
-    capsuleImageUrl, // Receber capsuleImageUrl
+    capsuleImageUrl, 
+    currentStudioId, // Use new prop
     investmentSources,
     onUpdateLaunchDate
 }) => {
-    // Usar suggestedPrice como valor inicial, mas permitir edição local
+    const { profile } = useSession();
+    const isAdmin = profile?.is_admin || false;
+    
+    // Fetch studios if admin, needed for the Edit form dropdown
+    const { data: studios = [] } = useQuery({
+        queryKey: ['studios'],
+        queryFn: getStudios,
+        enabled: isAdmin,
+        initialData: [],
+    });
+
     const [gamePrice, setGamePrice] = React.useState(suggestedPrice);
     React.useEffect(() => {
         setGamePrice(suggestedPrice);
@@ -75,16 +91,14 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
 
     // --- Cálculos de Receita ---
     
-    // 1. Cálculos baseados em totalSales (dados de tracking)
     const grossRevenue = totalSales * gamePrice;
     const netRevenue = grossRevenue * revenueShare;
     const netProfit = netRevenue - totalInvestment;
-    // const roiPercentage = totalInvestment > 0 ? (netProfit / totalInvestment) * 100 : 0; // Não usado na UI, removido para simplificar
 
-    // 2. Cálculos baseados em inputs manuais (Calculadora)
+    // Cálculos baseados em inputs manuais (Calculadora)
     const totalManualSales = salesBRL + salesUSD;
     const grossManualRevenue = totalManualSales * gamePrice;
-    const netManualRevenue = grossManualRevenue * revenueShare; // netManualRevenue é calculado aqui
+    const netManualRevenue = grossManualRevenue * revenueShare; 
     const netManualProfit = netManualRevenue - totalInvestment;
     const roiManualPercentage = totalInvestment > 0 ? (netManualProfit / totalInvestment) * 100 : 0;
 
@@ -128,6 +142,9 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                                 gameName={gameName}
                                 currentLaunchDate={launchDate}
                                 currentCapsuleImageUrl={capsuleImageUrl}
+                                currentStudioId={currentStudioId} // Pass current studio ID
+                                isAdmin={isAdmin} // Pass admin status
+                                studios={studios} // Pass studios list
                                 onSave={onUpdateLaunchDate}
                                 onClose={() => setIsLaunchDateDialogOpen(false)}
                             />

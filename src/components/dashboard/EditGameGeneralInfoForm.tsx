@@ -15,10 +15,13 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Studio } from '@/types/supabase';
 
 const formSchema = z.object({
     launchDate: z.string().nullable().optional(), // YYYY-MM-DD format
-    capsuleImageUrl: z.string().url("Deve ser uma URL válida.").nullable().optional().or(z.literal('')), // Novo campo
+    capsuleImageUrl: z.string().url("Deve ser uma URL válida.").nullable().optional().or(z.literal('')),
+    studioId: z.string().nullable().optional(), // New field for studio assignment
 });
 
 type GameMetadataFormValues = z.infer<typeof formSchema>;
@@ -27,12 +30,25 @@ interface EditGameGeneralInfoFormProps {
     gameId: string;
     gameName: string;
     currentLaunchDate: Date | null;
-    currentCapsuleImageUrl: string | null; // Novo prop
-    onSave: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null) => void;
+    currentCapsuleImageUrl: string | null;
+    currentStudioId: string | null; // New prop
+    isAdmin: boolean; // New prop
+    studios: Studio[]; // New prop
+    onSave: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null, studioId: string | null) => void;
     onClose: () => void;
 }
 
-const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ gameId, gameName, currentLaunchDate, currentCapsuleImageUrl, onSave, onClose }) => {
+const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ 
+    gameId, 
+    gameName, 
+    currentLaunchDate, 
+    currentCapsuleImageUrl, 
+    currentStudioId,
+    isAdmin,
+    studios,
+    onSave, 
+    onClose 
+}) => {
     const defaultDateString = currentLaunchDate ? currentLaunchDate.toISOString().split('T')[0] : '';
 
     const form = useForm<GameMetadataFormValues>({
@@ -40,12 +56,15 @@ const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ gameI
         defaultValues: {
             launchDate: defaultDateString,
             capsuleImageUrl: currentCapsuleImageUrl || '',
+            studioId: currentStudioId || '',
         },
     });
 
     const onSubmit = (values: GameMetadataFormValues) => {
         const imageUrl = values.capsuleImageUrl?.trim() || null;
-        onSave(gameId, values.launchDate || null, imageUrl);
+        const studioId = isAdmin ? values.studioId || null : currentStudioId;
+        
+        onSave(gameId, values.launchDate || null, imageUrl, studioId);
         toast.success(`Informações gerais para "${gameName}" atualizadas.`);
         onClose();
     };
@@ -55,6 +74,32 @@ const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ gameI
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
                 <h3 className="text-lg font-semibold">Editar Informações Gerais do Jogo: {gameName}</h3>
                 
+                {isAdmin && (
+                    <FormField
+                        control={form.control}
+                        name="studioId"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Estúdio Associado (Admin)</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione o Estúdio" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="">[Nenhum Estúdio]</SelectItem>
+                                        {studios.map(studio => (
+                                            <SelectItem key={studio.id} value={studio.id}>{studio.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
+
                 <FormField
                     control={form.control}
                     name="launchDate"

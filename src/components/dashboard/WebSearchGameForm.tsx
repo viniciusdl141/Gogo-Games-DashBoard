@@ -20,22 +20,29 @@ import { invokeGameDataFetcher, GameOption } from '@/integrations/supabase/funct
 import { formatCurrency, formatDate, formatNumber } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Studio } from '@/types/supabase';
 
 const formSchema = z.object({
     gameName: z.string().min(1, "O nome do jogo é obrigatório."),
     aiApiKey: z.string().min(1, "A chave da API é obrigatória."),
+    studioId: z.string().nullable().optional(), // New field for studio assignment
 });
 
 type WebSearchFormValues = z.infer<typeof formSchema>;
 
 interface WebSearchGameFormProps {
-    onSave: (gameName: string, launchDate: string | null, suggestedPrice: number, capsuleImageUrl: string | null) => void;
+    onSave: (gameName: string, launchDate: string | null, suggestedPrice: number, capsuleImageUrl: string | null, studioId: string | null) => void;
     onClose: () => void;
+    isAdmin: boolean;
+    studios: Studio[];
+    defaultStudioId: string | null;
 }
 
-const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }) => {
+const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose, isAdmin, studios, defaultStudioId }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [results, setResults] = useState<GameOption[]>([]);
+    const [selectedStudioId, setSelectedStudioId] = useState<string | null>(defaultStudioId);
     
     // Usando a chave fornecida pelo usuário como valor inicial
     const initialApiKey = 'AIzaSyCao7UHpJgeYGExguqjvecUwdeztYhnxWU'; 
@@ -45,8 +52,16 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
         defaultValues: {
             gameName: '',
             aiApiKey: initialApiKey,
+            studioId: defaultStudioId || '',
         },
     });
+    
+    React.useEffect(() => {
+        // Update local state when defaultStudioId changes
+        setSelectedStudioId(defaultStudioId);
+        form.setValue('studioId', defaultStudioId || '');
+    }, [defaultStudioId, form]);
+
 
     const handleSearch = async (values: WebSearchFormValues) => {
         setIsLoading(true);
@@ -79,7 +94,9 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
         const suggestedPrice = game.suggestedPrice || 0; 
         const capsuleImageUrl = game.capsuleImageUrl || null;
         
-        onSave(game.name.trim(), launchDate, suggestedPrice, capsuleImageUrl);
+        const studioId = isAdmin ? selectedStudioId : defaultStudioId;
+
+        onSave(game.name.trim(), launchDate, suggestedPrice, capsuleImageUrl, studioId);
         toast.success(`Jogo "${game.name}" selecionado e salvo.`);
         onClose();
     };
@@ -104,6 +121,32 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
                     )}
                 />
                 
+                {isAdmin && (
+                    <FormField
+                        control={form.control}
+                        name="studioId"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Estúdio (Admin)</FormLabel>
+                                <Select onValueChange={(value) => { field.onChange(value); setSelectedStudioId(value); }} defaultValue={field.value || ''}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione o Estúdio" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="">[Nenhum Estúdio]</SelectItem>
+                                        {studios.map(studio => (
+                                            <SelectItem key={studio.id} value={studio.id}>{studio.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
+
                 <FormField
                     control={form.control}
                     name="aiApiKey"
