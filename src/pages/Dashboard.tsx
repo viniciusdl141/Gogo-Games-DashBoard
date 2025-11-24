@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Bot, History, Building2 } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Bot, History, Building2, LogOut } from 'lucide-react'; // Import LogOut
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -22,6 +22,8 @@ import { getGames, addGame as addGameToSupabase, updateGame as updateGameInSupab
 import { getStudios } from '@/integrations/supabase/studios';
 import { useSession } from '@/components/SessionContextProvider';
 import { rawData } from '@/data/rawTrackingData'; // Import rawData
+import { supabase } from '@/integrations/supabase/client'; // Import supabase client
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
@@ -83,6 +85,7 @@ const defaultChartColors: WLSalesChartColors = {
 };
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { profile, isLoading: isSessionLoading, studio } = useSession();
   const isAdmin = profile?.is_admin || false;
   const userStudioId = profile?.studio_id || null;
@@ -737,6 +740,12 @@ const Dashboard = () => {
     };
     reader.readAsText(file);
   }, [trackingData.games]);
+  
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+    toast.info("Você foi desconectado.");
+  };
 
 
   const filteredData = useMemo(() => {
@@ -1194,7 +1203,7 @@ const Dashboard = () => {
                 />
             )}
 
-            {/* Backup/Restore and AI Help Buttons */}
+            {/* Backup/Restore and Logout Buttons */}
             <div className="mt-auto pt-4 border-t border-border space-y-2">
                 <Button 
                     onClick={handleCreateBackup} 
@@ -1222,6 +1231,13 @@ const Dashboard = () => {
                         </div>
                     </Button>
                 </Label>
+                <Button 
+                    onClick={handleLogout} 
+                    variant="destructive" 
+                    className="w-full text-sm mt-2"
+                >
+                    <LogOut className="h-4 w-4 mr-2" /> Sair
+                </Button>
             </div>
           </div>
         </ResizablePanel>
