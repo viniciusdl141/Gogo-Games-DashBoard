@@ -27,7 +27,7 @@ const AdminDashboard: React.FC = () => {
 
     // Redirecionar se não for admin
     if (profile?.role !== 'admin') {
-        toast.error("Acesso negado. Apenas administradores podem acessar esta página.");
+        // Apenas redireciona, sem toast.error, pois o usuário pode ter tentado acessar diretamente.
         return <Navigate to="/" replace />;
     }
 
