@@ -5,7 +5,7 @@ import { useSession } from '@/components/SessionContextProvider';
 import { Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Gamepad, Settings, LogOut, Loader2 } from 'lucide-react';
+import { Users, Gamepad, Settings, LogOut, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -26,9 +26,28 @@ const AdminDashboard: React.FC = () => {
         );
     }
 
+    // DEBUG: Exibe informações do perfil no console (apenas para desenvolvimento)
+    console.log("DEBUG - AdminDashboard", {
+        profile: profile,
+        user: user,
+        isLoading: isLoading,
+        hasSession: !!user,
+    });
+
     // Redirecionar se não for admin (inclui o caso onde profile é null após o carregamento)
     if (profile?.role !== 'admin') {
-        toast.error("Acesso negado. Apenas administradores podem acessar esta página.");
+        const message = profile?.role === 'user' 
+            ? "Acesso negado. Apenas administradores podem acessar esta página."
+            : "Acesso negado. Perfil não encontrado ou role inválida.";
+        toast.error(message);
+        
+        // DEBUG: Exibe mensagem de erro detalhada no console
+        console.warn("DEBUG - Acesso negado:", {
+            profile: profile,
+            user: user,
+            reason: profile?.role !== 'admin' ? 'role !== admin' : 'profile null'
+        });
+        
         return <Navigate to="/" replace />;
     }
 
