@@ -54,6 +54,7 @@ import DeleteGameButton from '@/components/dashboard/DeleteGameButton'; // NEW I
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import EditGameGeneralInfoForm from '@/components/dashboard/EditGameGeneralInfoForm'; // NOVO IMPORT
+import { Badge } from '@/components/ui/badge'; // IMPORT CORRIGIDO
 
 // Initialize data once
 const initialRawData = getTrackingData();
