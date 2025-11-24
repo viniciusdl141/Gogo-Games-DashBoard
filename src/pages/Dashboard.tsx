@@ -116,17 +116,16 @@ const Dashboard = () => {
   const allAvailableGames = useMemo(() => {
     const combinedGamesMap = new Map<string, SupabaseGame>();
     
-    // Add games from Supabase (these are already filtered by RLS/Studio)
+    // 1. Add games from Supabase (these are already filtered by RLS/Studio)
     supabaseGames.forEach(game => {
       combinedGamesMap.set(game.name, game);
     });
 
-    // Add games from local data if not already in Supabase, only if the user is an Admin
-    // In a real multi-tenant app, local data should probably be ignored or migrated.
-    // For now, we allow admins to see local data games too, but they won't have studio_id.
+    // 2. Add games from local data if not already in Supabase, ONLY if the user is an Admin
     if (isAdmin) {
         trackingData.games.forEach(gameName => {
             if (!combinedGamesMap.has(gameName)) {
+                // Create a mock SupabaseGame object for local data games
                 combinedGamesMap.set(gameName, { 
                     id: generateLocalUniqueId('game'), 
                     name: gameName, 
@@ -1148,6 +1147,7 @@ const Dashboard = () => {
   }
   
   // Renderização condicional para quando não há jogos
+  // Se não houver jogos disponíveis E o usuário não for admin (ou se for admin e não houver jogos nem no Supabase nem no local data)
   if (allAvailableGames.length === 0) {
     return (
         <div className="min-h-screen flex items-center justify-center p-8 bg-background text-foreground gaming-background">
@@ -1165,7 +1165,7 @@ const Dashboard = () => {
                 <AddGameModal 
                     isOpen={isAddGameFormOpen} 
                     onClose={() => setIsAddGameFormOpen(false)} 
-                    onSave={(gameName, launchDate, suggestedPrice, capsuleImageUrl) => handleAddGame(gameName, launchDate, suggestedPrice, capsuleImageUrl, null, null, null, null)} 
+                    onSave={(gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary) => handleAddGame(gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary)} 
                 />
             </Card>
         </div>
@@ -1652,7 +1652,7 @@ const Dashboard = () => {
       <AddGameModal 
           isOpen={isAddGameFormOpen} 
           onClose={() => setIsAddGameFormOpen(false)} 
-          onSave={(gameName, launchDate, suggestedPrice, capsuleImageUrl) => handleAddGame(gameName, launchDate, suggestedPrice, capsuleImageUrl, null, null, null, null)} 
+          onSave={(gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary) => handleAddGame(gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary)} 
       />
     </div>
   );
