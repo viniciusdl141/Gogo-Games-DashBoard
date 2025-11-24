@@ -44,9 +44,12 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
             console.error("Error fetching profile:", error);
             setProfile(null);
         } else if (data) {
-            setProfile(data as Profile);
+            const fetchedProfile = data as Profile;
+            setProfile(fetchedProfile);
+            console.log("Profile fetched successfully:", fetchedProfile); // LOG DE SUCESSO
         } else {
             setProfile(null);
+            console.log("Profile not found for user:", currentUser.id); // LOG DE PERFIL NÃO ENCONTRADO
         }
     } catch (e) {
         console.error("Unexpected error fetching profile:", e);
@@ -80,14 +83,18 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       setSession(currentSession);
       setUser(currentSession?.user || null);
       
-      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
           if (currentSession?.user) {
+              // Force refetch profile on sign in or update
               fetchProfile(currentSession.user);
           }
       } else if (event === 'SIGNED_OUT') {
           setProfile(null);
       }
-      setIsLoading(false);
+      // Only set loading to false if it's the initial session load or a sign out event
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') {
+          setIsLoading(false);
+      }
     });
 
     return () => {
