@@ -11,6 +11,7 @@ interface SessionContextType {
   studio: Studio | null;
   isLoading: boolean;
   refetchProfile: () => Promise<void>;
+  simulateLogin: (isAdmin: boolean, studioId: string | null) => void; // NEW: Simulation function
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -20,6 +21,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const [profile, setProfile] = useState<Profile | null>(null);
   const [studio, setStudio] = useState<Studio | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSimulated, setIsSimulated] = useState(false); // NEW: Track if session is simulated
 
   const fetchProfileAndStudio = useCallback(async (currentSession: Session | null) => {
     if (!currentSession) {
@@ -27,6 +29,12 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       setStudio(null);
       setIsLoading(false);
       return;
+    }
+    
+    // Skip fetching if it's a simulated session
+    if (isSimulated) {
+        setIsLoading(false);
+        return;
     }
 
     try {
@@ -67,7 +75,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isSimulated]);
 
   useEffect(() => {
     // Initial session check
@@ -79,6 +87,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     // Auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       setSession(currentSession);
+      setIsSimulated(false); // Reset simulation state on real auth change
       fetchProfileAndStudio(currentSession);
     });
 
@@ -91,10 +100,62 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       setIsLoading(true);
       await fetchProfileAndStudio(session);
   }, [session, fetchProfileAndStudio]);
+  
+  // NEW: Simulation function
+  const simulateLogin = useCallback((isAdmin: boolean, studioId: string | null) => {
+    setIsLoading(true);
+    setIsSimulated(true);
+    
+    // Create a mock session object (required by ProtectedRoute)
+    const mockSession: Session = {
+        access_token: 'mock_token',
+        token_type: 'Bearer',
+        user: {
+            id: 'simulated_user_id',
+            aud: 'authenticated',
+            role: 'authenticated',
+            email: isAdmin ? 'admin@simulated.com' : 'user@simulated.com',
+            email_confirmed_at: new Date().toISOString(),
+            phone: '',
+            created_at: new Date().toISOString(),
+            app_metadata: {},
+            user_metadata: {},
+        },
+        expires_in: 3600,
+        expires_at: Date.now() / 1000 + 3600,
+    };
+    
+    // Create a mock profile
+    const mockProfile: Profile = {
+        id: 'simulated_user_id',
+        first_name: isAdmin ? 'Simulated' : 'Studio',
+        last_name: isAdmin ? 'Admin' : 'User',
+        avatar_url: null,
+        is_admin: isAdmin,
+        studio_id: studioId,
+    };
+    
+    setSession(mockSession);
+    setProfile(mockProfile);
+    
+    // Fetch studio data if studioId is provided (we need real studio data for the UI)
+    if (studioId) {
+        supabase.from('studios').select('*').eq('id', studioId).single()
+            .then(({ data, error }) => {
+                if (error) console.error("Error fetching simulated studio:", error);
+                setStudio(data as Studio || null);
+            })
+            .finally(() => setIsLoading(false));
+    } else {
+        setStudio(null);
+        setIsLoading(false);
+    }
+    
+  }, []);
 
 
   return (
-    <SessionContext.Provider value={{ session, profile, studio, isLoading, refetchProfile }}>
+    <SessionContext.Provider value={{ session, profile, studio, isLoading, refetchProfile, simulateLogin }}>
       {children}
     </SessionContext.Provider>
   );
