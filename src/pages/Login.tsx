@@ -10,23 +10,33 @@ import { Shield } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { session, profile } = useSession();
+  const { session, profile, refetchProfile } = useSession(); // Adicionado refetchProfile
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // Força o recarregamento do perfil para pegar is_approved/is_admin atualizados
+        refetchProfile(); 
+      }
       if (session) {
-        navigate('/');
+        // A navegação final será tratada pelo useEffect abaixo, após o perfil ser carregado
       }
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [refetchProfile]);
   
   useEffect(() => {
       if (session && profile) {
-          navigate('/');
+          // Se o perfil estiver carregado e aprovado, navega para o dashboard
+          if (profile.is_approved) {
+              navigate('/');
+          } else {
+              // Se o perfil estiver carregado mas não aprovado, navega para a tela de pendência
+              navigate('/pending-approval');
+          }
       }
   }, [session, profile, navigate]);
 
