@@ -18,12 +18,7 @@ import { toast } from 'sonner';
 
 const formSchema = z.object({
     launchDate: z.string().nullable().optional(), // YYYY-MM-DD format
-    capsuleImageUrl: z.string().url("Deve ser uma URL válida.").nullable().optional().or(z.literal('')),
-    suggestedPrice: z.number().min(0).default(0).optional(), // Price in BRL
-    priceUsd: z.number().min(0).default(0).optional(), // Price in USD
-    developer: z.string().nullable().optional(),
-    publisher: z.string().nullable().optional(),
-    reviewSummary: z.string().nullable().optional(),
+    capsuleImageUrl: z.string().url("Deve ser uma URL válida.").nullable().optional().or(z.literal('')), // Novo campo
 });
 
 type GameMetadataFormValues = z.infer<typeof formSchema>;
@@ -32,37 +27,12 @@ interface EditGameGeneralInfoFormProps {
     gameId: string;
     gameName: string;
     currentLaunchDate: Date | null;
-    currentCapsuleImageUrl: string | null;
-    currentSuggestedPrice: number | null; // NEW PROP
-    currentPriceUsd: number | null; // NEW PROP
-    currentDeveloper: string | null; // NEW PROP
-    currentPublisher: string | null; // NEW PROP
-    currentReviewSummary: string | null; // NEW PROP
-    onSave: (gameId: string, updates: { 
-        launchDate: string | null, 
-        capsuleImageUrl: string | null, 
-        suggestedPrice: number | null,
-        priceUsd: number | null,
-        developer: string | null,
-        publisher: string | null,
-        reviewSummary: string | null,
-    }) => void;
+    currentCapsuleImageUrl: string | null; // Novo prop
+    onSave: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null) => void;
     onClose: () => void;
 }
 
-const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ 
-    gameId, 
-    gameName, 
-    currentLaunchDate, 
-    currentCapsuleImageUrl, 
-    currentSuggestedPrice,
-    currentPriceUsd,
-    currentDeveloper,
-    currentPublisher,
-    currentReviewSummary,
-    onSave, 
-    onClose 
-}) => {
+const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ gameId, gameName, currentLaunchDate, currentCapsuleImageUrl, onSave, onClose }) => {
     const defaultDateString = currentLaunchDate ? currentLaunchDate.toISOString().split('T')[0] : '';
 
     const form = useForm<GameMetadataFormValues>({
@@ -70,25 +40,12 @@ const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({
         defaultValues: {
             launchDate: defaultDateString,
             capsuleImageUrl: currentCapsuleImageUrl || '',
-            suggestedPrice: currentSuggestedPrice || 0,
-            priceUsd: currentPriceUsd || 0,
-            developer: currentDeveloper || '',
-            publisher: currentPublisher || '',
-            reviewSummary: currentReviewSummary || '',
         },
     });
 
     const onSubmit = (values: GameMetadataFormValues) => {
-        const updates = {
-            launchDate: values.launchDate || null,
-            capsuleImageUrl: values.capsuleImageUrl?.trim() || null,
-            suggestedPrice: values.suggestedPrice || null,
-            priceUsd: values.priceUsd || null,
-            developer: values.developer?.trim() || null,
-            publisher: values.publisher?.trim() || null,
-            reviewSummary: values.reviewSummary?.trim() || null,
-        };
-        onSave(gameId, updates);
+        const imageUrl = values.capsuleImageUrl?.trim() || null;
+        onSave(gameId, values.launchDate || null, imageUrl);
         toast.success(`Informações gerais para "${gameName}" atualizadas.`);
         onClose();
     };
@@ -108,7 +65,7 @@ const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({
                                 <Input 
                                     type="date" 
                                     {...field} 
-                                    value={field.value || ''}
+                                    value={field.value || ''} // Ensure controlled component
                                 />
                             </FormControl>
                             <FormMessage />
@@ -116,90 +73,6 @@ const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({
                     )}
                 />
                 
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="suggestedPrice"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Preço Sugerido (R$)</FormLabel>
-                                <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        step="0.01" 
-                                        placeholder="19.99" 
-                                        {...field} 
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="priceUsd"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Preço Sugerido (USD)</FormLabel>
-                                <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        step="0.01" 
-                                        placeholder="4.99" 
-                                        {...field} 
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="developer"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Desenvolvedora</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Ex: Gogo Games Studio" {...field} value={field.value || ''} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="publisher"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Distribuidora</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Ex: Gogo Games Publishing" {...field} value={field.value || ''} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-                
-                <FormField
-                    control={form.control}
-                    name="reviewSummary"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Resumo de Reviews (Steam)</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Ex: Muito Positivas" {...field} value={field.value || ''} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
                 <FormField
                     control={form.control}
                     name="capsuleImageUrl"

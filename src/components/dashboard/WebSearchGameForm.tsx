@@ -29,16 +29,7 @@ const formSchema = z.object({
 type WebSearchFormValues = z.infer<typeof formSchema>;
 
 interface WebSearchGameFormProps {
-    onSave: (
-        gameName: string, 
-        launchDate: string | null, 
-        suggestedPrice: number, 
-        capsuleImageUrl: string | null,
-        priceUsd: number | null, // NEW
-        developer: string | null, // NEW
-        publisher: string | null, // NEW
-        reviewSummary: string | null // NEW
-    ) => void;
+    onSave: (gameName: string, launchDate: string | null, suggestedPrice: number, capsuleImageUrl: string | null) => void;
     onClose: () => void;
 }
 
@@ -88,16 +79,7 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
         const suggestedPrice = game.suggestedPrice || 0; 
         const capsuleImageUrl = game.capsuleImageUrl || null;
         
-        onSave(
-            game.name.trim(), 
-            launchDate, 
-            suggestedPrice, 
-            capsuleImageUrl,
-            game.priceUSD, // Passando USD
-            game.developer, // Passando Developer
-            game.publisher, // Passando Publisher
-            game.reviewSummary // Passando Review Summary
-        );
+        onSave(game.name.trim(), launchDate, suggestedPrice, capsuleImageUrl);
         toast.success(`Jogo "${game.name}" selecionado e salvo.`);
         onClose();
     };
