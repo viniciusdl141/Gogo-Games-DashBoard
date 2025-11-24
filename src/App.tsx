@@ -6,24 +6,31 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import Admin from "./pages/Admin"; // Importar Admin
+import Admin from "./pages/Admin"; 
+import Onboarding from "./pages/Onboarding"; // Importar Onboarding
 import { SessionContextProvider, useSession } from "./components/SessionContextProvider";
 import React from "react";
 import { ThemeProvider } from "@/components/theme-provider"; 
-import { useUserStudio } from "./hooks/use-user-studio"; // Importar hook de estúdio
+import { useUserStudio } from "./hooks/use-user-studio"; 
 
 const queryClient = new QueryClient();
 
 // Componente de rota protegida
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { session, isLoading } = useSession();
+  const { studio, isLoadingStudio, isAdmin } = useUserStudio();
 
-  if (isLoading) {
+  if (isLoading || isLoadingStudio) {
     return <div className="min-h-screen flex items-center justify-center">Carregando...</div>; // Ou um spinner de carregamento
   }
 
   if (!session) {
     return <Navigate to="/login" replace />;
+  }
+  
+  // Se o usuário não for Admin E não tiver um estúdio, redireciona para Onboarding
+  if (!isAdmin && !studio) {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return <>{children}</>;
@@ -62,6 +69,14 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route 
+                path="/onboarding" 
+                element={
+                  <SessionCheckRoute>
+                    <Onboarding />
+                  </SessionCheckRoute>
+                } 
+              />
+              <Route 
                 path="/" 
                 element={
                   <ProtectedRoute>
@@ -88,5 +103,13 @@ const App = () => (
     </ThemeProvider>
   </QueryClientProvider>
 );
+
+// Helper component to ensure session exists before rendering Onboarding
+const SessionCheckRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { session, isLoading } = useSession();
+    if (isLoading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+    if (!session) return <Navigate to="/login" replace />;
+    return <>{children}</>;
+};
 
 export default App;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from '@/components/SessionContextProvider';
-import { getStudioByOwner, createStudio, getProfile, createProfile, Studio, Profile, createGogoStudioIfMissing } from '@/integrations/supabase/games';
+import { getStudioByOwner, getProfile, createProfile, Studio, Profile, createGogoStudioIfMissing } from '@/integrations/supabase/games';
 import { toast } from 'sonner';
 
 interface UserStudioState {
@@ -35,7 +35,7 @@ export function useUserStudio(): UserStudioState {
       
       if (!userProfile) {
           userProfile = await createProfile(userId);
-          toast.info("Perfil de usuário criado com sucesso (fallback).");
+          // No need for toast here, as the trigger should handle it, but keeping fallback
       }
       
       setProfile(userProfile);
@@ -44,34 +44,22 @@ export function useUserStudio(): UserStudioState {
       // 2. Fetch Studio
       let userStudio = await getStudioByOwner(userId);
 
-      // 3. Auto-create studio if needed
-      if (!userStudio) {
-        if (isAdminUser) {
-            // If Admin, use the specific SQL function to create 'GoGo Games Interactive' and ensure admin status
-            const studioId = await createGogoStudioIfMissing();
-            if (studioId) {
-                // Refetch the newly created studio data
-                userStudio = await getStudioByOwner(userId);
-                toast.success(`Estúdio 'GoGo Games Interactive' criado e vinculado.`);
-            }
-        } else {
-            // If regular user, create a default studio
-            const defaultStudioName = session?.user?.email?.split('@')[0] || `Studio-${userId.substring(0, 8)}`;
-            userStudio = await createStudio(defaultStudioName, userId);
-            toast.info(`Estúdio padrão "${defaultStudioName}" criado.`);
-        }
+      // 3. If Admin and no studio, call the specific function to create the default studio
+      if (!userStudio && isAdminUser) {
+          const studioId = await createGogoStudioIfMissing();
+          if (studioId) {
+              userStudio = await getStudioByOwner(userId);
+          }
       }
       
+      // If still no studio, the user needs to go through onboarding (handled by App.tsx)
       setStudio(userStudio);
 
     } catch (error) {
       console.error("Error fetching studio/profile data:", error);
-      
       setStudio(null);
       setProfile(null);
-      
       if (session) {
-          // Se o erro for de RLS, o toast de erro genérico é mantido
           toast.error("Falha ao carregar dados do estúdio/perfil. Verifique as permissões de RLS.");
       }
       
