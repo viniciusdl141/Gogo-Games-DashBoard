@@ -73,11 +73,13 @@ export const deleteGame = async (id: string): Promise<void> => {
 };
 
 export const getStudioByOwner = async (ownerId: string): Promise<Studio | null> => {
-  const { data, error } = await supabase.from('studios').select('*').eq('owner_id', ownerId).single();
-  if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-    throw error;
+  const { data, error } = await supabase.from('studios').select('*').eq('owner_id', ownerId).limit(1);
+  if (error) throw error;
+  
+  if (data && data.length > 0) {
+    return data[0] as Studio;
   }
-  return data;
+  return null;
 };
 
 export const createStudio = async (name: string, ownerId: string): Promise<Studio> => {
@@ -87,11 +89,13 @@ export const createStudio = async (name: string, ownerId: string): Promise<Studi
 };
 
 export const getProfile = async (userId: string): Promise<Profile | null> => {
-  const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, is_admin').eq('id', userId).single();
-  if (error && error.code !== 'PGRST116') {
-    throw error;
+  const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, is_admin').eq('id', userId).limit(1);
+  if (error) throw error;
+  
+  if (data && data.length > 0) {
+    return data[0] as Profile;
   }
-  return data;
+  return null;
 };
 
 // --- Admin Functions ---
