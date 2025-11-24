@@ -117,10 +117,6 @@ const StudioList: React.FC = () => {
         updateProfileMutation.mutate({ id: profileId, updates: { role: newRole } });
     };
 
-    const usersWithoutStudio = useMemo(() => {
-        return profiles?.filter(p => !p.studio_id && p.role !== 'admin') || [];
-    }, [profiles]);
-
     const usersByStudio = useMemo(() => {
         const map = new Map<string, Profile[]>();
         if (studios && profiles) {
@@ -132,7 +128,11 @@ const StudioList: React.FC = () => {
     }, [studios, profiles]);
     
     const adminUsers = useMemo(() => {
-        return profiles?.filter(p => p.role === 'admin') || [];
+        return profiles?.filter(p => p.role === 'admin').sort((a, b) => a.email.localeCompare(b.email)) || [];
+    }, [profiles]);
+    
+    const regularUsers = useMemo(() => {
+        return profiles?.filter(p => p.role === 'user').sort((a, b) => a.email.localeCompare(b.email)) || [];
     }, [profiles]);
 
 
@@ -218,7 +218,7 @@ const StudioList: React.FC = () => {
             {/* User Management */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Gerenciamento de Usuários</CardTitle>
+                    <CardTitle>Gerenciamento de Usuários ({profiles?.length || 0})</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -248,7 +248,7 @@ const StudioList: React.FC = () => {
                                                 <Check className="h-4 w-4 mr-2" /> Fixo
                                             </Button>
                                         ) : (
-                                            <Button variant="outline" size="sm" onClick={() => handleToggleAdmin(profile.id, profile.role)}>
+                                            <Button variant="outline" size="sm" onClick={() => handleToggleAdmin(profile.id, profile.role)} disabled={updateProfileMutation.isPending}>
                                                 Tornar Usuário
                                             </Button>
                                         )}
@@ -257,12 +257,16 @@ const StudioList: React.FC = () => {
                             ))}
                             
                             {/* Regular Users */}
-                            {profiles?.filter(p => p.role === 'user').map(profile => (
+                            {regularUsers.map(profile => (
                                 <TableRow key={profile.id}>
                                     <TableCell className="font-medium">{profile.email}</TableCell>
                                     <TableCell>{profile.role.toUpperCase()}</TableCell>
                                     <TableCell>
-                                        <Select onValueChange={(studioId) => handleAssignStudio(profile.id, studioId === '' ? null : studioId)} value={profile.studio_id || ''}>
+                                        <Select 
+                                            onValueChange={(studioId) => handleAssignStudio(profile.id, studioId === '' ? null : studioId)} 
+                                            value={profile.studio_id || ''}
+                                            disabled={updateProfileMutation.isPending}
+                                        >
                                             <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Atribuir Estúdio" />
                                             </SelectTrigger>
@@ -275,7 +279,7 @@ const StudioList: React.FC = () => {
                                         </Select>
                                     </TableCell>
                                     <TableCell className="text-center">
-                                        <Button variant="outline" size="sm" onClick={() => handleToggleAdmin(profile.id, profile.role)}>
+                                        <Button variant="outline" size="sm" onClick={() => handleToggleAdmin(profile.id, profile.role)} disabled={updateProfileMutation.isPending}>
                                             Tornar Admin
                                         </Button>
                                     </TableCell>
