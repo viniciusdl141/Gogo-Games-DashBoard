@@ -17,7 +17,10 @@ export interface Game {
 export const getGames = async (): Promise<Game[]> => {
   // RLS ensures only permitted games (admin or studio-specific) are returned
   const { data, error } = await supabase.from('games').select('*').order('name');
-  if (error) throw error;
+  if (error) {
+    console.error("Supabase Error fetching games:", error);
+    throw error;
+  }
   return data;
 };
 
