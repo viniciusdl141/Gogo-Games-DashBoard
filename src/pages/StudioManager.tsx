@@ -2,7 +2,7 @@
 
 import React from 'react';
 import StudioManagement from '@/components/admin/StudioManagement';
-import ProfileManagement from '@/components/admin/ProfileManagement'; // Import ProfileManagement
+import UserManagementPanel from '@/components/admin/UserManagementPanel'; // Import UserManagementPanel
 import { useSession } from '@/components/SessionContextProvider';
 import { Navigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,7 +29,7 @@ const StudioManager: React.FC = () => {
                 
                 <Separator />
                 
-                <ProfileManagement />
+                <UserManagementPanel />
             </Card>
         </div>
     );

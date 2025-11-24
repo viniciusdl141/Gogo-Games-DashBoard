@@ -6,7 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import StudioManager from "./pages/StudioManager"; // Import StudioManager
+import StudioManager from "./pages/StudioManager"; 
+import PendingApproval from "./pages/PendingApproval"; // NEW IMPORT
 import { SessionContextProvider, useSession } from "./components/SessionContextProvider";
 import React from "react";
 import { ThemeProvider } from "@/components/theme-provider"; 
@@ -15,14 +16,19 @@ const queryClient = new QueryClient();
 
 // Componente de rota protegida
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { session, isLoading } = useSession();
+  const { session, profile, isLoading } = useSession();
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>; // Ou um spinner de carregamento
+    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>; 
   }
 
   if (!session) {
     return <Navigate to="/login" replace />;
+  }
+  
+  // NEW: Check for approval status
+  if (profile && !profile.is_approved) {
+      return <Navigate to="/pending-approval" replace />;
   }
 
   return <>{children}</>;
@@ -38,6 +44,7 @@ const App = () => (
           <SessionContextProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/pending-approval" element={<PendingApproval />} /> {/* NEW ROUTE */}
               <Route 
                 path="/" 
                 element={

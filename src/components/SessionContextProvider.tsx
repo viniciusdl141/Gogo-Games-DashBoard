@@ -30,7 +30,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     }
 
     try {
-      // 1. Fetch Profile
+      // 1. Fetch Profile (including is_approved)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -41,7 +41,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
         throw profileError;
       }
 
-      const currentProfile: Profile | null = profileData as Profile | null;
+      const currentProfile: Profile | null = profileData as Profile || null;
       setProfile(currentProfile);
 
       // 2. Fetch Studio if profile exists and has a studio_id

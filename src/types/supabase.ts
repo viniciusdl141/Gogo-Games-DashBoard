@@ -5,6 +5,7 @@ export interface Profile {
     avatar_url: string | null;
     is_admin: boolean;
     studio_id: string | null;
+    is_approved: boolean; // NEW
 }
 
 export interface Studio {
