@@ -7,10 +7,11 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import StudioManager from "./pages/StudioManager"; 
-import PendingApproval from "./pages/PendingApproval"; // NEW IMPORT
+import PendingApproval from "./pages/PendingApproval"; 
 import { SessionContextProvider, useSession } from "./components/SessionContextProvider";
 import React from "react";
 import { ThemeProvider } from "@/components/theme-provider"; 
+import { Loader2 } from "lucide-react"; // Importando Loader2
 
 const queryClient = new QueryClient();
 
@@ -19,14 +20,19 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { session, profile, isLoading } = useSession();
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>; 
+    // Mostra um loader enquanto a sessão e o perfil estão sendo carregados
+    return (
+        <div className="min-h-screen flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-gogo-cyan" />
+        </div>
+    ); 
   }
 
   if (!session) {
     return <Navigate to="/login" replace />;
   }
   
-  // NEW: Check for approval status
+  // Verifica o status de aprovação
   if (profile && !profile.is_approved) {
       return <Navigate to="/pending-approval" replace />;
   }
@@ -44,7 +50,7 @@ const App = () => (
           <SessionContextProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/pending-approval" element={<PendingApproval />} /> {/* NEW ROUTE */}
+              <Route path="/pending-approval" element={<PendingApproval />} />
               <Route 
                 path="/" 
                 element={
