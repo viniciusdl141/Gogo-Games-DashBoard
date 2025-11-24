@@ -6,7 +6,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Bot, History, User, Loader2 } from 'lucide-react';
+import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Bot, History, User, Loader2, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -55,6 +55,7 @@ import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import EditGameGeneralInfoForm from '@/components/dashboard/EditGameGeneralInfoForm'; // NOVO IMPORT
 import { Badge } from '@/components/ui/badge'; // IMPORT CORRIGIDO
+import { Link } from 'react-router-dom'; // Importar Link
 
 // Initialize data once
 const initialRawData = getTrackingData();
@@ -1196,6 +1197,14 @@ const Dashboard = () => {
                         {isAdmin ? "ADMIN" : "ESTÚDIO"}
                     </Badge>
                 </div>
+            )}
+
+            {isAdmin && (
+                <Link to="/admin" className="w-full mb-4">
+                    <Button variant="outline" className="w-full justify-start text-gogo-orange border-gogo-orange hover:bg-gogo-orange/10">
+                        <Settings className="h-4 w-4 mr-2" /> Gerenciar Admin
+                    </Button>
+                </Link>
             )}
 
             <div className="flex-grow space-y-4">

@@ -6,9 +6,11 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import Admin from "./pages/Admin"; // Importar Admin
 import { SessionContextProvider, useSession } from "./components/SessionContextProvider";
 import React from "react";
-import { ThemeProvider } from "@/components/theme-provider"; // Importar ThemeProvider
+import { ThemeProvider } from "@/components/theme-provider"; 
+import { useUserStudio } from "./hooks/use-user-studio"; // Importar hook de estúdio
 
 const queryClient = new QueryClient();
 
@@ -27,9 +29,31 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
+// Componente de rota de Admin
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { session, isLoading } = useSession();
+  const { isAdmin, isLoadingStudio } = useUserStudio();
+
+  if (isLoading || isLoadingStudio) {
+    return <div className="min-h-screen flex items-center justify-center">Carregando permissões...</div>;
+  }
+
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (!isAdmin) {
+    // Redireciona para a página inicial se não for admin
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme"> {/* Adicionar ThemeProvider */}
+    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -45,13 +69,23 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute>
+                    <AdminRoute>
+                      <Admin />
+                    </AdminRoute>
+                  </ProtectedRoute>
+                } 
+              />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </SessionContextProvider>
         </BrowserRouter>
       </TooltipProvider>
-    </ThemeProvider> {/* Fechar ThemeProvider */}
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

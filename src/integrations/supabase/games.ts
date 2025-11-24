@@ -25,6 +25,7 @@ export interface Profile {
   first_name: string | null;
   last_name: string | null;
   is_admin: boolean;
+  email?: string; // Adicionado para uso no Admin
 }
 
 export const getGames = async (): Promise<Game[]> => {
@@ -91,4 +92,59 @@ export const getProfile = async (userId: string): Promise<Profile | null> => {
     throw error;
   }
   return data;
+};
+
+// --- Admin Functions ---
+
+export const getAllProfiles = async (): Promise<Profile[]> => {
+  // Join profiles with auth.users to get email (requires RLS policy on profiles to allow admin to read all)
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(`
+      id,
+      first_name,
+      last_name,
+      is_admin,
+      auth_user:auth.users(email)
+    `);
+  
+  if (error) throw error;
+  
+  return data.map(p => ({
+    id: p.id,
+    first_name: p.first_name,
+    last_name: p.last_name,
+    is_admin: p.is_admin,
+    email: (p.auth_user as any)?.email || 'N/A',
+  }));
+};
+
+export const getAllStudios = async (): Promise<Studio[]> => {
+  const { data, error } = await supabase.from('studios').select('*').order('name');
+  if (error) throw error;
+  return data;
+};
+
+export const updateStudio = async (id: string, updates: Partial<Studio>): Promise<Studio> => {
+  const { data, error } = await supabase.from('studios').update(updates).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const deleteStudio = async (id: string): Promise<void> => {
+  const { error } = await supabase.from('studios').delete().eq('id', id);
+  if (error) throw error;
+};
+
+export const getAllGames = async (): Promise<Game[]> => {
+  // This function is intended for Admin to see ALL games, regardless of studio_id
+  // RLS policy for 'games' must allow admin to read all.
+  const { data, error } = await supabase.from('games').select('*').order('name');
+  if (error) throw error;
+  return data;
+};
+
+export const updateProfileAdminStatus = async (userId: string, isAdmin: boolean): Promise<void> => {
+  const { error } = await supabase.from('profiles').update({ is_admin: isAdmin }).eq('id', userId);
+  if (error) throw error;
 };
