@@ -10,17 +10,7 @@ import WebSearchGameForm from './WebSearchGameForm';
 interface AddGameModalProps {
     isOpen: boolean;
     onClose: () => void;
-    // Assinatura atualizada para incluir todos os metadados
-    onSave: (
-        gameName: string, 
-        launchDate: string | null, 
-        suggestedPrice: number, 
-        capsuleImageUrl: string | null,
-        priceUsd: number | null,
-        developer: string | null,
-        publisher: string | null,
-        reviewSummary: string | null,
-    ) => void;
+    onSave: (gameName: string, launchDate: string | null, suggestedPrice: number, capsuleImageUrl: string | null) => void;
 }
 
 const AddGameModal: React.FC<AddGameModalProps> = ({ isOpen, onClose, onSave }) => {
@@ -28,7 +18,7 @@ const AddGameModal: React.FC<AddGameModalProps> = ({ isOpen, onClose, onSave }) 
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>Adicionar Novo Jogo</DialogTitle>
                 </DialogHeader>
@@ -45,16 +35,14 @@ const AddGameModal: React.FC<AddGameModalProps> = ({ isOpen, onClose, onSave }) 
                     
                     <TabsContent value="manual">
                         <AddGameForm 
-                            onSave={(gameName, launchDate, suggestedPrice) => onSave(gameName, launchDate, suggestedPrice, null, null, null, null, null)} 
+                            onSave={(gameName, launchDate, suggestedPrice) => onSave(gameName, launchDate, suggestedPrice, null)} 
                             onClose={onClose} 
                         />
                     </TabsContent>
                     
                     <TabsContent value="web-search">
                         <WebSearchGameForm 
-                            onSave={(gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary) => 
-                                onSave(gameName, launchDate, suggestedPrice, capsuleImageUrl, priceUsd, developer, publisher, reviewSummary)
-                            } 
+                            onSave={onSave} 
                             onClose={onClose} 
                         />
                     </TabsContent>
