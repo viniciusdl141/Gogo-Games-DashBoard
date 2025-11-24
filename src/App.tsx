@@ -8,7 +8,8 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import { SessionContextProvider, useSession } from "./components/SessionContextProvider";
 import React from "react";
-import { ThemeProvider } from "@/components/theme-provider"; // Importar ThemeProvider
+import { ThemeProvider } from "@/components/theme-provider"; 
+import { Loader2 } from "lucide-react"; 
 
 const queryClient = new QueryClient();
 
@@ -17,19 +18,25 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { session, isLoading } = useSession();
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>; // Ou um spinner de carregamento
+    // Mostra um loader enquanto a sessão está sendo carregada
+    return (
+        <div className="min-h-screen flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-gogo-cyan" />
+        </div>
+    ); 
   }
 
   if (!session) {
     return <Navigate to="/login" replace />;
   }
-
+  
+  // Se houver sessão e não estiver carregando, permite o acesso.
   return <>{children}</>;
 };
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme"> {/* Adicionar ThemeProvider */}
+    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme"> 
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -51,7 +58,7 @@ const App = () => (
           </SessionContextProvider>
         </BrowserRouter>
       </TooltipProvider>
-    </ThemeProvider> {/* Fechar ThemeProvider */}
+    </ThemeProvider> 
   </QueryClientProvider>
 );
 
