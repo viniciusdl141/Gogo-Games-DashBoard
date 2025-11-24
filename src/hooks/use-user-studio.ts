@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from '@/components/SessionContextProvider';
-import { getStudioByOwner, createStudio, getProfile, Studio, Profile } from '@/integrations/supabase/games';
+import { getStudioByOwner, createStudio, getProfile, createProfile, Studio, Profile } from '@/integrations/supabase/games';
 import { toast } from 'sonner';
 
 interface UserStudioState {
@@ -31,7 +31,14 @@ export function useUserStudio(): UserStudioState {
     setIsLoadingStudio(true);
     try {
       // 1. Fetch Profile
-      const userProfile = await getProfile(userId);
+      let userProfile = await getProfile(userId);
+      
+      // Fallback: If profile doesn't exist, create it (this relies on the RLS INSERT policy being permissive)
+      if (!userProfile) {
+          userProfile = await createProfile(userId);
+          toast.info("Perfil de usuário criado com sucesso (fallback).");
+      }
+      
       setProfile(userProfile);
       const isAdminUser = userProfile?.is_admin ?? false;
 

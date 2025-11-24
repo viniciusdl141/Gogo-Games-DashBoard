@@ -96,6 +96,12 @@ export const getProfile = async (userId: string): Promise<Profile | null> => {
   return data as Profile | null;
 };
 
+export const createProfile = async (userId: string): Promise<Profile> => {
+  const { data, error } = await supabase.from('profiles').insert([{ id: userId, is_admin: false }]).select().single();
+  if (error) throw error;
+  return data;
+};
+
 // --- Admin Functions ---
 
 export const getAllProfiles = async (): Promise<Profile[]> => {
