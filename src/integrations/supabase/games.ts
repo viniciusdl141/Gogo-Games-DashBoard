@@ -87,6 +87,17 @@ export const createStudio = async (name: string, ownerId: string): Promise<Studi
   return data;
 };
 
+// NEW: Function to call the SQL function to create the Gogo Studio
+export const createGogoStudioIfMissing = async (): Promise<string | null> => {
+    const { data, error } = await supabase.rpc('create_gogo_studio_if_missing');
+    if (error) {
+        console.error("Error calling create_gogo_studio_if_missing:", error);
+        throw error;
+    }
+    return data as string | null; // Returns the studio ID or null
+};
+
+
 export const getProfile = async (userId: string): Promise<Profile | null> => {
   // Use .maybeSingle() to handle 0 or 1 result gracefully without throwing an error on 'no rows found'
   const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, is_admin').eq('id', userId).maybeSingle();

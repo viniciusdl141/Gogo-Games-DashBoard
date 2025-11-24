@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from '@/components/SessionContextProvider';
-import { getStudioByOwner, createStudio, getProfile, createProfile, Studio, Profile } from '@/integrations/supabase/games';
+import { getStudioByOwner, createStudio, getProfile, createProfile, Studio, Profile, createGogoStudioIfMissing } from '@/integrations/supabase/games';
 import { toast } from 'sonner';
 
 interface UserStudioState {
@@ -30,10 +30,9 @@ export function useUserStudio(): UserStudioState {
 
     setIsLoadingStudio(true);
     try {
-      // 1. Fetch Profile
+      // 1. Fetch Profile (or create if missing)
       let userProfile = await getProfile(userId);
       
-      // Fallback: If profile doesn't exist, create it (this relies on the RLS INSERT policy being permissive)
       if (!userProfile) {
           userProfile = await createProfile(userId);
           toast.info("Perfil de usuário criado com sucesso (fallback).");
@@ -45,11 +44,22 @@ export function useUserStudio(): UserStudioState {
       // 2. Fetch Studio
       let userStudio = await getStudioByOwner(userId);
 
-      // 3. Auto-create studio if needed (only for non-admins without a studio)
-      if (!userStudio && !isAdminUser) {
-        const defaultStudioName = session?.user?.email?.split('@')[0] || `Studio-${userId.substring(0, 8)}`;
-        userStudio = await createStudio(defaultStudioName, userId);
-        toast.info(`Estúdio padrão "${defaultStudioName}" criado.`);
+      // 3. Auto-create studio if needed
+      if (!userStudio) {
+        if (isAdminUser) {
+            // If Admin, use the specific SQL function to create 'GoGo Games Interactive' and ensure admin status
+            const studioId = await createGogoStudioIfMissing();
+            if (studioId) {
+                // Refetch the newly created studio data
+                userStudio = await getStudioByOwner(userId);
+                toast.success(`Estúdio 'GoGo Games Interactive' criado e vinculado.`);
+            }
+        } else {
+            // If regular user, create a default studio
+            const defaultStudioName = session?.user?.email?.split('@')[0] || `Studio-${userId.substring(0, 8)}`;
+            userStudio = await createStudio(defaultStudioName, userId);
+            toast.info(`Estúdio padrão "${defaultStudioName}" criado.`);
+        }
       }
       
       setStudio(userStudio);
@@ -57,13 +67,11 @@ export function useUserStudio(): UserStudioState {
     } catch (error) {
       console.error("Error fetching studio/profile data:", error);
       
-      // Se houver um erro (ex: RLS bloqueando a leitura), definimos o estado como null
-      // e garantimos que isLoadingStudio seja false.
       setStudio(null);
       setProfile(null);
       
-      // Exibir um erro genérico apenas se o usuário estiver logado
       if (session) {
+          // Se o erro for de RLS, o toast de erro genérico é mantido
           toast.error("Falha ao carregar dados do estúdio/perfil. Verifique as permissões de RLS.");
       }
       
