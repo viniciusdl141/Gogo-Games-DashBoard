@@ -73,14 +73,18 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
         setRevenueShare(isNaN(value) ? 0 : value / 100);
     };
 
+    // --- Cálculos de Receita ---
+    
+    // 1. Cálculos baseados em totalSales (dados de tracking)
     const grossRevenue = totalSales * gamePrice;
     const netRevenue = grossRevenue * revenueShare;
     const netProfit = netRevenue - totalInvestment;
-    const roiPercentage = totalInvestment > 0 ? (netProfit / totalInvestment) * 100 : 0;
+    // const roiPercentage = totalInvestment > 0 ? (netProfit / totalInvestment) * 100 : 0; // Não usado na UI, removido para simplificar
 
+    // 2. Cálculos baseados em inputs manuais (Calculadora)
     const totalManualSales = salesBRL + salesUSD;
     const grossManualRevenue = totalManualSales * gamePrice;
-    const netManualRevenue = netManualRevenue * revenueShare;
+    const netManualRevenue = grossManualRevenue * revenueShare; // netManualRevenue é calculado aqui
     const netManualProfit = netManualRevenue - totalInvestment;
     const roiManualPercentage = totalInvestment > 0 ? (netManualProfit / totalInvestment) * 100 : 0;
 
