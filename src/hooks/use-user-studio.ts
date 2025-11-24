@@ -30,7 +30,7 @@ export function useUserStudio(): UserStudioState {
 
     setIsLoadingStudio(true);
     try {
-      // 1. Fetch Profile (to check admin status)
+      // 1. Fetch Profile
       const userProfile = await getProfile(userId);
       setProfile(userProfile);
       const isAdminUser = userProfile?.is_admin ?? false;
@@ -38,9 +38,7 @@ export function useUserStudio(): UserStudioState {
       // 2. Fetch Studio
       let userStudio = await getStudioByOwner(userId);
 
-      // If no studio exists AND the user is NOT an admin, create a default studio entry
-      // Admins don't strictly need a studio linked to their ID to operate, but if they don't have one, 
-      // they won't see games linked only to their personal studio ID. We only auto-create for non-admins.
+      // 3. Auto-create studio if needed (only for non-admins without a studio)
       if (!userStudio && !isAdminUser) {
         const defaultStudioName = session?.user?.email?.split('@')[0] || `Studio-${userId.substring(0, 8)}`;
         userStudio = await createStudio(defaultStudioName, userId);
@@ -51,10 +49,13 @@ export function useUserStudio(): UserStudioState {
 
     } catch (error) {
       console.error("Error fetching studio/profile data:", error);
-      // Only show error toast if it's not just a missing profile/studio (which should be handled internally)
+      
+      // Check if the error is a known 'no rows found' error (PGRST116)
+      // If it's not PGRST116, it's a real error (network, RLS violation, etc.)
       if (error.code !== 'PGRST116') {
-        toast.error("Falha ao carregar dados do estúdio/perfil.");
+        toast.error("Falha ao carregar dados do estúdio/perfil. Verifique as permissões.");
       }
+      
       setStudio(null);
       setProfile(null);
     } finally {
