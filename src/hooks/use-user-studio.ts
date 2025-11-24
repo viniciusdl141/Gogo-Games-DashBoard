@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from '@/components/SessionContextProvider';
 import { getStudioByOwner, getProfile, createProfile, Studio, Profile, createGogoStudioIfMissing } from '@/integrations/supabase/games';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserStudioState {
   studio: Studio | null;
@@ -12,6 +13,17 @@ interface UserStudioState {
   isAdmin: boolean;
   refetchStudio: () => void;
 }
+
+// Helper para buscar o estúdio pelo ID
+const getStudioById = async (studioId: string): Promise<Studio | null> => {
+    const { data, error } = await supabase.from('studios').select('*').eq('id', studioId).maybeSingle();
+    if (error) {
+        console.error("Error fetching studio by ID:", error);
+        return null;
+    }
+    return data as Studio | null;
+};
+
 
 export function useUserStudio(): UserStudioState {
   const { session, isLoading: isLoadingSession } = useSession();
@@ -34,25 +46,28 @@ export function useUserStudio(): UserStudioState {
       let userProfile = await getProfile(userId);
       
       if (!userProfile) {
+          // This should ideally be handled by the trigger, but as a fallback:
           userProfile = await createProfile(userId);
-          // No need for toast here, as the trigger should handle it, but keeping fallback
       }
       
       setProfile(userProfile);
       const isAdminUser = userProfile?.is_admin ?? false;
+      let userStudio: Studio | null = null;
 
-      // 2. Fetch Studio
-      let userStudio = await getStudioByOwner(userId);
-
-      // 3. If Admin and no studio, call the specific function to create the default studio
-      if (!userStudio && isAdminUser) {
+      // 2. Handle Admin Studio Creation/Lookup
+      if (isAdminUser) {
+          // Admins always try to ensure the default studio exists and they own it
           const studioId = await createGogoStudioIfMissing();
           if (studioId) {
-              userStudio = await getStudioByOwner(userId);
+              userStudio = await getStudioById(studioId);
           }
+      } 
+      
+      // 3. Lookup Studio via Profile Link (for non-admins or if admin doesn't own the default)
+      if (!userStudio && userProfile?.studio_id) {
+          userStudio = await getStudioById(userProfile.studio_id);
       }
       
-      // If still no studio, the user needs to go through onboarding (handled by App.tsx)
       setStudio(userStudio);
 
     } catch (error) {

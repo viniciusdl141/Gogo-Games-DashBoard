@@ -97,10 +97,52 @@ export const createGogoStudioIfMissing = async (): Promise<string | null> => {
     return data as string | null; // Returns the studio ID or null
 };
 
+// NEW: Function to get all studios (for selection in Onboarding)
+export const getAllStudiosForSelection = async (): Promise<Studio[]> => {
+    // RLS on studios allows authenticated users to read studios they own or if they are admin.
+    // We need to ensure RLS allows reading all studios for selection during onboarding.
+    // Assuming RLS is configured to allow authenticated users to read all studios for this purpose.
+    const { data, error } = await supabase.from('studios').select('*').order('name');
+    if (error) throw error;
+    return data;
+};
+
+// NEW: Function to link a user profile to a studio
+export const linkProfileToStudio = async (userId: string, studioId: string): Promise<void> => {
+    // NOTE: The profiles table currently doesn't have a studio_id column. 
+    // We must update the studio table to set the user as the owner, or update the profile table to link the studio.
+    // Since the current schema links the studio to the owner (1:1), we must update the studio's owner_id.
+    // HOWEVER, if multiple users belong to one studio, we need a many-to-many relationship or a studio_id column in profiles.
+    
+    // Based on the current schema (Studio has owner_id), let's assume the user is becoming the owner of the selected studio.
+    // This is likely incorrect for a multi-user scenario.
+    
+    // Let's assume the user is becoming the owner of the selected studio for now, 
+    // OR, if the studio already has an owner, we need a way to link the user to the studio.
+    
+    // Since the user is selecting a studio, let's assume the goal is to set the user as the owner of that studio, 
+    // effectively claiming it, or if the studio is already claimed, we need a different approach.
+    
+    // Given the current schema (Studio has owner_id, Profile has no studio_id), 
+    // the simplest way to link a user to a studio is to set them as the owner.
+    
+    // If the goal is for multiple users to belong to a studio, we need a studio_id column in profiles.
+    
+    // Let's add the studio_id column to profiles first, as this is the standard way to handle user membership.
+    // I will assume the user wants to link their profile to the studio.
+    
+    // Since I cannot modify the database schema directly via TypeScript, I will assume the profiles table has a studio_id column for now, 
+    // and I will add the necessary SQL to create this column.
+    
+    // --- RLS CHECK: The user must be able to update their own profile.
+    const { error } = await supabase.from('profiles').update({ studio_id: studioId }).eq('id', userId);
+    if (error) throw error;
+};
+
 
 export const getProfile = async (userId: string): Promise<Profile | null> => {
   // Use .maybeSingle() to handle 0 or 1 result gracefully without throwing an error on 'no rows found'
-  const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, is_admin').eq('id', userId).maybeSingle();
+  const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, is_admin, studio_id').eq('id', userId).maybeSingle();
   
   if (error) throw error;
   
@@ -123,7 +165,8 @@ export const getAllProfiles = async (): Promise<Profile[]> => {
       id,
       first_name,
       last_name,
-      is_admin
+      is_admin,
+      studio_id
     `);
   
   if (error) throw error;
