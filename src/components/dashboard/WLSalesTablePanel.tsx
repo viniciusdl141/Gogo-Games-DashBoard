@@ -34,7 +34,7 @@ interface WLSalesTablePanelProps {
     data: WLSalesPlatformEntry[];
     onDelete: (id: string) => void;
     onEdit: (entry: WLSalesPlatformEntry) => void;
-    games: string[];
+    games: string[]; // Lista de todos os jogos disponíveis
 }
 
 const getPlatformColorClass = (platform: string) => {

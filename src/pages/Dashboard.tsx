@@ -55,6 +55,7 @@ import AnimatedPanel from '@/components/AnimatedPanel'; // NEW IMPORT
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import EditGameGeneralInfoForm from '@/components/dashboard/EditGameGeneralInfoForm'; // NOVO IMPORT
+import AddDailyWLSalesForm from '@/components/dashboard/AddDailyWLSalesForm'; // NOVO IMPORT
 
 // Initialize data once
 const initialRawData = getTrackingData();
@@ -94,6 +95,7 @@ const Dashboard = () => {
   const [isAddEventFormOpen, setIsAddEventFormOpen] = useState(false);
   const [isAddPaidTrafficFormOpen, setIsAddPaidTrafficFormOpen] = useState(false);
   const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
+  const [isAddDailyWLSalesFormOpen, setIsAddDailyWLSalesFormOpen] = useState(false); // NOVO STATE
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
   const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false);
   const [isColorConfigOpen, setIsColorConfigOpen] = useState(false); 
@@ -373,6 +375,38 @@ const Dashboard = () => {
     
     setIsAddWLSalesFormOpen(false);
   }, [recalculateWLSales]);
+  
+  // NOVO HANDLER: Adição Diária Simplificada
+  const handleAddDailyWLSalesEntry = useCallback((newEntry: { date: string, platform: Platform, wishlists: number, sales: number }) => {
+    const dateObject = startOfDay(new Date(newEntry.date));
+    
+    setTrackingData(prevData => {
+        const entryToAdd: WLSalesPlatformEntry = {
+            id: generateLocalUniqueId('wl'),
+            date: dateObject,
+            game: selectedGameName,
+            platform: newEntry.platform,
+            wishlists: newEntry.wishlists,
+            sales: newEntry.sales,
+            variation: 0, // Will be recalculated
+            saleType: 'Padrão', 
+            frequency: 'Diário',
+        };
+        
+        const updatedWLSales = [...prevData.wlSales, entryToAdd];
+        // Recalculate only for the specific game and platform
+        const finalWLSales = recalculateWLSales(updatedWLSales, selectedGameName, newEntry.platform);
+
+        return {
+            ...prevData,
+            wlSales: finalWLSales,
+        };
+    });
+    
+    setIsAddDailyWLSalesFormOpen(false);
+    toast.success(`Entrada diária de WL/Vendas para ${newEntry.platform} adicionada.`);
+  }, [recalculateWLSales, selectedGameName]);
+
 
   const handleDeleteWLSalesEntry = useCallback((id: string) => {
     setTrackingData(prevData => {
@@ -1245,6 +1279,7 @@ const Dashboard = () => {
                                     // Pass suggested price and image URL
                                     suggestedPrice={filteredData.kpis.suggestedPrice} 
                                     capsuleImageUrl={filteredData.kpis.capsuleImageUrl}
+                                    category={filteredData.kpis.category}
                                 />
                             </AnimatedPanel>
                             
@@ -1332,18 +1367,40 @@ const Dashboard = () => {
                                         filename={`${selectedGameName}_${selectedPlatform}_WL_Vendas.csv`} 
                                         label="WL/Vendas"
                                     />
+                                    
+                                    {/* NOVO BOTÃO: Adição Diária Simplificada */}
+                                    <Dialog open={isAddDailyWLSalesFormOpen} onOpenChange={setIsAddDailyWLSalesFormOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button onClick={() => setIsAddDailyWLSalesFormOpen(true)} className="bg-gogo-orange hover:bg-gogo-orange/90 text-white">
+                                                <Plus className="h-4 w-4 mr-2" /> Adição Diária Rápida
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[450px]">
+                                            <DialogHeader>
+                                                <DialogTitle>Adição Diária Rápida de Wishlist/Vendas</DialogTitle>
+                                            </DialogHeader>
+                                            <AddDailyWLSalesForm 
+                                                gameName={selectedGameName}
+                                                wlSalesData={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName && !e.isPlaceholder)}
+                                                onSave={handleAddDailyWLSalesEntry} 
+                                                onClose={() => setIsAddDailyWLSalesFormOpen(false)} 
+                                            />
+                                        </DialogContent>
+                                    </Dialog>
+                                    
+                                    {/* BOTÃO ANTIGO: Adição Detalhada */}
                                     <Dialog open={isAddWLSalesFormOpen} onOpenChange={setIsAddWLSalesFormOpen}>
                                         <DialogTrigger asChild>
                                             <Button onClick={() => setIsAddWLSalesFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
-                                                <Plus className="h-4 w-4 mr-2" /> Adicionar WL/Venda
+                                                <Plus className="h-4 w-4 mr-2" /> Adicionar WL/Venda (Detalhado)
                                             </Button>
                                         </DialogTrigger>
                                         <DialogContent className="sm:max-w-[600px]">
                                             <DialogHeader>
-                                                <DialogTitle>Adicionar Entrada Diária de Wishlist/Vendas</DialogTitle>
+                                                <DialogTitle>Adicionar Entrada Detalhada de Wishlist/Vendas</DialogTitle>
                                             </DialogHeader>
                                             <AddWLSalesForm 
-                                                games={trackingData.games} 
+                                                games={allAvailableGames.map(g => g.name)} 
                                                 onSave={handleAddWLSalesEntry} 
                                                 onClose={() => setIsAddWLSalesFormOpen(false)} 
                                             />
@@ -1368,7 +1425,7 @@ const Dashboard = () => {
                                         data={filteredData.wlSales.filter(e => !e.isPlaceholder)} // Do not show placeholders in table
                                         onDelete={handleDeleteWLSalesEntry} 
                                         onEdit={handleEditWLSalesEntry}
-                                        games={trackingData.games}
+                                        games={allAvailableGames.map(g => g.name)}
                                     />
                                 </AnimatedPanel>
                             )}
@@ -1385,7 +1442,7 @@ const Dashboard = () => {
                                     <WlDetailsManager 
                                         details={filteredData.wlDetails} 
                                         gameName={selectedGameName}
-                                        allGames={trackingData.games} 
+                                        allGames={allAvailableGames.map(g => g.name)} 
                                         onUpdateDetails={handleUpdateWlDetails}
                                         onAddTraffic={handleAddTrafficEntry} 
                                     />
@@ -1446,7 +1503,7 @@ const Dashboard = () => {
                                                 <DialogTitle>Adicionar Novo Tracking de Influencer</DialogTitle>
                                             </DialogHeader>
                                             <AddInfluencerForm 
-                                                games={trackingData.games} 
+                                                games={allAvailableGames.map(g => g.name)} 
                                                 onSave={handleAddInfluencerEntry} 
                                                 onClose={() => setIsAddInfluencerFormOpen(false)} 
                                             />
@@ -1460,7 +1517,7 @@ const Dashboard = () => {
                                     tracking={filteredData.influencerTracking} 
                                     onDeleteTracking={handleDeleteInfluencerEntry}
                                     onEditTracking={handleEditInfluencerEntry}
-                                    games={trackingData.games}
+                                    games={allAvailableGames.map(g => g.name)}
                                 />
                             </AnimatedPanel>
                         </TabsContent>
@@ -1484,7 +1541,7 @@ const Dashboard = () => {
                                                 <DialogTitle>Adicionar Novo Tracking de Evento</DialogTitle>
                                             </DialogHeader>
                                             <AddEventForm 
-                                                games={trackingData.games} 
+                                                games={allAvailableGames.map(g => g.name)} 
                                                 onSave={handleAddEventEntry} 
                                                 onClose={() => setIsAddEventFormOpen(false)} 
                                             />
@@ -1497,7 +1554,7 @@ const Dashboard = () => {
                                     data={filteredData.eventTracking} 
                                     onDeleteTracking={handleDeleteEventEntry} 
                                     onEditTracking={handleEditEventEntry}
-                                    games={trackingData.games}
+                                    games={allAvailableGames.map(g => g.name)}
                                 />
                             </AnimatedPanel>
                         </TabsContent>
@@ -1521,7 +1578,7 @@ const Dashboard = () => {
                                                 <DialogTitle>Adicionar Novo Tracking de Tráfego Pago</DialogTitle>
                                             </DialogHeader>
                                             <AddPaidTrafficForm 
-                                                games={trackingData.games} 
+                                                games={allAvailableGames.map(g => g.name)} 
                                                 onSave={handleAddPaidTrafficEntry} 
                                                 onClose={() => setIsAddPaidTrafficFormOpen(false)} 
                                             />
@@ -1534,7 +1591,7 @@ const Dashboard = () => {
                                     data={filteredData.paidTraffic} 
                                     onDeleteTracking={handleDeletePaidTrafficEntry} 
                                     onEditTracking={handleEditPaidTrafficEntry}
-                                    games={trackingData.games}
+                                    games={allAvailableGames.map(g => g.name)}
                                 />
                             </AnimatedPanel>
                         </TabsContent>
