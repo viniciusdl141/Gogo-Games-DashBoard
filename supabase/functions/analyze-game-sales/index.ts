@@ -110,9 +110,11 @@ async function callGeminiWebSearchAndAnalyze(aiApiKey: string, gameName: string)
             parts: [{ text: prompt }]
         }],
         tools: [{ googleSearch: {} }], // Habilita a ferramenta de busca
-        // Adicionando responseMimeType e responseSchema no nível superior do corpo
-        responseMimeType: "application/json",
-        responseSchema: JSON_SCHEMA,
+        // Reintroduzindo 'config' para estruturar a resposta JSON
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: JSON_SCHEMA,
+        }
     };
 
     const response = await fetch(url, {
