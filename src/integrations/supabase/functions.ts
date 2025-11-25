@@ -3,7 +3,8 @@ import { supabase } from './client';
 // NOTE: Replace 'ynlebwtutvyxybqgupke' with your actual Supabase Project ID in a real deployment.
 const PROJECT_ID = 'ynlebwtutvyxybqgupke';
 const EDGE_FUNCTION_URL_PROCESS = `https://${PROJECT_ID}.supabase.co/functions/v1/process-raw-data`;
-const EDGE_FUNCTION_URL_FETCH_GAME = `https://${PROJECT_ID}.supabase.co/functions/v1/fetch-game-data`; // URL da função de busca
+const EDGE_FUNCTION_URL_FETCH_GAME = `https://${PROJECT_ID}.supabase.co/functions/v1/fetch-game-data`; 
+const EDGE_FUNCTION_URL_ANALYZE_SALES = `https://${PROJECT_ID}.supabase.co/functions/v1/analyze-game-sales`; // NEW URL
 
 interface AIResponse {
     structuredData: {
@@ -32,6 +33,37 @@ export interface GameOption {
 
 interface GameDataResponse {
     results: GameOption[];
+}
+
+// NEW: Interface for the structured analysis report
+export interface SalesAnalysisReport {
+    gameName: string;
+    launchDate: string;
+    timeSinceLaunch: string;
+    totalMonths: number;
+    reviews: number;
+    priceBRL: number;
+    priceUSD: number;
+    tags: string[];
+    ccuPeak: number;
+    ccuPeakDate: string;
+    ccuCurrent: number;
+    estimationResults: Array<{
+        method: string;
+        logic: string;
+        multiplier: number;
+        estimatedSales: number;
+    }>;
+    averageSales: number;
+    temporalAnalysis: {
+        averageSpeed: string;
+        peakMomentInterpretation: string;
+        verdict: string;
+    };
+    analystNotes: {
+        conflictExplanation: string;
+        conclusion: string;
+    };
 }
 
 export async function invokeAIDataProcessor(rawData: string, gameName: string, aiApiKey: string, aiProvider: string): Promise<AIResponse> {
@@ -81,19 +113,31 @@ export async function invokeGameDataFetcher(gameName: string, aiApiKey: string):
     throw new Error("Estrutura de resposta inválida do buscador de dados de jogos.");
 }
 
-export async function invokeAdminCreateUser(email: string, password: string, studioId: string): Promise<{ success: boolean, userId: string }> {
-    // Esta função não precisa de token de usuário, pois a Edge Function usa a Service Role Key
-    const { data, error } = await supabase.functions.invoke('admin-create-user', {
-        body: { email, password, studioId },
+// NEW: Function to invoke the sales analysis
+export async function invokeSalesAnalyzer(gameName: string, aiApiKey: string): Promise<SalesAnalysisReport> {
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token;
+
+    const response = await fetch(EDGE_FUNCTION_URL_ANALYZE_SALES, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ gameName, aiApiKey }),
     });
 
-    if (error) {
-        throw new Error(`Edge Function Error: ${error.message}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+        const errorMessage = data.error || `Edge Function retornou status ${response.status}.`;
+        throw new Error(`Falha na análise de vendas: ${errorMessage}`);
     }
 
-    if (data && data.success) {
-        return data as { success: boolean, userId: string };
+    // Validate the structure against the expected report interface
+    if (data && data.gameName && data.estimationResults) {
+        return data as SalesAnalysisReport;
     }
 
-    throw new Error("Falha ao criar usuário via função de administração.");
+    throw new Error("Estrutura de relatório de análise de vendas inválida.");
 }

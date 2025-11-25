@@ -13,6 +13,7 @@ import { Home, BarChart3, Filter, ArrowRightLeft, Loader2, Search, Calculator } 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GameComparisonPanel from '@/components/strategic/GameComparisonPanel';
 import SimilarGamesSearch from '@/components/strategic/SimilarGamesSearch';
+import GameSalesAnalyzer from '@/components/strategic/GameSalesAnalyzer'; // NEW IMPORT
 import { TrackingData, getTrackingData } from '@/data/trackingData';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { GameOption } from '@/integrations/supabase/functions';
@@ -22,7 +23,7 @@ import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimat
 // Mock data for categories (should eventually come from DB or configuration)
 const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação', 'Aventura', 'Visual Novel', 'Casual', 'Outro'];
 
-// Interface combinada para o Jogo 2 (pode ser SupabaseGame, GameOption ou EstimatedGame)
+// Interface combinada para o Jogo 2 (pode ser SupabaseGame ou EstimatedGame)
 type Game2Selection = SupabaseGame | GameOption | EstimatedGame | null;
 
 const StrategicView: React.FC = () => {
@@ -209,9 +210,14 @@ const StrategicView: React.FC = () => {
                         </Card>
                     </AnimatedPanel>
                 </div>
+                
+                {/* --- Nova Ferramenta de Análise de Vendas --- */}
+                <AnimatedPanel delay={0.3}>
+                    <GameSalesAnalyzer gameName={game1?.name || 'Selecione um Jogo'} />
+                </AnimatedPanel>
 
                 {/* --- Lista de Jogos Filtrados para Seleção --- */}
-                <AnimatedPanel delay={0.3}>
+                <AnimatedPanel delay={0.4}>
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-lg">
@@ -247,7 +253,7 @@ const StrategicView: React.FC = () => {
                 </AnimatedPanel>
 
                 {/* --- Painel de Comparação --- */}
-                <AnimatedPanel delay={0.4}>
+                <AnimatedPanel delay={0.5}>
                     <GameComparisonPanel 
                         game1={game1}
                         game2={game2}
