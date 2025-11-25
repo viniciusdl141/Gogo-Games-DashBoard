@@ -25,11 +25,11 @@ import { toast } from 'sonner';
 // Definindo o tipo de plataforma
 const PlatformEnum = z.enum(['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra']);
 
-// Schema de validação: Agora aceita a variação diária
+// Schema de validação: Agora aceita a WL Total
 const formSchema = z.object({
     platform: PlatformEnum.default('Steam'),
     date: z.string().min(1, "A data é obrigatória (formato YYYY-MM-DD)."),
-    dailyVariation: z.number({ invalid_type_error: "Variação deve ser um número." }).default(0), // Novo campo para WL Ganhas/Perdidas
+    wishlists: z.number().min(0, "Wishlists deve ser um número positivo."), // WL Total na Data
     sales: z.number().min(0, "Vendas deve ser um número positivo.").default(0),
 });
 
@@ -38,7 +38,7 @@ type DailyWLSalesFormValues = z.infer<typeof formSchema>;
 interface AddDailyWLSalesFormProps {
     gameName: string;
     wlSalesData: WLSalesPlatformEntry[];
-    onSave: (data: Omit<DailyWLSalesFormValues, 'dailyVariation'> & { wishlists: number, variation: number }) => void;
+    onSave: (data: DailyWLSalesFormValues) => void;
     onClose: () => void;
 }
 
@@ -80,7 +80,7 @@ const AddDailyWLSalesForm: React.FC<AddDailyWLSalesFormProps> = ({ gameName, wlS
         defaultValues: {
             platform: currentPlatform,
             date: nextDate,
-            dailyVariation: 0,
+            wishlists: lastWL, // Preenche com a última WL registrada
             sales: 0,
         },
     });
@@ -91,7 +91,7 @@ const AddDailyWLSalesForm: React.FC<AddDailyWLSalesFormProps> = ({ gameName, wlS
         form.reset({
             platform: currentPlatform,
             date: newNextDate,
-            dailyVariation: 0,
+            wishlists: newLastWL,
             sales: 0,
         });
     }, [currentPlatform, wlSalesData]);
@@ -106,29 +106,22 @@ const AddDailyWLSalesForm: React.FC<AddDailyWLSalesFormProps> = ({ gameName, wlS
             return;
         }
         
-        // 2. Cálculo da WL Total na Data
-        const newTotalWL = lastWL + values.dailyVariation;
-        
-        // 3. Validação de WL Total (apenas se for o primeiro registro, ou se a WL total for negativa)
-        if (newTotalWL < 0) {
-            form.setError('dailyVariation', { message: `A WL total resultante (${formatNumber(newTotalWL)}) não pode ser negativa.` });
+        // 2. Validação de WL: Se a WL total for negativa (impedido pelo schema, mas checagem extra)
+        if (values.wishlists < 0) {
+            form.setError('wishlists', { message: `A WL total não pode ser negativa.` });
             return;
         }
         
-        // 4. Se a data for retroativa, a WL Total será calculada com base na última WL registrada,
-        // mas o Dashboard recalculará a variação de todos os dias subsequentes.
+        // O Dashboard (parent component) é responsável por recalcular a variação (variation)
+        // de todos os dias subsequentes se esta for uma entrada retroativa.
         
-        onSave({
-            platform: values.platform,
-            date: values.date,
-            sales: values.sales,
-            wishlists: newTotalWL, // Salva o total calculado
-            variation: values.dailyVariation, // Salva a variação inserida
-        }); 
+        onSave(values); 
     };
 
-    const dailyVariation = form.watch('dailyVariation');
-    const newTotalWL = lastWL + dailyVariation;
+    const currentWL = form.watch('wishlists');
+    
+    // Cálculo da variação para exibição
+    const variation = currentWL - lastWL;
 
     return (
         <Form {...form}>
@@ -180,27 +173,29 @@ const AddDailyWLSalesForm: React.FC<AddDailyWLSalesFormProps> = ({ gameName, wlS
                         <Input value={formatNumber(lastWL)} disabled className="bg-muted" />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-muted-foreground">WL Total Calculada</Label>
+                        <Label className="flex items-center text-muted-foreground">
+                            <TrendingUp className="h-4 w-4 mr-2" /> Variação WL (Calculada)
+                        </Label>
                         <Input 
-                            value={formatNumber(newTotalWL)} 
+                            value={formatNumber(variation)} 
                             disabled 
-                            className={`font-bold ${newTotalWL >= lastWL ? 'text-green-500' : 'text-red-500'} bg-muted`} 
+                            className={`font-bold ${variation >= 0 ? 'text-green-500' : 'text-red-500'} bg-muted`} 
                         />
                     </div>
                 </div>
 
                 <FormField
                     control={form.control}
-                    name="dailyVariation"
+                    name="wishlists"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel className="flex items-center">
-                                <TrendingUp className="h-4 w-4 mr-2" /> Variação Diária WL (Ganhas/Perdidas)
+                                <List className="h-4 w-4 mr-2" /> Wishlists Totais na Data
                             </FormLabel>
                             <FormControl>
                                 <Input 
                                     type="number" 
-                                    placeholder="Ex: 500" 
+                                    placeholder={formatNumber(lastWL)} 
                                     {...field} 
                                     onChange={e => field.onChange(Number(e.target.value))}
                                 />
