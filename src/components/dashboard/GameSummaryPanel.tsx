@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, List, TrendingUp, Info, Eye, Megaphone, CalendarDays } from 'lucide-react';
+import { DollarSign, List, TrendingUp, Info, Eye, Megaphone, CalendarDays, Tag } from 'lucide-react';
 import KpiCard from './KpiCard';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import EditGameGeneralInfoForm from './EditGameGeneralInfoForm'; // Importar o novo nome
 import GameCapsule from './GameCapsule'; 
+import { Badge } from '@/components/ui/badge';
 
 interface GameSummaryPanelProps {
     gameId: string; // Adicionado gameId
@@ -33,8 +34,9 @@ interface GameSummaryPanelProps {
     launchDate: Date | null;
     suggestedPrice: number; // Novo prop
     capsuleImageUrl: string | null; // NOVO PROP
+    category: string | null; // NOVO PROP
     investmentSources: { influencers: number, events: number, paidTraffic: number };
-    onUpdateLaunchDate: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null) => void; // Assinatura atualizada
+    onUpdateLaunchDate: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null, category: string | null) => void; // Assinatura atualizada
 }
 
 const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({ 
@@ -49,6 +51,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     launchDate,
     suggestedPrice, 
     capsuleImageUrl, // Receber capsuleImageUrl
+    category, // Receber category
     investmentSources,
     onUpdateLaunchDate
 }) => {
@@ -100,6 +103,11 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                     />
                     <div>
                         <CardTitle className="text-2xl">Resumo Geral do Jogo: {gameName}</CardTitle>
+                        {category && (
+                            <Badge variant="secondary" className="mt-2 text-sm flex items-center w-fit">
+                                <Tag className="h-3 w-3 mr-1" /> {category}
+                            </Badge>
+                        )}
                     </div>
                 </div>
             </CardHeader>
@@ -128,6 +136,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                                 gameName={gameName}
                                 currentLaunchDate={launchDate}
                                 currentCapsuleImageUrl={capsuleImageUrl}
+                                currentCategory={category} // Passando a categoria atual
                                 onSave={onUpdateLaunchDate}
                                 onClose={() => setIsLaunchDateDialogOpen(false)}
                             />

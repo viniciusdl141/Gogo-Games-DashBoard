@@ -117,16 +117,26 @@ const Dashboard = () => {
   const allAvailableGames = useMemo(() => {
     const combinedGamesMap = new Map<string, SupabaseGame>();
     
-    // Add games from Supabase
+    // 1. Add games from Supabase (primary source)
     supabaseGames.forEach(game => {
-      combinedGamesMap.set(game.name, game);
+      combinedGamesMap.set(game.name.trim(), game);
     });
 
-    // Add games from local data if not already in Supabase, without launch_date/price/image
+    // 2. Add games from local data if not already in Supabase
     trackingData.games.forEach(gameName => {
-      if (!combinedGamesMap.has(gameName)) {
+      const normalizedGameName = gameName.trim();
+      if (!combinedGamesMap.has(normalizedGameName)) {
         // Assign a temporary local ID if not in Supabase
-        combinedGamesMap.set(gameName, { id: generateLocalUniqueId('game'), name: gameName, launch_date: null, suggested_price: null, capsule_image_url: null, created_at: new Date().toISOString(), studio_id: null });
+        combinedGamesMap.set(normalizedGameName, { 
+            id: generateLocalUniqueId('game'), 
+            name: normalizedGameName, 
+            launch_date: null, 
+            suggested_price: null, 
+            capsule_image_url: null, 
+            created_at: new Date().toISOString(), 
+            studio_id: null,
+            category: null, // Default category
+        });
       }
     });
 
@@ -171,25 +181,26 @@ const Dashboard = () => {
 
   // --- Game Management Handlers ---
   const handleAddGame = useCallback(async (gameName: string, launchDate: string | null, suggestedPrice: number, capsuleImageUrl: string | null) => {
-    if (allAvailableGames.some(g => g.name === gameName)) {
-        toast.error(`O jogo "${gameName}" já existe.`);
+    const normalizedGameName = gameName.trim();
+    if (allAvailableGames.some(g => g.name === normalizedGameName)) {
+        toast.error(`O jogo "${normalizedGameName}" já existe.`);
         return;
     }
     try {
         // Assign studioId if user is a studio, otherwise null (Admin)
         const assignedStudioId = isAdmin ? null : studioId;
         
-        await addGameToSupabase(gameName, launchDate, suggestedPrice, capsuleImageUrl, assignedStudioId);
+        await addGameToSupabase(normalizedGameName, launchDate, suggestedPrice, capsuleImageUrl, assignedStudioId);
         refetchSupabaseGames(); // Refresh games from Supabase
-        toast.success(`Jogo "${gameName}" adicionado com sucesso!`);
-        setSelectedGameName(gameName);
+        toast.success(`Jogo "${normalizedGameName}" adicionado com sucesso!`);
+        setSelectedGameName(normalizedGameName);
     } catch (error) {
         console.error("Error adding game:", error);
         toast.error("Falha ao adicionar jogo.");
     }
   }, [allAvailableGames, refetchSupabaseGames, isAdmin, studioId]);
 
-  const handleUpdateLaunchDate = useCallback(async (gameId: string, launchDate: string | null, capsuleImageUrl: string | null) => {
+  const handleUpdateLaunchDate = useCallback(async (gameId: string, launchDate: string | null, capsuleImageUrl: string | null, category: string | null) => {
     try {
         const gameInSupabase = supabaseGames.find(g => g.id === gameId);
         const assignedStudioId = isAdmin ? null : studioId;
@@ -200,7 +211,7 @@ const Dashboard = () => {
             toast.success(`Jogo "${selectedGameName}" adicionado ao Supabase com metadados.`);
         } else {
             // If the game exists in Supabase, just update its metadata
-            await updateGameInSupabase(gameId, { launch_date: launchDate, capsule_image_url: capsuleImageUrl });
+            await updateGameInSupabase(gameId, { launch_date: launchDate, capsule_image_url: capsuleImageUrl, category: category });
             toast.success(`Informações gerais para "${selectedGameName}" atualizadas.`);
         }
         refetchSupabaseGames(); // Always refetch to ensure UI is in sync
@@ -734,6 +745,7 @@ const Dashboard = () => {
     const launchDate = selectedGame?.launch_date ? new Date(selectedGame.launch_date) : null;
     const suggestedPrice = selectedGame?.suggested_price || 19.99; // Use suggested price
     const capsuleImageUrl = selectedGame?.capsule_image_url || null; // NEW: Get capsule image URL
+    const category = selectedGame?.category || null; // NEW: Get category
 
     // 1. Filter and enhance data, recalculating dynamic fields
     const influencerTracking = trackingData.influencerTracking
@@ -1009,6 +1021,7 @@ const Dashboard = () => {
         launchDate,
         suggestedPrice, // Pass suggested price
         capsuleImageUrl, // NEW: Pass capsule image URL
+        category, // NEW: Pass category
         avgDailyGrowth: avgDailyGrowthInPeriod, // Use the period-specific average
         totalGrowth: totalGrowthInPeriod, 
         visitorToWlConversionRate,

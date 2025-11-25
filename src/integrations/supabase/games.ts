@@ -7,6 +7,7 @@ export interface Game {
   suggested_price: number | null; // New field
   capsule_image_url: string | null; // NEW FIELD
   studio_id: string | null; // NEW FIELD
+  category: string | null; // NEW FIELD
   created_at: string;
 }
 
@@ -23,8 +24,8 @@ export const getGames = async (studioId?: string | null): Promise<Game[]> => {
   return data;
 };
 
-export const addGame = async (name: string, launch_date: string | null, suggested_price: number | null = null, capsule_image_url: string | null = null, studio_id: string | null = null): Promise<Game> => {
-  const { data, error } = await supabase.from('games').insert([{ name, launch_date, suggested_price, capsule_image_url, studio_id }]).select().single();
+export const addGame = async (name: string, launch_date: string | null, suggested_price: number | null = null, capsule_image_url: string | null = null, studio_id: string | null = null, category: string | null = null): Promise<Game> => {
+  const { data, error } = await supabase.from('games').insert([{ name, launch_date, suggested_price, capsule_image_url, studio_id, category }]).select().single();
   if (error) throw error;
   return data;
 };

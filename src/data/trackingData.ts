@@ -173,7 +173,22 @@ const cleanValue = (value: any): number | string => {
     return value;
 };
 
-const processWLSalesSheet = (sheetData: any[], gameName: string, platform: Platform): WLSalesPlatformEntry[] => {
+// Helper para normalizar nomes de jogos
+const normalizeGameName = (name: string): string => {
+    if (!name) return '';
+    // Padroniza nomes comuns com inconsistências de capitalização
+    const normalized = name.trim()
+        .replace('Legavy of Evil', 'Legacy of Evil')
+        .replace('HellBrella', 'Hellbrella')
+        .replace('THE MARE SHOW', 'The Mare Show')
+        .replace('DREADSTONE KEEP', 'Dreadstone Keep')
+        .replace('LIA HACKING DESTINY', 'Lia Hacking Destiny');
+    return normalized;
+};
+
+
+const processWLSalesSheet = (sheetData: any[], rawGameName: string, platform: Platform): WLSalesPlatformEntry[] => {
+    const gameName = normalizeGameName(rawGameName);
     const wlSales: WLSalesPlatformEntry[] = [];
     const salesMap = new Map<number, number>();
     
@@ -228,7 +243,7 @@ const processInfluencerTracking = (data: any[]): InfluencerTrackingEntry[] => {
         .map(item => ({
             id: generateUniqueId('influencer'), 
             date: excelSerialDateToJSDate(item.Data as number),
-            game: item.Game.replace('Legavy of Evil', 'Legacy of Evil').replace('HellBrella', 'Hellbrella'),
+            game: normalizeGameName(item.Game),
             influencer: item.Influencer,
             platform: item['Plataforma(s)'] || '-',
             action: item['Ação Realizada'] || '-',
@@ -245,7 +260,7 @@ const processInfluencerSummary = (data: any[]): InfluencerSummaryEntry[] => {
     return data
         .filter(item => item.Game && item.Influencer !== '-')
         .map(item => ({
-            game: item.Game.replace('Legacy of Evil', 'Legacy of Evil').replace('Hellbrella', 'Hellbrella'),
+            game: normalizeGameName(item.Game),
             influencer: item.Influencer,
             totalActions: Number(item['Total Ações']) || 0,
             totalInvestment: Number(item['Total Investido (R$)']) || 0,
@@ -262,7 +277,7 @@ const processEventTracking = (data: any[]): EventTrackingEntry[] => {
             startDate: excelSerialDateToJSDate(item.Começo as number),
             endDate: excelSerialDateToJSDate(item.Final as number),
             event: item.Evento,
-            game: item.Jogo,
+            game: normalizeGameName(item.Jogo),
             action: item['Ação Realizada'] || '-',
             cost: Number(item['Custo Participação(R$)']) || 0,
             wlGenerated: Number(item['WL Geradas']) || 0,
@@ -277,7 +292,7 @@ const processPaidTraffic = (data: any[]): PaidTrafficEntry[] => {
         .filter(item => item.Game && item.Rede)
         .map(item => ({
             id: generateUniqueId('paid'), 
-            game: item.Game,
+            game: normalizeGameName(item.Game),
             network: item.Rede,
             impressions: Number(item['Impressões']) || 0,
             clicks: Number(item['Cliques']) || 0,
@@ -296,7 +311,7 @@ const processDemoTracking = (data: any[]): DemoTrackingEntry[] => {
         .filter(item => item.Game && item.Data)
         .map(item => ({
             id: generateUniqueId('demo'), // Added ID here
-            game: item.Game,
+            game: normalizeGameName(item.Game),
             date: excelSerialDateToJSDate(item.Data as number),
             downloads: Number(String(item['Numero de downloads da demo']).replace(/,/g, '')) || 0,
             avgPlaytime: item['Tempo medio de jogo demo'] || '-',
@@ -305,7 +320,8 @@ const processDemoTracking = (data: any[]): DemoTrackingEntry[] => {
         }));
 };
 
-const processWlDetails = (sheetData: any[], gameName: string): WlDetails => {
+const processWlDetails = (sheetData: any[], rawGameName: string): WlDetails => {
+    const gameName = normalizeGameName(rawGameName);
     const details: WlDetails = { game: gameName, reviews: [], bundles: [], traffic: [] };
     
     let reviewHeaderIndex = sheetData.findIndex(r => r.__EMPTY_19 === 'Quantidade de Reviews');
@@ -340,7 +356,7 @@ const processWlDetails = (sheetData: any[], gameName: string): WlDetails => {
     let trafficHeaderIndex = sheetData.findIndex(r => r.Data === 'Trafego na pagina' || r.__EMPTY === 'Trafego na pagina');
     if (trafficHeaderIndex !== -1) {
         details.traffic = sheetData.slice(trafficHeaderIndex + 1)
-            .filter(r => r.Data === gameName || r.__EMPTY === gameName)
+            .filter(r => normalizeGameName(r.Data ?? r.__EMPTY) === gameName)
             .map(r => ({
                 impressions: cleanValue(r.WL ?? r.__EMPTY_1),
                 ctr: cleanValue(r.Jogo ?? r.__EMPTY_2),
@@ -353,17 +369,12 @@ const processWlDetails = (sheetData: any[], gameName: string): WlDetails => {
     return details;
 }
 
-const processResultSummary = (data: any[]): ResultSummaryEntry => {
-    // This function now returns a single ResultSummaryEntry for the selected game
-    // It aggregates data from different types (Influencers, Eventos, Trafego Pago)
-    // and should not be directly editable.
-    // The structure of rawData['RESUMO DE RESULTADOS'] suggests it's already summarized.
-    // We'll just filter it by game.
+const processResultSummary = (data: any[]): ResultSummaryEntry[] => {
     return data
         .filter(item => item.Jogo)
         .map(item => ({
             type: item.Tipo,
-            game: item.Jogo.replace('The Mare sHow', 'The Mare Show'),
+            game: normalizeGameName(item.Jogo),
             'Visualizações/Real': cleanValue(item['Visualizações/Real']),
             'Visitas/Real': cleanValue(item['Visitas/Real']),
             'WL/Real': cleanValue(item['WL/Real']),
@@ -393,19 +404,19 @@ export const getTrackingData = (): TrackingData => {
         ...processWLSalesSheet(rawData['Total WL - Legacy of Evil'], 'Legacy of Evil', 'Steam'),
         ...processWLSalesSheet(rawData['Total WL - Hellbrella'], 'Hellbrella', 'Steam'),
         ...processWLSalesSheet(rawData['Total WL - The Mare Show'], 'The Mare Show', 'Steam'),
-        ...processWLSalesSheet(rawData['Total WL - Dreadstone Keep'], 'DREADSTONE KEEP', 'Steam'),
+        ...processWLSalesSheet(rawData['Total WL - Dreadstone Keep'], 'Dreadstone Keep', 'Steam'),
         // Add other platforms from rawData, assuming 0 sales/WL for now if data is sparse
-        ...processWLSalesSheet(rawData['TOTAL WL NINTENDO - LIA HACKING'], 'LIA HACKING DESTINY', 'Nintendo'),
-        ...processWLSalesSheet(rawData['TOTAL WL ANDROID - LIA HACKING '], 'LIA HACKING DESTINY', 'Android'),
-        ...processWLSalesSheet(rawData['TOTAL WL IOS - LIA HACKING DEST'], 'LIA HACKING DESTINY', 'iOS'),
-        ...processWLSalesSheet(rawData['TOTAL WL XBOX- LIA HACKING DEST'], 'LIA HACKING DESTINY', 'Xbox'),
+        ...processWLSalesSheet(rawData['TOTAL WL NINTENDO - LIA HACKING'], 'Lia Hacking Destiny', 'Nintendo'),
+        ...processWLSalesSheet(rawData['TOTAL WL ANDROID - LIA HACKING '], 'Lia Hacking Destiny', 'Android'),
+        ...processWLSalesSheet(rawData['TOTAL WL IOS - LIA HACKING DEST'], 'Lia Hacking Destiny', 'iOS'),
+        ...processWLSalesSheet(rawData['TOTAL WL XBOX- LIA HACKING DEST'], 'Lia Hacking Destiny', 'Xbox'),
     ];
 
     const wlDetails: WlDetails[] = [
         processWlDetails(rawData['Total WL - Legacy of Evil'], 'Legacy of Evil'),
         processWlDetails(rawData['Total WL - Hellbrella'], 'Hellbrella'),
         processWlDetails(rawData['Total WL - The Mare Show'], 'The Mare Show'),
-        processWlDetails(rawData['Total WL - Dreadstone Keep'], 'DREADSTONE KEEP'),
+        processWlDetails(rawData['Total WL - Dreadstone Keep'], 'Dreadstone Keep'),
     ];
 
     const allGames = new Set<string>();

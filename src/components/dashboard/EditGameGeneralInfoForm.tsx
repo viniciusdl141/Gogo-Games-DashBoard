@@ -14,11 +14,16 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+
+// Mock data for categories (must match StrategicView)
+const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação', 'Aventura', 'Outro'];
 
 const formSchema = z.object({
     launchDate: z.string().nullable().optional(), // YYYY-MM-DD format
-    capsuleImageUrl: z.string().url("Deve ser uma URL válida.").nullable().optional().or(z.literal('')), // Novo campo
+    capsuleImageUrl: z.string().url("Deve ser uma URL válida.").nullable().optional().or(z.literal('')),
+    category: z.string().nullable().optional(), // Novo campo
 });
 
 type GameMetadataFormValues = z.infer<typeof formSchema>;
@@ -27,12 +32,13 @@ interface EditGameGeneralInfoFormProps {
     gameId: string;
     gameName: string;
     currentLaunchDate: Date | null;
-    currentCapsuleImageUrl: string | null; // Novo prop
-    onSave: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null) => void;
+    currentCapsuleImageUrl: string | null;
+    currentCategory: string | null; // Novo prop
+    onSave: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null, category: string | null) => void; // Assinatura atualizada
     onClose: () => void;
 }
 
-const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ gameId, gameName, currentLaunchDate, currentCapsuleImageUrl, onSave, onClose }) => {
+const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ gameId, gameName, currentLaunchDate, currentCapsuleImageUrl, currentCategory, onSave, onClose }) => {
     const defaultDateString = currentLaunchDate ? currentLaunchDate.toISOString().split('T')[0] : '';
 
     const form = useForm<GameMetadataFormValues>({
@@ -40,12 +46,14 @@ const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ gameI
         defaultValues: {
             launchDate: defaultDateString,
             capsuleImageUrl: currentCapsuleImageUrl || '',
+            category: currentCategory || '',
         },
     });
 
     const onSubmit = (values: GameMetadataFormValues) => {
         const imageUrl = values.capsuleImageUrl?.trim() || null;
-        onSave(gameId, values.launchDate || null, imageUrl);
+        const category = values.category || null;
+        onSave(gameId, values.launchDate || null, imageUrl, category);
         toast.success(`Informações gerais para "${gameName}" atualizadas.`);
         onClose();
     };
@@ -73,6 +81,29 @@ const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ gameI
                     )}
                 />
                 
+                <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Categoria/Gênero</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione a Categoria" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {MOCK_CATEGORIES.map(cat => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
                 <FormField
                     control={form.control}
                     name="capsuleImageUrl"
