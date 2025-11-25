@@ -119,10 +119,13 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             }
             case 'gamalytic': {
                 let multiplier = 35; // Default
-                if (priceUSD < 10) {
+                // Usando R$ 25 (USD 5), R$ 100 (USD 20) como thresholds
+                if (priceBRL < 25) {
                     multiplier = 20;
-                } else if (priceUSD > 20) {
+                } else if (priceBRL > 100) {
                     multiplier = 50;
+                } else {
+                    multiplier = 35;
                 }
                 const sales = reviews * multiplier;
                 const revenue = sales * priceBRL * discountFactor;
@@ -167,7 +170,11 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
         const results = allMethods.map(m => m.result).filter((r): r is NonNullable<typeof r> => r !== null);
 
         // Calcula a média combinada apenas dos métodos selecionados
-        const combinedResults = results.filter(r => methodsToCombine.includes(r.method.split(' ')[0].toLowerCase()));
+        const combinedResults = results.filter(r => {
+            // O nome do método no resultado pode ter parênteses, então usamos o método original (EstimationMethod) para filtrar
+            const baseMethod = allMethods.find(m => m.result === r)?.method;
+            return baseMethod && methodsToCombine.includes(baseMethod);
+        });
 
         const totalSales = combinedResults.reduce((sum, r) => sum + r.sales, 0);
         const totalRevenue = combinedResults.reduce((sum, r) => sum + r.revenue, 0);
@@ -223,12 +230,12 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
     };
 
     const methodOptions: { method: EstimationMethod, label: string, description: string }[] = [
-        { method: 'boxleiter', label: 'Boxleiter Ajustado (M=30)', description: 'Fórmula clássica simplificada: Vendas = Reviews x 30.' },
-        { method: 'carless', label: 'Simon Carless (NB)', description: 'Multiplicador baseado no ano de lançamento (NB Number), ajustando para a mudança de reviews da Steam.' },
-        { method: 'gamalytic', label: 'Gamalytic (Preço Ponderado)', description: 'Multiplicador ajustado pelo preço do jogo (em USD). Jogos mais caros tendem a ter multiplicadores maiores.' },
-        { method: 'vginsights', label: 'VG Insights (Gênero Ponderado)', description: 'Multiplicador ajustado pelo gênero. Gêneros de nicho (RPG/Horror) têm multiplicadores menores (reviews mais vocais).' },
-        { method: 'ccu', label: 'SteamDB CCU (Pico Jogadores)', description: 'Vendas Totais ≈ Pico CCU x M_CCU. Útil para jogos recém-lançados ou para estimar o ciclo de vida total.' },
-        { method: 'revenue', label: 'Receita Simplificada (Fator 0.65)', description: 'Estima a Receita Líquida (Reviews x 30 x Preço x 0.65), focando no dinheiro que sobra após taxas e descontos.' },
+        { method: 'boxleiter', label: 'Boxleiter Ajustado', description: 'Fórmula clássica simplificada: Vendas ≈ Reviews x 30. Assume que 1 em cada 30 compradores deixa uma review.' },
+        { method: 'carless', label: 'Simon Carless (NB)', description: 'Multiplicador baseado no ano de lançamento (NB Number), ajustando para a mudança de reviews da Steam. Multiplicador atual (2023+) é ~32.' },
+        { method: 'gamalytic', label: 'Gamalytic (Preço Ponderado)', description: 'Multiplicador ajustado pelo preço do jogo. Jogos baratos (<R$25) usam M=20; jogos caros (>R$100) usam M=50.' },
+        { method: 'vginsights', label: 'VG Insights (Gênero Ponderado)', description: 'Multiplicador ajustado pelo gênero. Nichos (RPG/Horror) usam M=30; Casuais/Simulação usam M=55.' },
+        { method: 'ccu', label: 'SteamDB CCU', description: 'Vendas Totais ≈ Pico CCU x M_CCU. M_CCU é 40 para Multiplayer e 100 para Singleplayer. Estima o ciclo de vida total.' },
+        { method: 'revenue', label: 'Receita Simplificada', description: 'Estima a Receita Líquida: (Reviews x 30) x Preço x 0.65. O fator 0.65 remove taxas da Steam e impostos.' },
     ];
 
     return (
