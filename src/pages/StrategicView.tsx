@@ -196,7 +196,7 @@ const StrategicView: React.FC = () => {
                                             {game1 ? `Estimar Jogo 2 (Baseado em ${game1.name})` : 'Selecione Jogo 1 Primeiro'}
                                         </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="sm:max-w-[700px]">
+                                    <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                                         <GameEstimator 
                                             gameName={game1?.name || 'Jogo Estimado'}
                                             initialPrice={game1?.suggested_price || 30.00}

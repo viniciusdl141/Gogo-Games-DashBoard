@@ -268,6 +268,21 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
         },
     ];
 
+    // Helper para renderizar o Label com Tooltip
+    const renderLabelWithTooltip = (label: string, tooltipContent: React.ReactNode) => (
+        <div className="flex items-center space-x-1">
+            <FormLabel>{label}</FormLabel>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                    {tooltipContent}
+                </TooltipContent>
+            </Tooltip>
+        </div>
+    );
+
     return (
         <Card className="border-none shadow-none">
             <CardHeader>
@@ -278,13 +293,16 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             <CardContent className="space-y-6">
                 <Form {...form}>
                     <form className="space-y-4">
+                        <h4 className="text-md font-semibold text-gogo-cyan">Dados de Entrada</h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField
                                 control={form.control}
                                 name="reviews"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Reviews Totais (Steam)</FormLabel>
+                                        {renderLabelWithTooltip("Reviews Totais (Steam)", (
+                                            <p>O número total de avaliações de usuários na Steam. Este é o principal ponto de dados para a maioria das metodologias de estimativa.</p>
+                                        ))}
                                         <FormControl>
                                             <Input type="number" placeholder="1000" {...field} onChange={e => field.onChange(Number(e.target.value))} />
                                         </FormControl>
@@ -310,7 +328,9 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                                 name="discountFactor"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Fator de Receita Líquida (0.65)</FormLabel>
+                                        {renderLabelWithTooltip("Fator de Receita Líquida", (
+                                            <p>Fator usado para calcular a receita líquida após taxas (Steam, impostos). Ex: 0.65 (65%) é um valor comum após a taxa de 30% da Steam.</p>
+                                        ))}
                                         <FormControl>
                                             <Input type="number" step="0.01" placeholder="0.65" {...field} onChange={e => field.onChange(Number(e.target.value))} />
                                         </FormControl>
@@ -370,7 +390,9 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                                 name="ccuPeak"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Pico CCU (SteamDB)</FormLabel>
+                                        {renderLabelWithTooltip("Pico CCU (SteamDB)", (
+                                            <p>O número máximo de jogadores simultâneos (Concurrent Users) que o jogo atingiu na Steam. Usado para a Metodologia SteamDB CCU.</p>
+                                        ))}
                                         <FormControl>
                                             <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(Number(e.target.value))} />
                                         </FormControl>
@@ -457,15 +479,15 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                         
                         {/* Seleção de Métodos para Média Híbrida */}
                         <h4 className="text-lg font-semibold text-gogo-orange flex items-center mb-3">
-                            <Gauge className="h-4 w-4 mr-2" /> Configurar Média Híbrida ({calculations.count} métodos)
+                            <Gauge className="h-4 w-4 mr-2" /> Média Híbrida ({calculations.count} métodos)
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Info className="h-4 w-4 ml-2 text-muted-foreground cursor-help" />
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
                                     <p className="font-semibold">Média Híbrida</p>
-                                    <p className="text-xs mt-1">Calcula a média aritmética apenas dos métodos de estimativa selecionados.</p>
-                                    <p className="text-xs">Isso ajuda a mitigar vieses de um único modelo, fornecendo um valor mais robusto.</p>
+                                    <p className="text-xs mt-1">Calcula a média aritmética dos métodos selecionados.</p>
+                                    <p className="text-xs">Ajuda a mitigar vieses de um único modelo, fornecendo um valor mais robusto.</p>
                                 </TooltipContent>
                             </Tooltip>
                         </h4>
@@ -519,6 +541,9 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                             <CardTitle className="text-xl font-bold mb-2 flex items-center text-gogo-orange">
                                 <Gauge className="h-5 w-5 mr-2" /> Média Híbrida ({calculations.count} Métodos)
                             </CardTitle>
+                            <p className="text-sm text-muted-foreground mb-3">
+                                A Média Híbrida combina os resultados dos métodos selecionados para fornecer uma estimativa mais robusta e menos enviesada.
+                            </p>
                             <div className="grid grid-cols-2 gap-4">
                                 <KpiCard 
                                     title="Média de Vendas Estimadas" 
