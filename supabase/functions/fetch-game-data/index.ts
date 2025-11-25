@@ -68,7 +68,7 @@ const JSON_SCHEMA = {
 const SYSTEM_PROMPT = (gameName: string) => `Você é um assistente de busca de dados de jogos. Sua tarefa é buscar na web (usando a ferramenta Google Search) e retornar uma lista de 3 a 5 resultados de jogos que correspondam ao termo de busca "${gameName}".
 
 Instruções Críticas:
-1. Use a ferramenta Google Search para encontrar informações públicas sobre o jogo. **Foque estritamente em plataformas de distribuição de jogos grandes como Steam, Xbox, PlayStation, Nintendo, Epic Games, Google Play ou App Store.** Ignore resultados de blogs, notícias ou fóruns, a menos que sejam a única fonte de informação.
+1. Use a ferramenta Google Search para encontrar informações públicas sobre o jogo. **Priorize a busca de dados detalhados no SteamDB (steamdb.info) ou na página oficial da Steam.** Para jogos de console, use as lojas oficiais (Xbox, PlayStation, Nintendo).
 2. Para cada resultado, forneça o nome, a data de lançamento (YYYY-MM-DD, ou null), o preço sugerido em BRL (Reais, ou 0), o preço em USD (ou 0), o número de avaliações, o resumo da classificação, a desenvolvedora, a distribuidora e a URL da imagem da cápsula (capa).
 3. O objeto JSON de saída DEVE aderir estritamente ao esquema fornecido.
 4. Sua resposta DEVE ser APENAS o objeto JSON. Não inclua texto explicativo ou markdown blocks (como \`\`\`json).
@@ -109,7 +109,7 @@ async function callGeminiWebSearch(aiApiKey: string, gameName: string): Promise<
 
 
     if (!response.ok) {
-        const errorDetail = responseJson.error?.message || responseJson.error || 'Erro desconhecido na API do Gemini.';
+        const errorDetail = responseJson.candidates?.[0]?.content?.parts?.[0]?.text || responseJson.error?.message || responseJson.error || 'Erro desconhecido na API do Gemini.';
         throw new Error(`Falha na API Gemini (Status ${response.status}): ${errorDetail}`);
     }
 
