@@ -4,10 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./Index";
-import NotFound from "./pages/NotFound";
-import Login from "./pages/Login";
+import NotFound from "./NotFound"; // Corrigido o caminho para NotFound
+import Login from "./Login";
 import AdminPanel from "./AdminPanel"; // Import AdminPanel
-import { SessionContextProvider, useSession } from "./components/SessionContextProvider";
+import { SessionContextProvider, useSession } from "@/components/SessionContextProvider"; // Corrigido o caminho
 import React from "react";
 import { ThemeProvider } from "@/components/theme-provider"; 
 
