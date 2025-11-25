@@ -35,9 +35,9 @@ const DashboardHeader: React.FC = () => {
         <header className="flex items-center justify-between mb-8 pb-4 border-b border-border">
             <div className="flex flex-col">
                 <img 
-                    src="/googo.webp" 
+                    src="/gogo_games_logo.png" 
                     alt="GoGo Games Interactive Logo" 
-                    className="h-12 w-auto" 
+                    className="h-12 w-auto dark:invert" // Invertendo a cor no modo escuro para que o logo preto fique branco
                 />
                 <p className="text-lg text-muted-foreground mt-2">
                     {isAdmin ? 'Modo: Administrador' : `Modo: Estúdio (${userRole})`}
