@@ -5,7 +5,7 @@ import { useSession } from '@/components/SessionContextProvider';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Importando Link
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
 
@@ -34,9 +34,11 @@ const DashboardHeader: React.FC = () => {
     return (
         <header className="flex items-center justify-between mb-8 pb-4 border-b border-border">
             <div className="flex flex-col">
-                <h1 className="text-3xl font-gamer text-gogo-cyan">
-                    GoGo Games <span className="text-gogo-orange">Dashboard</span>
-                </h1>
+                <Link to="/" className="hover:opacity-80 transition-opacity"> {/* Usando Link para navegação */}
+                    <h1 className="text-3xl font-gamer text-gogo-cyan">
+                        GoGo Games <span className="text-gogo-orange">Dashboard</span>
+                    </h1>
+                </Link>
                 <p className="text-lg text-muted-foreground mt-2">
                     {isAdmin ? 'Modo: Administrador' : `Modo: Estúdio (${userRole})`}
                 </p>
