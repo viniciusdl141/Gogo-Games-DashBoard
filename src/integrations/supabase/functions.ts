@@ -80,3 +80,20 @@ export async function invokeGameDataFetcher(gameName: string, aiApiKey: string):
 
     throw new Error("Estrutura de resposta inválida do buscador de dados de jogos.");
 }
+
+export async function invokeAdminCreateUser(email: string, password: string, studioId: string): Promise<{ success: boolean, userId: string }> {
+    // Esta função não precisa de token de usuário, pois a Edge Function usa a Service Role Key
+    const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: { email, password, studioId },
+    });
+
+    if (error) {
+        throw new Error(`Edge Function Error: ${error.message}`);
+    }
+
+    if (data && data.success) {
+        return data as { success: boolean, userId: string };
+    }
+
+    throw new Error("Falha ao criar usuário via função de administração.");
+}

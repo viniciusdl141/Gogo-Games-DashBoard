@@ -16,10 +16,10 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { useQuery } from '@tanstack/react-query';
 import { getGames, addGame as addGameToSupabase, updateGame as updateGameInSupabase, deleteGame as deleteGameFromSupabase, Game as SupabaseGame } from '@/integrations/supabase/games';
 import { rawData } from '@/data/rawTrackingData'; // Import rawData
+import { useSession } from '@/components/SessionContextProvider'; // Import useSession
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
 import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
@@ -50,6 +50,7 @@ import AddTrafficForm from '@/components/dashboard/AddTrafficForm';
 import AIDataProcessor from '@/components/dashboard/AIDataProcessor'; // NEW IMPORT
 import AddGameModal from '@/components/dashboard/AddGameModal'; // NEW IMPORT
 import DeleteGameButton from '@/components/dashboard/DeleteGameButton'; // NEW IMPORT
+import DashboardHeader from '@/components/dashboard/DashboardHeader'; // NEW IMPORT
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import EditGameGeneralInfoForm from '@/components/dashboard/EditGameGeneralInfoForm'; // NOVO IMPORT
@@ -81,6 +82,7 @@ const defaultChartColors: WLSalesChartColors = {
 };
 
 const Dashboard = () => {
+  const { isAdmin, studioId, isLoading: isSessionLoading } = useSession();
   const [trackingData, setTrackingData] = useState(initialRawData);
   const [selectedGameName, setSelectedGameName] = useState<string>(trackingData.games[0] || '');
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'All'>('All');
@@ -102,11 +104,12 @@ const Dashboard = () => {
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
   const [isAIDataProcessorOpen, setIsAIDataProcessorOpen] = useState(false); // NEW STATE
 
-  // Fetch games from Supabase
-  const { data: supabaseGames, refetch: refetchSupabaseGames } = useQuery<SupabaseGame[], Error>({
-    queryKey: ['supabaseGames'],
-    queryFn: getGames,
+  // Fetch games from Supabase, filtered by studioId if not admin
+  const { data: supabaseGames, refetch: refetchSupabaseGames, isLoading: isGamesLoading } = useQuery<SupabaseGame[], Error>({
+    queryKey: ['supabaseGames', studioId, isAdmin],
+    queryFn: () => getGames(isAdmin ? undefined : studioId),
     initialData: [],
+    enabled: !isSessionLoading, // Only fetch games once session is loaded
   });
 
   // Combine local games with Supabase games, prioritizing Supabase for launch dates and price
@@ -122,7 +125,7 @@ const Dashboard = () => {
     trackingData.games.forEach(gameName => {
       if (!combinedGamesMap.has(gameName)) {
         // Assign a temporary local ID if not in Supabase
-        combinedGamesMap.set(gameName, { id: generateLocalUniqueId('game'), name: gameName, launch_date: null, suggested_price: null, capsule_image_url: null, created_at: new Date().toISOString() });
+        combinedGamesMap.set(gameName, { id: generateLocalUniqueId('game'), name: gameName, launch_date: null, suggested_price: null, capsule_image_url: null, created_at: new Date().toISOString(), studio_id: null });
       }
     });
 
@@ -172,8 +175,10 @@ const Dashboard = () => {
         return;
     }
     try {
-        // Pass capsuleImageUrl to addGameToSupabase
-        await addGameToSupabase(gameName, launchDate, suggestedPrice, capsuleImageUrl);
+        // Assign studioId if user is a studio, otherwise null (Admin)
+        const assignedStudioId = isAdmin ? null : studioId;
+        
+        await addGameToSupabase(gameName, launchDate, suggestedPrice, capsuleImageUrl, assignedStudioId);
         refetchSupabaseGames(); // Refresh games from Supabase
         toast.success(`Jogo "${gameName}" adicionado com sucesso!`);
         setSelectedGameName(gameName);
@@ -181,17 +186,16 @@ const Dashboard = () => {
         console.error("Error adding game:", error);
         toast.error("Falha ao adicionar jogo.");
     }
-  }, [allAvailableGames, refetchSupabaseGames]);
+  }, [allAvailableGames, refetchSupabaseGames, isAdmin, studioId]);
 
   const handleUpdateLaunchDate = useCallback(async (gameId: string, launchDate: string | null, capsuleImageUrl: string | null) => {
     try {
-        // Check if the game exists in Supabase by its ID
         const gameInSupabase = supabaseGames.find(g => g.id === gameId);
+        const assignedStudioId = isAdmin ? null : studioId;
 
         if (!gameInSupabase) {
             // If the game is not in Supabase (it has a local ID), add it first
-            // We use selectedGameName here because gameId might be a local ID
-            await addGameToSupabase(selectedGameName, launchDate, selectedGame?.suggested_price || null, capsuleImageUrl);
+            await addGameToSupabase(selectedGameName, launchDate, selectedGame?.suggested_price || null, capsuleImageUrl, assignedStudioId);
             toast.success(`Jogo "${selectedGameName}" adicionado ao Supabase com metadados.`);
         } else {
             // If the game exists in Supabase, just update its metadata
@@ -203,7 +207,7 @@ const Dashboard = () => {
         console.error("Error updating launch date:", error);
         toast.error("Falha ao atualizar informações gerais.");
     }
-  }, [refetchSupabaseGames, supabaseGames, selectedGameName, selectedGame?.suggested_price]);
+  }, [refetchSupabaseGames, supabaseGames, selectedGameName, selectedGame?.suggested_price, isAdmin, studioId]);
 
   const handleDeleteGame = useCallback(async (gameId: string) => {
     const gameToDelete = allAvailableGames.find(g => g.id === gameId);
@@ -1023,7 +1027,7 @@ const Dashboard = () => {
       manualEventMarkers, 
       kpis,
     };
-  }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame, selectedTimeFrame]);
+  }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame, selectedTimeFrame, trafficTracking]);
 
   // Determine if a manual marker already exists for the selected date
   const existingMarkerForClickedEntry = useMemo(() => {
@@ -1074,21 +1078,29 @@ const Dashboard = () => {
 
 
   // Renderização condicional para quando não há jogos
+  if (isSessionLoading || isGamesLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Carregando Dashboard...</div>;
+  }
+
   if (allAvailableGames.length === 0) {
     return (
-        <div className="min-h-screen flex items-center justify-center p-8 bg-background text-foreground gaming-background">
-            <Card className="p-6 shadow-xl border border-border">
-                <h1 className="text-2xl font-bold mb-4 text-gogo-cyan">Dashboard de Rastreamento</h1>
-                <p className="text-muted-foreground">Nenhum dado de rastreamento encontrado.</p>
-                <Button onClick={() => setIsAddGameFormOpen(true)} className="mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90">
-                    <Plus className="h-4 w-4 mr-2" /> Adicionar Primeiro Jogo
-                </Button>
-                <AddGameModal 
-                    isOpen={isAddGameFormOpen} 
-                    onClose={() => setIsAddGameFormOpen(false)} 
-                    onSave={handleAddGame} 
-                />
-            </Card>
+        <div className="min-h-screen flex flex-col p-8 bg-background text-foreground gaming-background">
+            <DashboardHeader />
+            <div className="flex-grow flex items-center justify-center">
+                <Card className="p-6 shadow-xl border border-border">
+                    <h1 className="text-2xl font-bold mb-4 text-gogo-cyan">Dashboard de Rastreamento</h1>
+                    <p className="text-muted-foreground">Nenhum jogo encontrado para o seu estúdio.</p>
+                    <Button onClick={() => setIsAddGameFormOpen(true)} className="mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90">
+                        <Plus className="h-4 w-4 mr-2" /> Adicionar Primeiro Jogo
+                    </Button>
+                    <AddGameModal 
+                        isOpen={isAddGameFormOpen} 
+                        onClose={() => setIsAddGameFormOpen(false)} 
+                        onSave={handleAddGame} 
+                    />
+                </Card>
+            </div>
+            <MadeWithDyad />
         </div>
     );
   }
@@ -1186,15 +1198,7 @@ const Dashboard = () => {
         <ResizableHandle withHandle className="bg-border w-2 hover:bg-gogo-cyan transition-colors" />
         <ResizablePanel defaultSize={80} className="p-6 bg-background">
           <div className="space-y-8">
-            <header className="flex items-center justify-between mb-8 pb-4 border-b border-border">
-                <div className="flex flex-col">
-                    <h1 className="text-4xl font-extrabold text-gogo-cyan drop-shadow-md font-gamer">
-                        Gogo Games Dashboard
-                    </h1>
-                    <p className="text-lg text-muted-foreground mt-2">Análise de Performance de Jogos</p>
-                </div>
-                <ThemeToggle />
-            </header>
+            <DashboardHeader /> {/* USANDO O NOVO HEADER */}
 
             {filteredData && (
                 <>

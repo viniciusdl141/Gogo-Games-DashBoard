@@ -6,17 +6,25 @@ export interface Game {
   launch_date: string | null; // ISO date string 'YYYY-MM-DD'
   suggested_price: number | null; // New field
   capsule_image_url: string | null; // NEW FIELD
+  studio_id: string | null; // NEW FIELD
   created_at: string;
 }
 
-export const getGames = async (): Promise<Game[]> => {
-  const { data, error } = await supabase.from('games').select('*').order('name');
+export const getGames = async (studioId?: string | null): Promise<Game[]> => {
+  let query = supabase.from('games').select('*');
+  
+  // Apply filtering only if studioId is provided and not null
+  if (studioId) {
+    query = query.eq('studio_id', studioId);
+  }
+  
+  const { data, error } = await query.order('name');
   if (error) throw error;
   return data;
 };
 
-export const addGame = async (name: string, launch_date: string | null, suggested_price: number | null = null, capsule_image_url: string | null = null): Promise<Game> => {
-  const { data, error } = await supabase.from('games').insert([{ name, launch_date, suggested_price, capsule_image_url }]).select().single();
+export const addGame = async (name: string, launch_date: string | null, suggested_price: number | null = null, capsule_image_url: string | null = null, studio_id: string | null = null): Promise<Game> => {
+  const { data, error } = await supabase.from('games').insert([{ name, launch_date, suggested_price, capsule_image_url, studio_id }]).select().single();
   if (error) throw error;
   return data;
 };
