@@ -193,7 +193,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
 
     const handleSelectAverage = () => {
         const avgGame: EstimatedGame = {
-            name: `${gameName} (Estimativa Média)`,
+            name: `${gameName} (Média Híbrida)`,
             launchDate: null,
             suggestedPrice: values.priceBRL,
             priceUSD: values.priceBRL / 5, // Placeholder USD
@@ -205,7 +205,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             source: 'Fórmulas de Estimativa',
             estimatedSales: calculations.avgSales,
             estimatedRevenue: calculations.avgRevenue,
-            estimationMethod: 'Média Combinada',
+            estimationMethod: 'Média Híbrida',
         };
         onEstimate(avgGame);
     };
@@ -229,13 +229,43 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
         onEstimate(singleGame);
     };
 
-    const methodOptions: { method: EstimationMethod, label: string, description: string }[] = [
-        { method: 'boxleiter', label: 'Boxleiter Ajustado (M=30)', description: 'Fórmula clássica simplificada: Vendas ≈ Reviews x 30.' },
-        { method: 'carless', label: 'Simon Carless (NB)', description: 'Multiplicador baseado no ano de lançamento (NB Number), ajustando para a mudança de reviews da Steam.' },
-        { method: 'gamalytic', label: 'Gamalytic (Preço Ponderado)', description: 'Multiplicador ajustado pelo preço do jogo. Jogos baratos (<R$25) usam M=20; jogos caros (>R$100) usam M=50.' },
-        { method: 'vginsights', label: 'VG Insights (Gênero Ponderado)', description: 'Multiplicador ajustado pelo gênero. Nichos (RPG/Horror) usam M=30; Casuais/Simulação usam M=55.' },
-        { method: 'ccu', label: 'SteamDB CCU', description: 'Vendas Totais ≈ Pico CCU x M_CCU. M_CCU é 40 para Multiplayer e 100 para Singleplayer. Estima o ciclo de vida total.' },
-        { method: 'revenue', label: 'Receita Simplificada', description: 'Estima a Receita Líquida: (Reviews x 30) x Preço x 0.65. O fator 0.65 remove taxas da Steam e impostos.' },
+    const methodOptions: { method: EstimationMethod, label: string, description: string, source: string }[] = [
+        { 
+            method: 'boxleiter', 
+            label: 'Boxleiter Ajustado (M=30)', 
+            description: 'Fórmula clássica simplificada: Vendas ≈ Reviews x 30. É uma estimativa de ciclo de vida total, baseada em dados históricos de 2014-2017.',
+            source: 'Referências: Artigos de Daniel Ahmad e fóruns de desenvolvedores (2017).'
+        },
+        { 
+            method: 'carless', 
+            label: 'Simon Carless (NB)', 
+            description: 'Multiplicador baseado no ano de lançamento (NB Number), ajustando para a mudança de reviews da Steam. Tende a ser mais conservador para jogos recentes.',
+            source: 'Referências: Blog HowToMarketAGame (Simon Carless).'
+        },
+        { 
+            method: 'gamalytic', 
+            label: 'Gamalytic (Preço Ponderado)', 
+            description: 'Multiplicador ajustado pelo preço do jogo. Jogos baratos (<R$25) usam M=20; jogos caros (>R$100) usam M=50. Foca em como o preço afeta a taxa de conversão de reviews.',
+            source: 'Referências: Análises da plataforma Gamalytic.'
+        },
+        { 
+            method: 'vginsights', 
+            label: 'VG Insights (Gênero Ponderado)', 
+            description: 'Multiplicador ajustado pelo gênero. Nichos (RPG/Horror) usam M=30; Casuais/Simulação usam M=55. Leva em conta o engajamento do público por categoria.',
+            source: 'Referências: Relatórios de mercado da VG Insights.'
+        },
+        { 
+            method: 'ccu', 
+            label: 'SteamDB CCU', 
+            description: 'Vendas Totais ≈ Pico CCU x M_CCU. M_CCU é 40 para Multiplayer e 100 para Singleplayer. Estima o ciclo de vida total com base na popularidade máxima.',
+            source: 'Referências: Análises de dados públicos do SteamDB e fóruns de engenharia reversa.'
+        },
+        { 
+            method: 'revenue', 
+            label: 'Receita Simplificada', 
+            description: 'Estima a Receita Líquida: (Reviews x 30) x Preço x 0.65. O fator 0.65 remove taxas da Steam e impostos, focando no retorno financeiro.',
+            source: 'Referências: Fórmulas de cálculo de receita líquida pós-Steam (30% fee).'
+        },
     ];
 
     return (
@@ -397,6 +427,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                                                     <TooltipContent className="max-w-xs">
                                                         <p className="font-semibold">{methodInfo.label}</p>
                                                         <p className="text-xs mt-1">{methodInfo.description}</p>
+                                                        <p className="text-xs mt-1 italic text-gogo-cyan">{methodInfo.source}</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             )}
@@ -424,9 +455,19 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
 
                         <Separator />
                         
-                        {/* Seleção de Métodos para Média Combinada */}
+                        {/* Seleção de Métodos para Média Híbrida */}
                         <h4 className="text-lg font-semibold text-gogo-orange flex items-center mb-3">
-                            <Gauge className="h-4 w-4 mr-2" /> Configurar Média Combinada ({calculations.count} métodos)
+                            <Gauge className="h-4 w-4 mr-2" /> Configurar Média Híbrida ({calculations.count} métodos)
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-4 w-4 ml-2 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                    <p className="font-semibold">Média Híbrida</p>
+                                    <p className="text-xs mt-1">Calcula a média aritmética apenas dos métodos de estimativa selecionados.</p>
+                                    <p className="text-xs">Isso ajuda a mitigar vieses de um único modelo, fornecendo um valor mais robusto.</p>
+                                </TooltipContent>
+                            </Tooltip>
                         </h4>
                         <FormField
                             control={form.control}
@@ -473,10 +514,10 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                             )}
                         />
 
-                        {/* Média Combinada */}
+                        {/* Média Híbrida */}
                         <Card className="p-4 bg-gogo-orange/10 border-2 border-gogo-orange shadow-gogo-orange-glow/30 mt-4">
                             <CardTitle className="text-xl font-bold mb-2 flex items-center text-gogo-orange">
-                                <Gauge className="h-5 w-5 mr-2" /> Média Combinada ({calculations.count} Métodos)
+                                <Gauge className="h-5 w-5 mr-2" /> Média Híbrida ({calculations.count} Métodos)
                             </CardTitle>
                             <div className="grid grid-cols-2 gap-4">
                                 <KpiCard 
@@ -495,7 +536,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                                 className="w-full mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90"
                                 disabled={calculations.avgSales === 0}
                             >
-                                Selecionar Média para Comparação (Jogo 2)
+                                Selecionar Média Híbrida para Comparação (Jogo 2)
                             </Button>
                         </Card>
 
