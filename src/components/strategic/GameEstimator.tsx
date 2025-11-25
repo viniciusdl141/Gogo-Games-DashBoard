@@ -230,8 +230,8 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
     };
 
     const methodOptions: { method: EstimationMethod, label: string, description: string }[] = [
-        { method: 'boxleiter', label: 'Boxleiter Ajustado', description: 'Fórmula clássica simplificada: Vendas ≈ Reviews x 30. Assume que 1 em cada 30 compradores deixa uma review.' },
-        { method: 'carless', label: 'Simon Carless (NB)', description: 'Multiplicador baseado no ano de lançamento (NB Number), ajustando para a mudança de reviews da Steam. Multiplicador atual (2023+) é ~32.' },
+        { method: 'boxleiter', label: 'Boxleiter Ajustado (M=30)', description: 'Fórmula clássica simplificada: Vendas ≈ Reviews x 30.' },
+        { method: 'carless', label: 'Simon Carless (NB)', description: 'Multiplicador baseado no ano de lançamento (NB Number), ajustando para a mudança de reviews da Steam.' },
         { method: 'gamalytic', label: 'Gamalytic (Preço Ponderado)', description: 'Multiplicador ajustado pelo preço do jogo. Jogos baratos (<R$25) usam M=20; jogos caros (>R$100) usam M=50.' },
         { method: 'vginsights', label: 'VG Insights (Gênero Ponderado)', description: 'Multiplicador ajustado pelo gênero. Nichos (RPG/Horror) usam M=30; Casuais/Simulação usam M=55.' },
         { method: 'ccu', label: 'SteamDB CCU', description: 'Vendas Totais ≈ Pico CCU x M_CCU. M_CCU é 40 para Multiplayer e 100 para Singleplayer. Estima o ciclo de vida total.' },
@@ -374,138 +374,138 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                                 )}
                             />
                         )}
+                        
+                        <Separator />
+
+                        {/* Resultados da Estimativa (fora da tag <form>, mas dentro de <Form>) */}
+                        <h4 className="text-lg font-semibold text-gogo-cyan flex items-center">
+                            <TrendingUp className="h-4 w-4 mr-2" /> Resultados por Método
+                        </h4>
+                        <div className="space-y-3">
+                            {calculations.allMethods.map((res, index) => {
+                                const methodInfo = methodOptions.find(m => m.label === res.method.split('(')[0].trim());
+                                
+                                return (
+                                    <Card key={index} className="p-3 border-l-4 border-gogo-orange/50">
+                                        <CardTitle className="text-sm font-bold mb-1 flex justify-between items-center">
+                                            <span>{res.method}</span>
+                                            {methodInfo && (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs">
+                                                        <p className="font-semibold">{methodInfo.label}</p>
+                                                        <p className="text-xs mt-1">{methodInfo.description}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
+                                        </CardTitle>
+                                        <div className="flex justify-between text-sm">
+                                            <p className="text-muted-foreground flex items-center"><List className="h-3 w-3 mr-1" /> Vendas Estimadas:</p>
+                                            <p className="font-medium text-gogo-cyan">{formatNumber(res.sales)}</p>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <p className="text-muted-foreground flex items-center"><DollarSign className="h-3 w-3 mr-1" /> Receita Líquida Estimada:</p>
+                                            <p className="font-medium text-gogo-orange">{formatCurrency(res.revenue)}</p>
+                                        </div>
+                                        <Button 
+                                            onClick={() => handleSelectMethod(res)} 
+                                            variant="outline" 
+                                            size="sm"
+                                            className="w-full mt-2 text-xs bg-gogo-cyan/10 hover:bg-gogo-cyan/20 text-gogo-cyan"
+                                        >
+                                            Selecionar {res.method} (Jogo 2)
+                                        </Button>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+
+                        <Separator />
+                        
+                        {/* Seleção de Métodos para Média Combinada */}
+                        <h4 className="text-lg font-semibold text-gogo-orange flex items-center mb-3">
+                            <Gauge className="h-4 w-4 mr-2" /> Configurar Média Combinada ({calculations.count} métodos)
+                        </h4>
+                        <FormField
+                            control={form.control}
+                            name="methodsToCombine"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-sm font-medium">Métodos a incluir na Média:</FormLabel>
+                                    <div className="grid grid-cols-2 gap-2 pt-2">
+                                        {methodOptions.map((option) => {
+                                            const methodKey = option.method;
+                                            const isChecked = field.value.includes(methodKey);
+                                            
+                                            // Verifica se o método CCU pode ser calculado
+                                            const isDisabled = methodKey === 'ccu' && values.ccuPeak === 0;
+
+                                            return (
+                                                <div key={methodKey} className="flex items-center space-x-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`method-${methodKey}`}
+                                                        checked={isChecked}
+                                                        disabled={isDisabled}
+                                                        onChange={() => {
+                                                            if (isChecked) {
+                                                                field.onChange(field.value.filter((v) => v !== methodKey));
+                                                            } else {
+                                                                field.onChange([...field.value, methodKey]);
+                                                            }
+                                                        }}
+                                                        className="h-4 w-4 text-gogo-cyan border-gray-300 rounded focus:ring-gogo-cyan"
+                                                    />
+                                                    <label
+                                                        htmlFor={`method-${methodKey}`}
+                                                        className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}
+                                                    >
+                                                        {option.label} {isDisabled && '(CCU = 0)'}
+                                                    </label>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Média Combinada */}
+                        <Card className="p-4 bg-gogo-orange/10 border-2 border-gogo-orange shadow-gogo-orange-glow/30 mt-4">
+                            <CardTitle className="text-xl font-bold mb-2 flex items-center text-gogo-orange">
+                                <Gauge className="h-5 w-5 mr-2" /> Média Combinada ({calculations.count} Métodos)
+                            </CardTitle>
+                            <div className="grid grid-cols-2 gap-4">
+                                <KpiCard 
+                                    title="Média de Vendas Estimadas" 
+                                    value={formatNumber(calculations.avgSales)} 
+                                    icon={<List className="h-4 w-4 text-gogo-cyan" />}
+                                />
+                                <KpiCard 
+                                    title="Média de Receita Líquida Estimada" 
+                                    value={formatCurrency(calculations.avgRevenue)} 
+                                    icon={<DollarSign className="h-4 w-4 text-gogo-orange" />}
+                                />
+                            </div>
+                            <Button 
+                                onClick={handleSelectAverage} 
+                                className="w-full mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90"
+                                disabled={calculations.avgSales === 0}
+                            >
+                                Selecionar Média para Comparação (Jogo 2)
+                            </Button>
+                        </Card>
+
+                        <div className="flex justify-end pt-4">
+                            <Button type="button" variant="outline" onClick={onClose}>
+                                Fechar
+                            </Button>
+                        </div>
                     </form>
                 </Form>
-
-                <Separator />
-
-                {/* Resultados da Estimativa */}
-                <h4 className="text-lg font-semibold text-gogo-cyan flex items-center">
-                    <TrendingUp className="h-4 w-4 mr-2" /> Resultados por Método
-                </h4>
-                <div className="space-y-3">
-                    {calculations.allMethods.map((res, index) => {
-                        const methodInfo = methodOptions.find(m => m.label === res.method.split('(')[0].trim());
-                        
-                        return (
-                            <Card key={index} className="p-3 border-l-4 border-gogo-orange/50">
-                                <CardTitle className="text-sm font-bold mb-1 flex justify-between items-center">
-                                    <span>{res.method}</span>
-                                    {methodInfo && (
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                                            </TooltipTrigger>
-                                            <TooltipContent className="max-w-xs">
-                                                <p className="font-semibold">{methodInfo.label}</p>
-                                                <p className="text-xs mt-1">{methodInfo.description}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    )}
-                                </CardTitle>
-                                <div className="flex justify-between text-sm">
-                                    <p className="text-muted-foreground flex items-center"><List className="h-3 w-3 mr-1" /> Vendas Estimadas:</p>
-                                    <p className="font-medium text-gogo-cyan">{formatNumber(res.sales)}</p>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <p className="text-muted-foreground flex items-center"><DollarSign className="h-3 w-3 mr-1" /> Receita Líquida Estimada:</p>
-                                    <p className="font-medium text-gogo-orange">{formatCurrency(res.revenue)}</p>
-                                </div>
-                                <Button 
-                                    onClick={() => handleSelectMethod(res)} 
-                                    variant="outline" 
-                                    size="sm"
-                                    className="w-full mt-2 text-xs bg-gogo-cyan/10 hover:bg-gogo-cyan/20 text-gogo-cyan"
-                                >
-                                    Selecionar {res.method} (Jogo 2)
-                                </Button>
-                            </Card>
-                        );
-                    })}
-                </div>
-
-                <Separator />
-                
-                {/* Seleção de Métodos para Média Combinada */}
-                <h4 className="text-lg font-semibold text-gogo-orange flex items-center mb-3">
-                    <Gauge className="h-4 w-4 mr-2" /> Configurar Média Combinada ({calculations.count} métodos)
-                </h4>
-                <FormField
-                    control={form.control}
-                    name="methodsToCombine"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="text-sm font-medium">Métodos a incluir na Média:</FormLabel>
-                            <div className="grid grid-cols-2 gap-2 pt-2">
-                                {methodOptions.map((option) => {
-                                    const methodKey = option.method;
-                                    const isChecked = field.value.includes(methodKey);
-                                    
-                                    // Verifica se o método CCU pode ser calculado
-                                    const isDisabled = methodKey === 'ccu' && values.ccuPeak === 0;
-
-                                    return (
-                                        <div key={methodKey} className="flex items-center space-x-2">
-                                            <input
-                                                type="checkbox"
-                                                id={`method-${methodKey}`}
-                                                checked={isChecked}
-                                                disabled={isDisabled}
-                                                onChange={() => {
-                                                    if (isChecked) {
-                                                        field.onChange(field.value.filter((v) => v !== methodKey));
-                                                    } else {
-                                                        field.onChange([...field.value, methodKey]);
-                                                    }
-                                                }}
-                                                className="h-4 w-4 text-gogo-cyan border-gray-300 rounded focus:ring-gogo-cyan"
-                                            />
-                                            <label
-                                                htmlFor={`method-${methodKey}`}
-                                                className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}
-                                            >
-                                                {option.label} {isDisabled && '(CCU = 0)'}
-                                            </label>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* Média Combinada */}
-                <Card className="p-4 bg-gogo-orange/10 border-2 border-gogo-orange shadow-gogo-orange-glow/30 mt-4">
-                    <CardTitle className="text-xl font-bold mb-2 flex items-center text-gogo-orange">
-                        <Gauge className="h-5 w-5 mr-2" /> Média Combinada ({calculations.count} Métodos)
-                    </CardTitle>
-                    <div className="grid grid-cols-2 gap-4">
-                        <KpiCard 
-                            title="Média de Vendas Estimadas" 
-                            value={formatNumber(calculations.avgSales)} 
-                            icon={<List className="h-4 w-4 text-gogo-cyan" />}
-                        />
-                        <KpiCard 
-                            title="Média de Receita Líquida Estimada" 
-                            value={formatCurrency(calculations.avgRevenue)} 
-                            icon={<DollarSign className="h-4 w-4 text-gogo-orange" />}
-                        />
-                    </div>
-                    <Button 
-                        onClick={handleSelectAverage} 
-                        className="w-full mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90"
-                        disabled={calculations.avgSales === 0}
-                    >
-                        Selecionar Média para Comparação (Jogo 2)
-                    </Button>
-                </Card>
-
-                <div className="flex justify-end pt-4">
-                    <Button type="button" variant="outline" onClick={onClose}>
-                        Fechar
-                    </Button>
-                </div>
             </CardContent>
         </Card>
     );
