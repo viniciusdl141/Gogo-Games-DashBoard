@@ -6,9 +6,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import { SessionContextProvider, useSession } from "./components/SessionContextProvider";
+import AdminPanel from "./pages/AdminPanel"; // Import AdminPanel from pages directory
+import { SessionContextProvider, useSession } from "@/components/SessionContextProvider";
 import React from "react";
-import { ThemeProvider } from "@/components/theme-provider"; // Importar ThemeProvider
+import { ThemeProvider } from "@/components/theme-provider"; 
 
 const queryClient = new QueryClient();
 
@@ -29,7 +30,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme"> {/* Adicionar ThemeProvider */}
+    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -45,13 +46,21 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute>
+                    <AdminPanel />
+                  </ProtectedRoute>
+                } 
+              />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </SessionContextProvider>
         </BrowserRouter>
       </TooltipProvider>
-    </ThemeProvider> {/* Fechar ThemeProvider */}
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
