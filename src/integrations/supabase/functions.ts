@@ -4,7 +4,8 @@ import { supabase } from './client';
 const PROJECT_ID = 'ynlebwtutvyxybqgupke';
 const EDGE_FUNCTION_URL_PROCESS = `https://${PROJECT_ID}.supabase.co/functions/v1/process-raw-data`;
 const EDGE_FUNCTION_URL_FETCH_GAME = `https://${PROJECT_ID}.supabase.co/functions/v1/fetch-game-data`; 
-const EDGE_FUNCTION_URL_ANALYZE_SALES = `https://${PROJECT_ID}.supabase.co/functions/v1/analyze-game-sales`; // NEW URL
+const EDGE_FUNCTION_URL_ANALYZE_SALES = `https://${PROJECT_ID}.supabase.co/functions/v1/analyze-game-sales`; 
+const EDGE_FUNCTION_URL_ADMIN_CREATE_USER = `https://${PROJECT_ID}.supabase.co/functions/v1/admin-create-user`; // Re-adding URL
 
 interface AIResponse {
     structuredData: {
@@ -113,7 +114,7 @@ export async function invokeGameDataFetcher(gameName: string, aiApiKey: string):
     throw new Error("Estrutura de resposta inválida do buscador de dados de jogos.");
 }
 
-// NEW: Function to invoke the sales analysis
+// Function to invoke the sales analysis
 export async function invokeSalesAnalyzer(gameName: string, aiApiKey: string): Promise<SalesAnalysisReport> {
     const session = await supabase.auth.getSession();
     const token = session.data.session?.access_token;
@@ -140,4 +141,32 @@ export async function invokeSalesAnalyzer(gameName: string, aiApiKey: string): P
     }
 
     throw new Error("Estrutura de relatório de análise de vendas inválida.");
+}
+
+// RE-ADDED: Function to invoke admin user creation
+export async function invokeAdminCreateUser(email: string, password: string, studioId: string): Promise<{ success: boolean, userId: string }> {
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token;
+
+    const response = await fetch(EDGE_FUNCTION_URL_ADMIN_CREATE_USER, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ email, password, studioId }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        const errorMessage = data.error || `Edge Function retornou status ${response.status}.`;
+        throw new Error(`Falha ao criar usuário: ${errorMessage}`);
+    }
+
+    if (data && data.success) {
+        return data;
+    }
+
+    throw new Error("Resposta inválida da função de criação de usuário.");
 }
