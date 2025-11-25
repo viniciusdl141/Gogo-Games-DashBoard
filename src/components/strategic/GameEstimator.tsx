@@ -234,37 +234,37 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             method: 'boxleiter', 
             label: 'Boxleiter Ajustado (M=30)', 
             description: 'Fórmula clássica simplificada: Vendas ≈ Reviews x 30. É uma estimativa de ciclo de vida total, baseada em dados históricos de 2014-2017.',
-            source: 'Referências: Artigos de Daniel Ahmad e fóruns de desenvolvedores (2017).'
+            source: 'Referência Original: Artigo de Jake Birkett (Grey Alien Games) que estabeleceu a lógica "1 review ≈ X vendas".'
         },
         { 
             method: 'carless', 
             label: 'Simon Carless (NB)', 
             description: 'Multiplicador baseado no ano de lançamento (NB Number), ajustando para a mudança de reviews da Steam. Tende a ser mais conservador para jogos recentes.',
-            source: 'Referências: Blog HowToMarketAGame (Simon Carless).'
+            source: 'Referência: Simon Carless (GameDiscoverCo) explica a mudança do multiplicador (30x-60x) para jogos pós-2022 no Game World Observer.'
         },
         { 
             method: 'gamalytic', 
             label: 'Gamalytic (Preço Ponderado)', 
             description: 'Multiplicador ajustado pelo preço do jogo. Jogos baratos (<R$25) usam M=20; jogos caros (>R$100) usam M=50. Foca em como o preço afeta a taxa de conversão de reviews.',
-            source: 'Referências: Análises da plataforma Gamalytic.'
+            source: 'Referência: Documentação oficial da Gamalytic, detalhando o uso de probabilidade condicional para corrigir vieses de preço.'
         },
         { 
             method: 'vginsights', 
             label: 'VG Insights (Gênero Ponderado)', 
             description: 'Multiplicador ajustado pelo gênero. Nichos (RPG/Horror) usam M=30; Casuais/Simulação usam M=55. Leva em conta o engajamento do público por categoria.',
-            source: 'Referências: Relatórios de mercado da VG Insights.'
+            source: 'Referência: Estudo da VG Insights sobre a relação Reviews/Vendas por Gênero. Publicam relatórios anuais cruciais.'
         },
         { 
             method: 'ccu', 
             label: 'SteamDB CCU', 
             description: 'Vendas Totais ≈ Pico CCU x M_CCU. M_CCU é 40 para Multiplayer e 100 para Singleplayer. Estima o ciclo de vida total com base na popularidade máxima.',
-            source: 'Referências: Análises de dados públicos do SteamDB e fóruns de engenharia reversa.'
+            source: 'Referência: Dados públicos do SteamDB. A regra de 20x-50x o CCU da primeira semana é baseada em post-mortems de desenvolvedores (Ars Technica/Gamasutra).'
         },
         { 
             method: 'revenue', 
             label: 'Receita Simplificada', 
             description: 'Estima a Receita Líquida: (Reviews x 30) x Preço x 0.65. O fator 0.65 remove taxas da Steam e impostos, focando no retorno financeiro.',
-            source: 'Referências: Fórmulas de cálculo de receita líquida pós-Steam (30% fee).'
+            source: 'Referência: Fórmulas de cálculo de receita líquida pós-Steam (30% fee).'
         },
     ];
 
@@ -530,50 +530,202 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                                                 </div>
                                             );
                                         })}
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
 
-                        {/* Média Híbrida */}
-                        <Card className="p-4 bg-gogo-orange/10 border-2 border-gogo-orange shadow-gogo-orange-glow/30 mt-4">
-                            <CardTitle className="text-xl font-bold mb-2 flex items-center text-gogo-orange">
-                                <Gauge className="h-5 w-5 mr-2" /> Média Híbrida ({calculations.count} Métodos)
-                            </CardTitle>
-                            <p className="text-sm text-muted-foreground mb-3">
-                                A Média Híbrida combina os resultados dos métodos selecionados para fornecer uma estimativa mais robusta e menos enviesada.
-                            </p>
-                            <div className="grid grid-cols-2 gap-4">
-                                <KpiCard 
-                                    title="Média de Vendas Estimadas" 
-                                    value={formatNumber(calculations.avgSales)} 
-                                    icon={<List className="h-4 w-4 text-gogo-cyan" />}
-                                />
-                                <KpiCard 
-                                    title="Média de Receita Líquida Estimada" 
-                                    value={formatCurrency(calculations.avgRevenue)} 
-                                    icon={<DollarSign className="h-4 w-4 text-gogo-orange" />}
-                                />
+                    <FormField
+                        control={form.control}
+                        name="ccuPeak"
+                        render={({ field }) => (
+                            <FormItem>
+                                {renderLabelWithTooltip("Pico CCU (SteamDB)", (
+                                    <p>O número máximo de jogadores simultâneos (Concurrent Users) que o jogo atingiu na Steam. Usado para a Metodologia SteamDB CCU.</p>
+                                ))}
+                                <FormControl>
+                                    <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+                
+                {values.ccuPeak > 0 && (
+                    <FormField
+                        control={form.control}
+                        name="ccuMultiplier"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Multiplicador CCU</FormLabel>
+                                <Select onValueChange={val => field.onChange(Number(val))} defaultValue={String(field.value)}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione o Multiplicador CCU" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {CCU_MULTIPLIERS.map(m => (
+                                            <SelectItem key={m.label} value={String(m.value)}>{m.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
+                
+                <Separator />
+
+                {/* Resultados da Estimativa (fora da tag <form>, mas dentro de <Form>) */}
+                <h4 className="text-lg font-semibold text-gogo-cyan flex items-center">
+                    <TrendingUp className="h-4 w-4 mr-2" /> Resultados por Método
+                </h4>
+                <div className="space-y-3">
+                    {calculations.allMethods.map((res, index) => {
+                        const methodInfo = methodOptions.find(m => m.label === res.method.split('(')[0].trim());
+                        
+                        return (
+                            <Card key={index} className="p-3 border-l-4 border-gogo-orange/50">
+                                <CardTitle className="text-sm font-bold mb-1 flex justify-between items-center">
+                                    <span>{res.method}</span>
+                                    {methodInfo && (
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-xs">
+                                                <p className="font-semibold">{methodInfo.label}</p>
+                                                <p className="text-xs mt-1">{methodInfo.description}</p>
+                                                <p className="text-xs mt-1 italic text-gogo-cyan">{methodInfo.source}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    )}
+                                </CardTitle>
+                                <div className="flex justify-between text-sm">
+                                    <p className="text-muted-foreground flex items-center"><List className="h-3 w-3 mr-1" /> Vendas Estimadas:</p>
+                                    <p className="font-medium text-gogo-cyan">{formatNumber(res.sales)}</p>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <p className="text-muted-foreground flex items-center"><DollarSign className="h-3 w-3 mr-1" /> Receita Líquida Estimada:</p>
+                                    <p className="font-medium text-gogo-orange">{formatCurrency(res.revenue)}</p>
+                                </div>
+                                <Button 
+                                    onClick={() => handleSelectMethod(res)} 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="w-full mt-2 text-xs bg-gogo-cyan/10 hover:bg-gogo-cyan/20 text-gogo-cyan"
+                                >
+                                    Selecionar {res.method} (Jogo 2)
+                                </Button>
+                            </Card>
+                        );
+                    })}
+                </div>
+
+                <Separator />
+                
+                {/* Seleção de Métodos para Média Híbrida */}
+                <h4 className="text-lg font-semibold text-gogo-orange flex items-center mb-3">
+                    <Gauge className="h-4 w-4 mr-2" /> Média Híbrida ({calculations.count} métodos)
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 ml-2 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                            <p className="font-semibold">Média Híbrida</p>
+                            <p className="text-xs mt-1">Calcula a média aritmética dos métodos selecionados.</p>
+                            <p className="text-xs">Ajuda a mitigar vieses de um único modelo, fornecendo um valor mais robusto.</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </h4>
+                <FormField
+                    control={form.control}
+                    name="methodsToCombine"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-sm font-medium">Métodos a incluir na Média:</FormLabel>
+                            <div className="grid grid-cols-2 gap-2 pt-2">
+                                {methodOptions.map((option) => {
+                                    const methodKey = option.method;
+                                    const isChecked = field.value.includes(methodKey);
+                                    
+                                    // Verifica se o método CCU pode ser calculado
+                                    const isDisabled = methodKey === 'ccu' && values.ccuPeak === 0;
+
+                                    return (
+                                        <div key={methodKey} className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id={`method-${methodKey}`}
+                                                checked={isChecked}
+                                                disabled={isDisabled}
+                                                onChange={() => {
+                                                    if (isChecked) {
+                                                        field.onChange(field.value.filter((v) => v !== methodKey));
+                                                    } else {
+                                                        field.onChange([...field.value, methodKey]);
+                                                    }
+                                                }}
+                                                className="h-4 w-4 text-gogo-cyan border-gray-300 rounded focus:ring-gogo-cyan"
+                                            />
+                                            <label
+                                                htmlFor={`method-${methodKey}`}
+                                                className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}
+                                            >
+                                                {option.label} {isDisabled && '(CCU = 0)'}
+                                            </label>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                            <Button 
-                                onClick={handleSelectAverage} 
-                                className="w-full mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90"
-                                disabled={calculations.avgSales === 0}
-                            >
-                                Selecionar Média Híbrida para Comparação (Jogo 2)
-                            </Button>
-                        </Card>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
-                        <div className="flex justify-end pt-4">
-                            <Button type="button" variant="outline" onClick={onClose}>
-                                Fechar
-                            </Button>
-                        </div>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
+                {/* Média Híbrida */}
+                <Card className="p-4 bg-gogo-orange/10 border-2 border-gogo-orange shadow-gogo-orange-glow/30 mt-4">
+                    <CardTitle className="text-xl font-bold mb-2 flex items-center text-gogo-orange">
+                        <Gauge className="h-5 w-5 mr-2" /> Média Híbrida ({calculations.count} Métodos)
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mb-3">
+                        A Média Híbrida combina os resultados dos métodos selecionados para fornecer uma estimativa mais robusta e menos enviesada.
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <KpiCard 
+                            title="Média de Vendas Estimadas" 
+                            value={formatNumber(calculations.avgSales)} 
+                            icon={<List className="h-4 w-4 text-gogo-cyan" />}
+                        />
+                        <KpiCard 
+                            title="Média de Receita Líquida Estimada" 
+                            value={formatCurrency(calculations.avgRevenue)} 
+                            icon={<DollarSign className="h-4 w-4 text-gogo-orange" />}
+                        />
+                    </div>
+                    <Button 
+                        onClick={handleSelectAverage} 
+                        className="w-full mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90"
+                        disabled={calculations.avgSales === 0}
+                    >
+                        Selecionar Média Híbrida para Comparação (Jogo 2)
+                    </Button>
+                </Card>
+
+                <div className="flex justify-end pt-4">
+                    <Button type="button" variant="outline" onClick={onClose}>
+                        Fechar
+                    </Button>
+                </div>
+            </form>
+        </Form>
+    </CardContent>
+</Card>
     );
 };
 
