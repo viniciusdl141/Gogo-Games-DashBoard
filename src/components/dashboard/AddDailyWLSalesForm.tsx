@@ -15,6 +15,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label'; // Importação adicionada
 import { WLSalesPlatformEntry, Platform } from '@/data/trackingData';
 import { addDays, startOfDay } from 'date-fns';
 import { List, Calendar, DollarSign } from 'lucide-react';
