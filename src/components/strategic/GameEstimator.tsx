@@ -231,8 +231,10 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
 
         // Calcula a média combinada apenas dos métodos selecionados
         const combinedResults = results.filter(r => {
-            const baseMethod = allMethods.find(m => m.result === r)?.method.split('(')[0].trim().toLowerCase().replace(/\s/g, '');
-            return baseMethod && methodsToCombine.includes(baseMethod as EstimationMethod);
+            // Encontra o método base (ex: 'Boxleiter Ajustado (M=30)' -> 'boxleiter')
+            const methodEntry = allMethods.find(m => m.result === r);
+            if (!methodEntry) return false;
+            return methodsToCombine.includes(methodEntry.method.split('(')[0].trim().toLowerCase().replace(/\s/g, '') as EstimationMethod);
         });
 
         const totalSales = combinedResults.reduce((sum, r) => sum + r.sales, 0);
@@ -259,8 +261,13 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
         setDetailsModalOpen(true);
     };
     
-    const handleConfirmSelection = (result: MethodResult) => {
-        const singleGame: EstimatedGame = {
+    // Função que cria o objeto EstimatedGame e fecha o modal principal
+    const finalizeSelection = (result: MethodResult) => {
+        const isAverage = result.method === 'Média Híbrida';
+        
+        const finalResult = isAverage ? calculations : { avgSales: result.sales, avgRevenue: result.revenue };
+
+        const finalGame: EstimatedGame = {
             name: `${gameName} (${result.method})`,
             launchDate: null,
             suggestedPrice: values.priceBRL,
@@ -271,54 +278,28 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             publisher: null,
             capsuleImageUrl: null,
             source: 'Fórmulas de Estimativa',
-            estimatedSales: result.sales,
-            estimatedRevenue: result.revenue,
+            estimatedSales: finalResult.avgSales,
+            estimatedRevenue: finalResult.avgRevenue,
             estimationMethod: result.method,
             timeframe: result.timeframe,
         };
-        onEstimate(singleGame);
-        setDetailsModalOpen(false); // Fecha o modal de detalhes
+        
+        onEstimate(finalGame);
         onClose(); // Fecha o modal principal
     };
 
     const handleSelectAverage = () => {
-        const avgGame: EstimatedGame = {
-            name: `${gameName} (Média Híbrida)`,
-            launchDate: null,
-            suggestedPrice: values.priceBRL,
-            priceUSD: values.priceBRL / 5, 
-            reviewCount: values.reviews,
-            reviewSummary: 'Estimativa',
-            developer: null,
-            publisher: null,
-            capsuleImageUrl: null,
-            source: 'Fórmulas de Estimativa',
-            estimatedSales: calculations.avgSales,
-            estimatedRevenue: calculations.avgRevenue,
-            estimationMethod: 'Média Híbrida',
-            timeframe: 'Ciclo de Vida Total (Média Ponderada)', // Definindo o timeframe da média
-        };
-        
-        // Abre o modal de detalhes para a Média Híbrida
-        setSelectedMethodResult({
+        // Prepara o resultado da média para o modal de detalhes
+        const avgResult: MethodResult = {
             sales: calculations.avgSales,
             revenue: calculations.avgRevenue,
             method: 'Média Híbrida',
             timeframe: 'Ciclo de Vida Total (Média Ponderada)',
-        });
-        setSelectedMethodDetails(METHOD_DETAILS['Média Híbrida']);
-        setDetailsModalOpen(true);
-        
-        // A confirmação final será feita dentro do MethodDetailsModal
-        // Para a média, passamos a função de seleção com o objeto avgGame
-        const confirmAverage = () => {
-            onEstimate(avgGame);
-            setDetailsModalOpen(false);
-            onClose();
         };
         
-        // Nota: O MethodDetailsModal agora precisa saber se está confirmando a média ou um método individual.
-        // Vamos garantir que o onConfirmSelection no modal de detalhes use o selectedMethodResult.
+        setSelectedMethodResult(avgResult);
+        setSelectedMethodDetails(METHOD_DETAILS['Média Híbrida']);
+        setDetailsModalOpen(true);
     };
     
     // Helper para renderizar o Label com Tooltip
@@ -638,32 +619,9 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                     methodResult={selectedMethodResult}
                     methodDetails={selectedMethodDetails}
                     onConfirmSelection={() => {
-                        // Se for a Média Híbrida, criamos o objeto EstimatedGame da média
-                        if (selectedMethodResult.method === 'Média Híbrida') {
-                            // Recalculamos a média para garantir que o objeto final seja criado corretamente
-                            const avgGame: EstimatedGame = {
-                                name: `${gameName} (Média Híbrida)`,
-                                launchDate: null,
-                                suggestedPrice: values.priceBRL,
-                                priceUSD: values.priceBRL / 5, 
-                                reviewCount: values.reviews,
-                                reviewSummary: 'Estimativa',
-                                developer: null,
-                                publisher: null,
-                                capsuleImageUrl: null,
-                                source: 'Fórmulas de Estimativa',
-                                estimatedSales: calculations.avgSales,
-                                estimatedRevenue: calculations.avgRevenue,
-                                estimationMethod: 'Média Híbrida',
-                                timeframe: 'Ciclo de Vida Total (Média Ponderada)',
-                            };
-                            onEstimate(avgGame);
-                        } else {
-                            // Se for um método individual, usamos o resultado já armazenado
-                            handleConfirmSelection(selectedMethodResult);
-                        }
-                        setDetailsModalOpen(false);
-                        onClose();
+                        // Chama a função de seleção final, que é responsável por fechar o modal principal
+                        finalizeSelection(selectedMethodResult);
+                        setDetailsModalOpen(false); // Fecha o modal de detalhes
                     }}
                 />
             )}
