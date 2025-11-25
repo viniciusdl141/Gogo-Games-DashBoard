@@ -34,7 +34,8 @@ const DashboardHeader: React.FC = () => {
     return (
         <header className="flex items-center justify-between mb-8 pb-4 border-b border-border">
             <div className="flex flex-col">
-                <Link to="/" className="hover:opacity-80 transition-opacity"> {/* Usando Link para navegação */}
+                {/* O Link deve envolver o H1 para ser clicável */}
+                <Link to="/" className="hover:opacity-80 transition-opacity cursor-pointer"> 
                     <h1 className="text-3xl font-gamer text-gogo-cyan">
                         GoGo Games <span className="text-gogo-orange">Dashboard</span>
                     </h1>
