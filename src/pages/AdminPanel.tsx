@@ -34,6 +34,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
+import AnimatedPanel from '@/components/AnimatedPanel'; // Import AnimatedPanel
 
 const AdminPanel: React.FC = () => {
     const { isAdmin, isLoading: isSessionLoading } = useSession();
@@ -160,140 +161,146 @@ const AdminPanel: React.FC = () => {
                     <Settings className="h-6 w-6 mr-3" /> Painel de Administração
                 </h1>
 
-                <Button onClick={() => navigate('/')} variant="outline" className="mb-4">
-                    <Home className="h-4 w-4 mr-2" /> Voltar ao Dashboard
-                </Button>
+                <AnimatedPanel delay={0}>
+                    <Button onClick={() => navigate('/')} variant="outline" className="mb-4">
+                        <Home className="h-4 w-4 mr-2" /> Voltar ao Dashboard
+                    </Button>
+                </AnimatedPanel>
 
                 {/* --- Gerenciamento de Estúdios --- */}
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-xl flex items-center">
-                            <Users className="h-5 w-5 mr-2 text-gogo-cyan" /> Gerenciar Estúdios
-                        </CardTitle>
-                        <div className="flex space-x-2">
-                            <Button onClick={() => setIsUserFormOpen(true)} className="bg-gogo-orange hover:bg-gogo-orange/90">
-                                <Plus className="h-4 w-4 mr-2" /> Criar Usuário
-                            </Button>
-                            <Button onClick={() => setIsStudioFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
-                                <Plus className="h-4 w-4 mr-2" /> Criar Estúdio
-                            </Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        {isStudiosLoading ? (
-                            <div className="flex justify-center items-center h-20"><Loader2 className="h-6 w-6 animate-spin" /></div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Nome do Estúdio</TableHead>
-                                            <TableHead>ID</TableHead>
-                                            <TableHead className="text-center">Jogos Atribuídos</TableHead>
-                                            <TableHead className="text-right">Ações</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {studios?.map(studio => (
-                                            <TableRow key={studio.id}>
-                                                <TableCell className="font-medium">{studio.name}</TableCell>
-                                                <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">{studio.id}</TableCell>
-                                                <TableCell className="text-center">{gamesByStudio.get(studio.id)?.length || 0}</TableCell>
-                                                <TableCell className="text-right space-x-2">
-                                                    <Button variant="ghost" size="sm" onClick={() => handleEditStudio(studio)}>
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Excluir Estúdio?</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Tem certeza que deseja remover o estúdio "{studio.name}"? Isso não pode ser desfeito.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleDeleteStudio(studio.id, studio.name)} className="bg-destructive hover:bg-destructive/90">
-                                                                    Excluir
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                <AnimatedPanel delay={0.1}>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-xl flex items-center">
+                                <Users className="h-5 w-5 mr-2 text-gogo-cyan" /> Gerenciar Estúdios
+                            </CardTitle>
+                            <div className="flex space-x-2">
+                                <Button onClick={() => setIsUserFormOpen(true)} className="bg-gogo-orange hover:bg-gogo-orange/90">
+                                    <Plus className="h-4 w-4 mr-2" /> Criar Usuário
+                                </Button>
+                                <Button onClick={() => setIsStudioFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
+                                    <Plus className="h-4 w-4 mr-2" /> Criar Estúdio
+                                </Button>
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardHeader>
+                        <CardContent>
+                            {isStudiosLoading ? (
+                                <div className="flex justify-center items-center h-20"><Loader2 className="h-6 w-6 animate-spin" /></div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Nome do Estúdio</TableHead>
+                                                <TableHead>ID</TableHead>
+                                                <TableHead className="text-center">Jogos Atribuídos</TableHead>
+                                                <TableHead className="text-right">Ações</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {studios?.map(studio => (
+                                                <TableRow key={studio.id}>
+                                                    <TableCell className="font-medium">{studio.name}</TableCell>
+                                                    <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">{studio.id}</TableCell>
+                                                    <TableCell className="text-center">{gamesByStudio.get(studio.id)?.length || 0}</TableCell>
+                                                    <TableCell className="text-right space-x-2">
+                                                        <Button variant="ghost" size="sm" onClick={() => handleEditStudio(studio)}>
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Excluir Estúdio?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        Tem certeza que deseja remover o estúdio "{studio.name}"? Isso não pode ser desfeito.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => handleDeleteStudio(studio.id, studio.name)} className="bg-destructive hover:bg-destructive/90">
+                                                                        Excluir
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </AnimatedPanel>
 
                 {/* --- Visualização de Todos os Jogos --- */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-xl flex items-center">
-                            <Gamepad2 className="h-5 w-5 mr-2 text-gogo-orange" /> Todos os Jogos ({allGames?.length || 0})
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isGamesLoading ? (
-                            <div className="flex justify-center items-center h-20"><Loader2 className="h-6 w-6 animate-spin" /></div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Jogo</TableHead>
-                                            <TableHead>Estúdio</TableHead>
-                                            <TableHead>Preço Sugerido (R$)</TableHead>
-                                            <TableHead>Lançamento</TableHead>
-                                            <TableHead className="text-right">Ações</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {allGames?.map(game => (
-                                            <TableRow key={game.id}>
-                                                <TableCell className="font-medium">{game.name}</TableCell>
-                                                <TableCell>{getStudioName(game.studio_id)}</TableCell>
-                                                <TableCell>{game.suggested_price ? `R$ ${game.suggested_price.toFixed(2)}` : '-'}</TableCell>
-                                                <TableCell>{game.launch_date ? formatDate(new Date(game.launch_date)) : '-'}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Excluir Jogo Permanentemente?</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Esta ação removerá permanentemente o jogo <span className="font-bold text-destructive">"{game.name}"</span> do Supabase. Isso não pode ser desfeito.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleDeleteGameAdmin(game.id, game.name)} className="bg-destructive hover:bg-destructive/90">
-                                                                    Excluir Permanentemente
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </TableCell>
+                <AnimatedPanel delay={0.2}>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-xl flex items-center">
+                                <Gamepad2 className="h-5 w-5 mr-2 text-gogo-orange" /> Todos os Jogos ({allGames?.length || 0})
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {isGamesLoading ? (
+                                <div className="flex justify-center items-center h-20"><Loader2 className="h-6 w-6 animate-spin" /></div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Jogo</TableHead>
+                                                <TableHead>Estúdio</TableHead>
+                                                <TableHead>Preço Sugerido (R$)</TableHead>
+                                                <TableHead>Lançamento</TableHead>
+                                                <TableHead className="text-right">Ações</TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {allGames?.map(game => (
+                                                <TableRow key={game.id}>
+                                                    <TableCell className="font-medium">{game.name}</TableCell>
+                                                    <TableCell>{getStudioName(game.studio_id)}</TableCell>
+                                                    <TableCell>{game.suggested_price ? `R$ ${game.suggested_price.toFixed(2)}` : '-'}</TableCell>
+                                                    <TableCell>{game.launch_date ? formatDate(new Date(game.launch_date)) : '-'}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Excluir Jogo Permanentemente?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        Esta ação removerá permanentemente o jogo <span className="font-bold text-destructive">"{game.name}"</span> do Supabase. Isso não pode ser desfeito.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => handleDeleteGameAdmin(game.id, game.name)} className="bg-destructive hover:bg-destructive/90">
+                                                                        Excluir Permanentemente
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </AnimatedPanel>
 
                 {/* Modals */}
                 <Dialog open={isStudioFormOpen} onOpenChange={handleCloseStudioForm}>
