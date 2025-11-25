@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Game as SupabaseGame } from '@/integrations/supabase/games';
 import { TrackingData, ResultSummaryEntry } from '@/data/trackingData';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { DollarSign, List, TrendingUp, Calendar, MessageSquare, BarChart2, ArrowRightLeft, Minus, Calculator } from 'lucide-react';
+import { DollarSign, List, TrendingUp, Calendar, MessageSquare, BarChart2, ArrowRightLeft, Minus, Calculator, Clock } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import GameCapsule from '@/components/dashboard/GameCapsule';
 import {
@@ -46,20 +46,20 @@ const extractGameMetrics = (game: ComparisonGame, trackingData: TrackingData | u
     let latestReview = null;
     let summaryTableData: ResultSummaryEntry[] = [];
     let isLocalTracking = false;
+    let timeframe = null; // NEW: Timeframe for estimated results
 
     if (isEstimated) {
         totalSales = game.estimatedSales;
-        // Para estimativas, usamos o reviewCount como proxy para WL/Reviews
         totalWishlists = game.reviewCount || 0; 
-        totalInvestment = 0; // Estimativas não têm investimento rastreado
+        totalInvestment = 0; 
         wlToSalesConversionRate = totalWishlists > 0 ? totalSales / totalWishlists : 0;
+        timeframe = game.timeframe; // Get timeframe from EstimatedGame
         
-        // Criar um objeto de review simulado para exibição
         if (game.reviewCount) {
             latestReview = {
                 id: 'est-review',
                 reviews: game.reviewCount,
-                positive: game.reviewCount, // Simplificação
+                positive: game.reviewCount, 
                 negative: 0,
                 percentage: 1,
                 rating: game.reviewSummary || 'Estimativa',
@@ -115,6 +115,7 @@ const extractGameMetrics = (game: ComparisonGame, trackingData: TrackingData | u
         summaryTableData,
         isEstimated,
         isLocalTracking,
+        timeframe, // NEW: Include timeframe
     };
 };
 
@@ -299,6 +300,17 @@ const GameComparisonPanel: React.FC<GameComparisonPanelProps> = ({ game1, game2,
                                 <TableCell className="text-center">{metrics2?.suggestedPrice ? formatCurrency(metrics2.suggestedPrice) : '-'}</TableCell>
                             </TableRow>
                             
+                            {/* NEW: Timeframe for Estimated Game */}
+                            {metrics2?.isEstimated && (
+                                <TableRow>
+                                    <TableCell className="font-medium flex items-center space-x-2 text-sm text-gogo-orange">
+                                        <Clock className="h-4 w-4" /> <span>Período Estimado</span>
+                                    </TableCell>
+                                    <TableCell className="text-center">-</TableCell>
+                                    <TableCell className="text-center font-bold text-gogo-orange">{metrics2.timeframe}</TableCell>
+                                </TableRow>
+                            )}
+
                             {/* --- Métricas de Performance --- */}
                             <TableRow className="bg-accent/50">
                                 <TableCell colSpan={3} className="font-bold text-md text-gogo-cyan">Performance Geral</TableCell>

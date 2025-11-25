@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { Calculator, TrendingUp, DollarSign, MessageSquare, Gauge, List, Info, Checkbox } from 'lucide-react';
+import { Calculator, TrendingUp, DollarSign, MessageSquare, Gauge, List, Info, Checkbox, Clock } from 'lucide-react';
 import KpiCard from '../dashboard/KpiCard';
 import { GameOption } from '@/integrations/supabase/functions';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -60,6 +60,7 @@ export interface EstimatedGame extends GameOption {
     estimatedSales: number;
     estimatedRevenue: number;
     estimationMethod: string;
+    timeframe: string; // NEW: Período estimado para atingir o resultado
 }
 
 type EstimationMethod = 'boxleiter' | 'carless' | 'gamalytic' | 'vginsights' | 'ccu' | 'revenue';
@@ -86,6 +87,57 @@ interface GameEstimatorProps {
     onClose: () => void;
 }
 
+const calculateMethod = (method: EstimationMethod, reviews: number, priceBRL: number, discountFactor: number, ccuPeak: number, nbMultiplier: number, category: string): { sales: number, revenue: number, method: string, timeframe: string } | null => {
+    const priceUSD = priceBRL / 5; // Simplificação da conversão BRL -> USD
+
+    switch (method) {
+        case 'boxleiter': {
+            const sales = reviews * 30;
+            const revenue = sales * priceBRL * discountFactor;
+            return { method: 'Boxleiter Ajustado (M=30)', sales, revenue, timeframe: 'Ciclo de Vida Total (3-5 anos)' };
+        }
+        case 'carless': {
+            const sales = reviews * nbMultiplier;
+            const revenue = sales * priceBRL * discountFactor;
+            return { method: `Simon Carless (NB=${nbMultiplier})`, sales, revenue, timeframe: 'Ciclo de Vida Total (3-5 anos)' };
+        }
+        case 'gamalytic': {
+            let multiplier = 35; // Default
+            if (priceBRL < 25) {
+                multiplier = 20;
+            } else if (priceBRL > 100) {
+                multiplier = 50;
+            } else {
+                multiplier = 35;
+            }
+            const sales = reviews * multiplier;
+            const revenue = sales * priceBRL * discountFactor;
+            return { method: `Gamalytic (M=${multiplier})`, sales, revenue, timeframe: 'Ciclo de Vida Total (3-5 anos)' };
+        }
+        case 'vginsights': {
+            const multiplier = VG_INSIGHTS_MULTIPLIERS[category] || 35;
+            const sales = reviews * multiplier;
+            const revenue = sales * priceBRL * discountFactor;
+            return { method: `VG Insights (M=${multiplier})`, sales, revenue, timeframe: 'Ciclo de Vida Total (3-5 anos)' };
+        }
+        case 'ccu': {
+            if (ccuPeak === 0) return null;
+            const multiplier = values.ccuMultiplier;
+            const sales = ccuPeak * multiplier;
+            const revenue = sales * priceBRL * discountFactor;
+            return { method: `SteamDB CCU (M=${multiplier})`, sales, revenue, timeframe: 'Primeiro Ano (12 meses)' };
+        }
+        case 'revenue': {
+            const sales = reviews * 30; 
+            const revenue = sales * priceBRL * 0.65; 
+            return { method: 'Receita Simplificada (Fator 0.65)', sales, revenue, timeframe: 'Ciclo de Vida Total (3-5 anos)' };
+        }
+        default:
+            return null;
+    }
+};
+
+
 const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 30.00, initialCategory = 'Ação', onEstimate, onClose }) => {
     const form = useForm<EstimatorFormValues>({
         resolver: zodResolver(formSchema),
@@ -103,62 +155,10 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
 
     const values = form.watch();
 
-    const calculateMethod = (method: EstimationMethod, reviews: number, priceBRL: number, discountFactor: number, ccuPeak: number, nbMultiplier: number, category: string): { sales: number, revenue: number, method: string } | null => {
-        const priceUSD = priceBRL / 5; // Simplificação da conversão BRL -> USD
-
-        switch (method) {
-            case 'boxleiter': {
-                const sales = reviews * 30;
-                const revenue = sales * priceBRL * discountFactor;
-                return { method: 'Boxleiter Ajustado (M=30)', sales, revenue };
-            }
-            case 'carless': {
-                const sales = reviews * nbMultiplier;
-                const revenue = sales * priceBRL * discountFactor;
-                return { method: `Simon Carless (NB=${nbMultiplier})`, sales, revenue };
-            }
-            case 'gamalytic': {
-                let multiplier = 35; // Default
-                // Usando R$ 25 (USD 5), R$ 100 (USD 20) como thresholds
-                if (priceBRL < 25) {
-                    multiplier = 20;
-                } else if (priceBRL > 100) {
-                    multiplier = 50;
-                } else {
-                    multiplier = 35;
-                }
-                const sales = reviews * multiplier;
-                const revenue = sales * priceBRL * discountFactor;
-                return { method: `Gamalytic (M=${multiplier})`, sales, revenue };
-            }
-            case 'vginsights': {
-                const multiplier = VG_INSIGHTS_MULTIPLIERS[category] || 35;
-                const sales = reviews * multiplier;
-                const revenue = sales * priceBRL * discountFactor;
-                return { method: `VG Insights (M=${multiplier})`, sales, revenue };
-            }
-            case 'ccu': {
-                if (ccuPeak === 0) return null;
-                const multiplier = values.ccuMultiplier;
-                const sales = ccuPeak * multiplier;
-                const revenue = sales * priceBRL * discountFactor;
-                return { method: `SteamDB CCU (M=${multiplier})`, sales, revenue };
-            }
-            case 'revenue': {
-                // Método da Receita (Reviews * 30) * Preço * 0.65
-                const sales = reviews * 30; // Usamos 30 como base de vendas para calcular a receita
-                const revenue = sales * priceBRL * 0.65; // Fator 0.65 fixo para este método
-                return { method: 'Receita Simplificada (Fator 0.65)', sales, revenue };
-            }
-            default:
-                return null;
-        }
-    };
-
     const calculations = useMemo(() => {
         const { reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, methodsToCombine } = values;
         
-        const allMethods: { method: EstimationMethod, result: { sales: number, revenue: number, method: string } | null }[] = [
+        const allMethods: { method: EstimationMethod, result: { sales: number, revenue: number, method: string, timeframe: string } | null }[] = [
             { method: 'boxleiter', result: calculateMethod('boxleiter', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
             { method: 'carless', result: calculateMethod('carless', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
             { method: 'gamalytic', result: calculateMethod('gamalytic', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
@@ -171,7 +171,6 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
 
         // Calcula a média combinada apenas dos métodos selecionados
         const combinedResults = results.filter(r => {
-            // O nome do método no resultado pode ter parênteses, então usamos o método original (EstimationMethod) para filtrar
             const baseMethod = allMethods.find(m => m.result === r)?.method;
             return baseMethod && methodsToCombine.includes(baseMethod);
         });
@@ -196,7 +195,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             name: `${gameName} (Média Híbrida)`,
             launchDate: null,
             suggestedPrice: values.priceBRL,
-            priceUSD: values.priceBRL / 5, // Placeholder USD
+            priceUSD: values.priceBRL / 5, 
             reviewCount: values.reviews,
             reviewSummary: 'Estimativa',
             developer: null,
@@ -206,12 +205,13 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             estimatedSales: calculations.avgSales,
             estimatedRevenue: calculations.avgRevenue,
             estimationMethod: 'Média Híbrida',
+            timeframe: 'Ciclo de Vida Total (Média)', // Timeframe para a média
         };
         onEstimate(avgGame);
-        onClose(); // Fecha o modal após a seleção
+        onClose(); // Fecha o modal
     };
     
-    const handleSelectMethod = (methodResult: { sales: number, revenue: number, method: string }) => {
+    const handleSelectMethod = (methodResult: { sales: number, revenue: number, method: string, timeframe: string }) => {
         const singleGame: EstimatedGame = {
             name: `${gameName} (${methodResult.method})`,
             launchDate: null,
@@ -226,9 +226,10 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             estimatedSales: methodResult.sales,
             estimatedRevenue: methodResult.revenue,
             estimationMethod: methodResult.method,
+            timeframe: methodResult.timeframe, // Passa o timeframe específico
         };
         onEstimate(singleGame);
-        onClose(); // Fecha o modal após a seleção
+        onClose(); // Fecha o modal
     };
 
     const methodOptions: { method: EstimationMethod, label: string, description: string, source: string }[] = [
@@ -463,6 +464,10 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                                         <div className="flex justify-between text-sm">
                                             <p className="text-muted-foreground flex items-center"><DollarSign className="h-3 w-3 mr-1" /> Receita Líquida Estimada:</p>
                                             <p className="font-medium text-gogo-orange">{formatCurrency(res.revenue)}</p>
+                                        </div>
+                                        <div className="flex justify-between text-sm mt-1">
+                                            <p className="text-muted-foreground flex items-center"><Clock className="h-3 w-3 mr-1" /> Período Estimado:</p>
+                                            <p className="font-medium text-muted-foreground">{res.timeframe}</p>
                                         </div>
                                         <Button 
                                             onClick={() => handleSelectMethod(res)} 
