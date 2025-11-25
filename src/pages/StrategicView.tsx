@@ -12,8 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Home, BarChart3, Filter, ArrowRightLeft, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GameComparisonPanel from '@/components/strategic/GameComparisonPanel';
+import SimilarGamesSearch from '@/components/strategic/SimilarGamesSearch'; // Importar novo componente
 import { TrackingData, getTrackingData } from '@/data/trackingData';
 import { MadeWithDyad } from '@/components/made-with-dyad';
+import { GameOption } from '@/integrations/supabase/functions'; // Importar GameOption
 
 // Mock data for categories (should eventually come from DB or configuration)
 const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação', 'Aventura', 'Outro'];
@@ -23,7 +25,8 @@ const StrategicView: React.FC = () => {
     const navigate = useNavigate();
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [game1Id, setGame1Id] = useState<string | null>(null);
-    const [game2Id, setGame2Id] = useState<string | null>(null);
+    // game2Id agora pode ser um ID do Supabase ou um objeto GameOption temporário
+    const [game2Selection, setGame2Selection] = useState<SupabaseGame | GameOption | null>(null);
     
     // Load all games (Admin view)
     const { data: allGames, isLoading: isGamesLoading } = useQuery<SupabaseGame[], Error>({
@@ -64,19 +67,49 @@ const StrategicView: React.FC = () => {
     }
 
     const handleSelectGame = (gameId: string) => {
+        // Se o jogo 1 for selecionado, limpa o jogo 2 (que pode ser um jogo similar)
         if (game1Id === gameId) {
             setGame1Id(null);
-        } else if (game2Id === gameId) {
-            setGame2Id(null);
+            setGame2Selection(null);
+        } else if (game2Selection && 'id' in game2Selection && game2Selection.id === gameId) {
+            // Se for o jogo 2 (do Supabase)
+            setGame2Selection(null);
         } else if (!game1Id) {
             setGame1Id(gameId);
-        } else if (!game2Id) {
-            setGame2Id(gameId);
+            setGame2Selection(null); // Limpa o jogo 2 ao selecionar o jogo 1
+        } else {
+            // Se o jogo 1 já estiver selecionado, define o jogo 2
+            const selectedSupabaseGame = allGames?.find(g => g.id === gameId);
+            if (selectedSupabaseGame) {
+                setGame2Selection(selectedSupabaseGame);
+            }
         }
+    };
+    
+    const handleSelectSimilarGame = (game: GameOption) => {
+        // Define o jogo 2 como o resultado da busca (GameOption)
+        setGame2Selection({
+            id: `similar-${Date.now()}`, // Cria um ID temporário para GameOption
+            name: game.name,
+            launch_date: game.launchDate,
+            suggested_price: game.suggestedPrice,
+            capsule_image_url: game.capsuleImageUrl,
+            category: null, // Categoria não é relevante para o GameOption
+            created_at: new Date().toISOString(),
+            studio_id: null,
+            // Adiciona campos extras do GameOption para que GameComparisonPanel possa usá-los
+            priceUSD: game.priceUSD,
+            reviewCount: game.reviewCount,
+            reviewSummary: game.reviewSummary,
+            developer: game.developer,
+            publisher: game.publisher,
+        } as SupabaseGame); // Força o tipo para SupabaseGame para compatibilidade com GameComparisonPanel
     };
 
     const game1 = allGames?.find(g => g.id === game1Id);
-    const game2 = allGames?.find(g => g.id === game2Id);
+    
+    // O Game 2 é o objeto armazenado em game2Selection
+    const game2 = game2Selection;
 
     return (
         <div className="min-h-screen p-4 md:p-8 font-sans gaming-background">
@@ -116,14 +149,22 @@ const StrategicView: React.FC = () => {
                                 </SelectContent>
                             </Select>
                             <p className="text-sm text-muted-foreground">
-                                Selecione até dois jogos abaixo para comparação.
+                                Selecione um jogo (Jogo 1) e, opcionalmente, um segundo jogo (Jogo 2) ou use a busca de similares.
                             </p>
                         </CardContent>
                     </Card>
                 </AnimatedPanel>
 
-                {/* --- Lista de Jogos Filtrados para Seleção --- */}
+                {/* --- Busca de Similares --- */}
                 <AnimatedPanel delay={0.2}>
+                    <SimilarGamesSearch 
+                        selectedGame={game1}
+                        onSelectGameForComparison={handleSelectSimilarGame}
+                    />
+                </AnimatedPanel>
+
+                {/* --- Lista de Jogos Filtrados para Seleção --- */}
+                <AnimatedPanel delay={0.3}>
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-lg">
@@ -133,8 +174,8 @@ const StrategicView: React.FC = () => {
                         <CardContent className="flex flex-wrap gap-3">
                             {filteredGames.map(game => {
                                 const isSelected1 = game.id === game1Id;
-                                const isSelected2 = game.id === game2Id;
-                                const isDisabled = !isSelected1 && !isSelected2 && game1Id && game2Id;
+                                const isSelected2 = game2Selection && 'id' in game2Selection && game2Selection.id === game.id;
+                                const isDisabled = !isSelected1 && !isSelected2 && game1Id && game2Selection; // Desabilita se Jogo 1 e Jogo 2 (Supabase ou Similar) já estiverem selecionados
 
                                 return (
                                     <Button
@@ -157,7 +198,7 @@ const StrategicView: React.FC = () => {
                 </AnimatedPanel>
 
                 {/* --- Painel de Comparação --- */}
-                <AnimatedPanel delay={0.3}>
+                <AnimatedPanel delay={0.4}>
                     <GameComparisonPanel 
                         game1={game1}
                         game2={game2}
