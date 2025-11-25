@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WLSalesPlatformEntry, Platform } from '@/data/trackingData';
 import { addDays, startOfDay } from 'date-fns';
 import { List, Calendar, DollarSign } from 'lucide-react';
+import { formatNumber } from '@/lib/utils'; // Import formatNumber
 
 // Definindo o tipo de plataforma
 const PlatformEnum = z.enum(['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra']);
