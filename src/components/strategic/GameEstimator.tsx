@@ -18,106 +18,169 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { Calculator, TrendingUp, DollarSign, MessageSquare, Gauge, List } from 'lucide-react';
+import { Calculator, TrendingUp, DollarSign, MessageSquare, Gauge, List, Info, Checkbox } from 'lucide-react';
 import KpiCard from '../dashboard/KpiCard';
 import { GameOption } from '@/integrations/supabase/functions';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
+// --- Constantes e Multiplicadores ---
+
+const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação', 'Aventura', 'Visual Novel', 'Casual', 'Outro'];
+
+// Multiplicadores Simon Carless (NB)
+const NB_MULTIPLIERS = [
+    { label: 'Antes de 2017 (65)', value: 65 },
+    { label: '2019 - 2022 (35)', value: 35 },
+    { label: '2023 - 2025 (32)', value: 32 },
+    { label: 'Viral (22)', value: 22 },
+];
+
+// Multiplicadores CCU (SteamDB)
+const CCU_MULTIPLIERS = [
+    { label: 'Multiplayer/Coop (40)', value: 40, genre: 'Multiplayer' },
+    { label: 'Singleplayer (100)', value: 100, genre: 'Singleplayer' },
+];
+
+// Multiplicadores VG Insights (Gênero)
+const VG_INSIGHTS_MULTIPLIERS: Record<string, number> = {
+    'Terror': 30,
+    'RPG': 30,
+    'Estratégia': 30,
+    'Simulação': 55,
+    'Casual': 55,
+    'Visual Novel': 40,
+    'Ação': 35, // Defaulting Action to NB 2023-2025 standard
+    'Aventura': 35,
+    'Outro': 35,
+};
 
 // --- Interfaces e Tipos ---
 
-// Tabela de Multiplicadores NB (Simon Carless)
-const NB_MULTIPLIERS = [
-    { label: 'Antes de 2017 (60-70)', min: 60, max: 70, default: 65 },
-    { label: '2019 - 2022 (30-40)', min: 30, max: 40, default: 35 },
-    { label: '2023 - 2025 (30-35)', min: 30, max: 35, default: 32 },
-    { label: 'Viral (20-25)', min: 20, max: 25, default: 22 },
-];
-
-// Tabela de Multiplicadores CCU
-const CCU_MULTIPLIERS = [
-    { label: 'Padrão (20-25)', min: 20, max: 25, default: 22 },
-    { label: 'Hype Alto (10-15)', min: 10, max: 15, default: 12 },
-    { label: 'Viral Orgânico (40+)', min: 40, max: 50, default: 45 },
-];
-
-// Estrutura de dados para o jogo estimado (compatível com GameOption)
 export interface EstimatedGame extends GameOption {
     estimatedSales: number;
     estimatedRevenue: number;
     estimationMethod: string;
 }
 
+type EstimationMethod = 'boxleiter' | 'carless' | 'gamalytic' | 'vginsights' | 'ccu' | 'revenue';
+
 // Schema de validação
 const formSchema = z.object({
     reviews: z.number().min(0, "Reviews deve ser um número positivo.").default(0),
     priceBRL: z.number().min(0.01, "Preço deve ser maior que zero.").default(30.00),
-    discountFactor: z.number().min(0.01).max(1.0, "Fator de desconto deve ser entre 0.01 e 1.0.").default(0.60), // 60% a 70%
+    discountFactor: z.number().min(0.01).max(1.0, "Fator de desconto deve ser entre 0.01 e 1.0.").default(0.65), // 65%
     ccuPeak: z.number().min(0).default(0),
-    nbMultiplier: z.number().min(1).default(NB_MULTIPLIERS[2].default),
-    ccuMultiplier: z.number().min(1).default(CCU_MULTIPLIERS[0].default),
+    nbMultiplier: z.number().min(1).default(NB_MULTIPLIERS[2].value),
+    ccuMultiplier: z.number().min(1).default(CCU_MULTIPLIERS[1].value), // Default Singleplayer
+    category: z.string().min(1, "O gênero é obrigatório.").default('Ação'),
+    methodsToCombine: z.array(z.string()).default(['boxleiter', 'carless', 'gamalytic', 'vginsights', 'revenue']),
 });
 
 type EstimatorFormValues = z.infer<typeof formSchema>;
 
 interface GameEstimatorProps {
     gameName: string;
+    initialPrice?: number;
+    initialCategory?: string | null;
     onEstimate: (game: EstimatedGame) => void;
     onClose: () => void;
 }
 
-const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, onEstimate, onClose }) => {
+const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 30.00, initialCategory = 'Ação', onEstimate, onClose }) => {
     const form = useForm<EstimatorFormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             reviews: 1000,
-            priceBRL: 30.00,
-            discountFactor: 0.60,
+            priceBRL: initialPrice,
+            discountFactor: 0.65,
             ccuPeak: 0,
-            nbMultiplier: NB_MULTIPLIERS[2].default,
-            ccuMultiplier: CCU_MULTIPLIERS[0].default,
+            nbMultiplier: NB_MULTIPLIERS[2].value,
+            ccuMultiplier: CCU_MULTIPLIERS[1].value,
+            category: initialCategory || 'Ação',
+            methodsToCombine: ['boxleiter', 'carless', 'gamalytic', 'vginsights', 'revenue'],
         },
     });
 
     const values = form.watch();
 
-    const calculations = useMemo(() => {
-        const { reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, ccuMultiplier } = values;
-        
-        const results: { method: string, sales: number, revenue: number }[] = [];
+    const calculateMethod = (method: EstimationMethod, reviews: number, priceBRL: number, discountFactor: number, ccuPeak: number, nbMultiplier: number, category: string): { sales: number, revenue: number, method: string } | null => {
+        const priceUSD = priceBRL / 5; // Simplificação da conversão BRL -> USD
 
-        // 1. Método Boxleiter Ajustado (M=30, padrão simplificado)
-        const salesBoxleiter = reviews * 30;
-        const revenueBoxleiter = salesBoxleiter * priceBRL * discountFactor;
-        results.push({ method: 'Boxleiter Ajustado (M=30)', sales: salesBoxleiter, revenue: revenueBoxleiter });
-
-        // 2. Método Simon Carless (NB)
-        const salesCarless = reviews * nbMultiplier;
-        const revenueCarless = salesCarless * priceBRL * discountFactor;
-        results.push({ method: `Simon Carless (NB=${nbMultiplier})`, sales: salesCarless, revenue: revenueCarless });
-
-        // 3. Método CCU (Se CCU > 0)
-        if (ccuPeak > 0) {
-            const salesCCU = ccuPeak * ccuMultiplier;
-            const revenueCCU = salesCCU * priceBRL * discountFactor;
-            results.push({ method: `CCU (M=${ccuMultiplier})`, sales: salesCCU, revenue: revenueCCU });
+        switch (method) {
+            case 'boxleiter': {
+                const sales = reviews * 30;
+                const revenue = sales * priceBRL * discountFactor;
+                return { method: 'Boxleiter Ajustado (M=30)', sales, revenue };
+            }
+            case 'carless': {
+                const sales = reviews * nbMultiplier;
+                const revenue = sales * priceBRL * discountFactor;
+                return { method: `Simon Carless (NB=${nbMultiplier})`, sales, revenue };
+            }
+            case 'gamalytic': {
+                let multiplier = 35; // Default
+                if (priceUSD < 10) {
+                    multiplier = 20;
+                } else if (priceUSD > 20) {
+                    multiplier = 50;
+                }
+                const sales = reviews * multiplier;
+                const revenue = sales * priceBRL * discountFactor;
+                return { method: `Gamalytic (M=${multiplier})`, sales, revenue };
+            }
+            case 'vginsights': {
+                const multiplier = VG_INSIGHTS_MULTIPLIERS[category] || 35;
+                const sales = reviews * multiplier;
+                const revenue = sales * priceBRL * discountFactor;
+                return { method: `VG Insights (M=${multiplier})`, sales, revenue };
+            }
+            case 'ccu': {
+                if (ccuPeak === 0) return null;
+                const multiplier = values.ccuMultiplier;
+                const sales = ccuPeak * multiplier;
+                const revenue = sales * priceBRL * discountFactor;
+                return { method: `SteamDB CCU (M=${multiplier})`, sales, revenue };
+            }
+            case 'revenue': {
+                // Método da Receita (Reviews * 30) * Preço * 0.65
+                const sales = reviews * 30; // Usamos 30 como base de vendas para calcular a receita
+                const revenue = sales * priceBRL * 0.65; // Fator 0.65 fixo para este método
+                return { method: 'Receita Simplificada (Fator 0.65)', sales, revenue };
+            }
+            default:
+                return null;
         }
+    };
 
-        // 4. Fórmula Simplificada de Receita (Reviews * 30)
-        const salesSimplified = reviews * 30;
-        const revenueSimplified = salesSimplified * priceBRL * discountFactor;
-        results.push({ method: 'Receita Simplificada (Reviews * 30)', sales: salesSimplified, revenue: revenueSimplified });
+    const calculations = useMemo(() => {
+        const { reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, methodsToCombine } = values;
+        
+        const allMethods: { method: EstimationMethod, result: { sales: number, revenue: number, method: string } | null }[] = [
+            { method: 'boxleiter', result: calculateMethod('boxleiter', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
+            { method: 'carless', result: calculateMethod('carless', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
+            { method: 'gamalytic', result: calculateMethod('gamalytic', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
+            { method: 'vginsights', result: calculateMethod('vginsights', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
+            { method: 'ccu', result: calculateMethod('ccu', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
+            { method: 'revenue', result: calculateMethod('revenue', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
+        ];
 
-        // Análise Combinada
-        const totalSales = results.reduce((sum, r) => sum + r.sales, 0);
-        const totalRevenue = results.reduce((sum, r) => sum + r.revenue, 0);
-        const count = results.length;
+        const results = allMethods.map(m => m.result).filter((r): r is NonNullable<typeof r> => r !== null);
+
+        // Calcula a média combinada apenas dos métodos selecionados
+        const combinedResults = results.filter(r => methodsToCombine.includes(r.method.split(' ')[0].toLowerCase()));
+
+        const totalSales = combinedResults.reduce((sum, r) => sum + r.sales, 0);
+        const totalRevenue = combinedResults.reduce((sum, r) => sum + r.revenue, 0);
+        const count = combinedResults.length;
 
         const avgSales = count > 0 ? totalSales / count : 0;
         const avgRevenue = count > 0 ? totalRevenue / count : 0;
 
         return {
-            results,
+            allMethods: results,
             avgSales,
             avgRevenue,
+            count,
         };
     }, [values]);
 
@@ -126,7 +189,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, onEstimate, onC
             name: `${gameName} (Estimativa Média)`,
             launchDate: null,
             suggestedPrice: values.priceBRL,
-            priceUSD: null,
+            priceUSD: values.priceBRL / 5, // Placeholder USD
             reviewCount: values.reviews,
             reviewSummary: 'Estimativa',
             developer: null,
@@ -139,6 +202,34 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, onEstimate, onC
         };
         onEstimate(avgGame);
     };
+    
+    const handleSelectMethod = (methodResult: { sales: number, revenue: number, method: string }) => {
+        const singleGame: EstimatedGame = {
+            name: `${gameName} (${methodResult.method})`,
+            launchDate: null,
+            suggestedPrice: values.priceBRL,
+            priceUSD: values.priceBRL / 5,
+            reviewCount: values.reviews,
+            reviewSummary: 'Estimativa',
+            developer: null,
+            publisher: null,
+            capsuleImageUrl: null,
+            source: 'Fórmulas de Estimativa',
+            estimatedSales: methodResult.sales,
+            estimatedRevenue: methodResult.revenue,
+            estimationMethod: methodResult.method,
+        };
+        onEstimate(singleGame);
+    };
+
+    const methodOptions: { method: EstimationMethod, label: string, description: string }[] = [
+        { method: 'boxleiter', label: 'Boxleiter Ajustado (M=30)', description: 'Fórmula clássica simplificada: Vendas = Reviews x 30.' },
+        { method: 'carless', label: 'Simon Carless (NB)', description: 'Multiplicador baseado no ano de lançamento (NB Number), ajustando para a mudança de reviews da Steam.' },
+        { method: 'gamalytic', label: 'Gamalytic (Preço Ponderado)', description: 'Multiplicador ajustado pelo preço do jogo (em USD). Jogos mais caros tendem a ter multiplicadores maiores.' },
+        { method: 'vginsights', label: 'VG Insights (Gênero Ponderado)', description: 'Multiplicador ajustado pelo gênero. Gêneros de nicho (RPG/Horror) têm multiplicadores menores (reviews mais vocais).' },
+        { method: 'ccu', label: 'SteamDB CCU (Pico Jogadores)', description: 'Vendas Totais ≈ Pico CCU x M_CCU. Útil para jogos recém-lançados ou para estimar o ciclo de vida total.' },
+        { method: 'revenue', label: 'Receita Simplificada (Fator 0.65)', description: 'Estima a Receita Líquida (Reviews x 30 x Preço x 0.65), focando no dinheiro que sobra após taxas e descontos.' },
+    ];
 
     return (
         <Card className="border-none shadow-none">
@@ -150,7 +241,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, onEstimate, onC
             <CardContent className="space-y-6">
                 <Form {...form}>
                     <form className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField
                                 control={form.control}
                                 name="reviews"
@@ -177,18 +268,40 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, onEstimate, onC
                                     </FormItem>
                                 )}
                             />
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField
                                 control={form.control}
                                 name="discountFactor"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Fator de Receita Líquida (0.60 = 60%)</FormLabel>
+                                        <FormLabel>Fator de Receita Líquida (0.65)</FormLabel>
                                         <FormControl>
-                                            <Input type="number" step="0.01" placeholder="0.60" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                                            <Input type="number" step="0.01" placeholder="0.65" {...field} onChange={e => field.onChange(Number(e.target.value))} />
                                         </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="category"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Gênero (VG Insights)</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione o Gênero" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {MOCK_CATEGORIES.map(cat => (
+                                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -198,7 +311,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, onEstimate, onC
                                 name="nbMultiplier"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Multiplicador NB (Simon Carless)</FormLabel>
+                                        <FormLabel>Multiplicador NB (Carless)</FormLabel>
                                         <Select onValueChange={val => field.onChange(Number(val))} defaultValue={String(field.value)}>
                                             <FormControl>
                                                 <SelectTrigger>
@@ -207,7 +320,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, onEstimate, onC
                                             </FormControl>
                                             <SelectContent>
                                                 {NB_MULTIPLIERS.map(m => (
-                                                    <SelectItem key={m.label} value={String(m.default)}>{m.label} (Padrão: {m.default})</SelectItem>
+                                                    <SelectItem key={m.label} value={String(m.value)}>{m.label}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -220,7 +333,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, onEstimate, onC
                                 name="ccuPeak"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Pico CCU (Opcional)</FormLabel>
+                                        <FormLabel>Pico CCU (SteamDB)</FormLabel>
                                         <FormControl>
                                             <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(Number(e.target.value))} />
                                         </FormControl>
@@ -229,6 +342,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, onEstimate, onC
                                 )}
                             />
                         </div>
+                        
                         {values.ccuPeak > 0 && (
                             <FormField
                                 control={form.control}
@@ -244,7 +358,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, onEstimate, onC
                                             </FormControl>
                                             <SelectContent>
                                                 {CCU_MULTIPLIERS.map(m => (
-                                                    <SelectItem key={m.label} value={String(m.default)}>{m.label} (Padrão: {m.default})</SelectItem>
+                                                    <SelectItem key={m.label} value={String(m.value)}>{m.label}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -263,27 +377,101 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, onEstimate, onC
                     <TrendingUp className="h-4 w-4 mr-2" /> Resultados por Método
                 </h4>
                 <div className="space-y-3">
-                    {calculations.results.map((res, index) => (
-                        <Card key={index} className="p-3 border-l-4 border-gogo-orange/50">
-                            <CardTitle className="text-sm font-bold mb-1">{res.method}</CardTitle>
-                            <div className="flex justify-between text-sm">
-                                <p className="text-muted-foreground flex items-center"><List className="h-3 w-3 mr-1" /> Vendas Estimadas:</p>
-                                <p className="font-medium text-gogo-cyan">{formatNumber(res.sales)}</p>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <p className="text-muted-foreground flex items-center"><DollarSign className="h-3 w-3 mr-1" /> Receita Líquida Estimada:</p>
-                                <p className="font-medium text-gogo-orange">{formatCurrency(res.revenue)}</p>
-                            </div>
-                        </Card>
-                    ))}
+                    {calculations.allMethods.map((res, index) => {
+                        const methodInfo = methodOptions.find(m => m.label === res.method.split('(')[0].trim());
+                        
+                        return (
+                            <Card key={index} className="p-3 border-l-4 border-gogo-orange/50">
+                                <CardTitle className="text-sm font-bold mb-1 flex justify-between items-center">
+                                    <span>{res.method}</span>
+                                    {methodInfo && (
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-xs">
+                                                <p className="font-semibold">{methodInfo.label}</p>
+                                                <p className="text-xs mt-1">{methodInfo.description}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    )}
+                                </CardTitle>
+                                <div className="flex justify-between text-sm">
+                                    <p className="text-muted-foreground flex items-center"><List className="h-3 w-3 mr-1" /> Vendas Estimadas:</p>
+                                    <p className="font-medium text-gogo-cyan">{formatNumber(res.sales)}</p>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <p className="text-muted-foreground flex items-center"><DollarSign className="h-3 w-3 mr-1" /> Receita Líquida Estimada:</p>
+                                    <p className="font-medium text-gogo-orange">{formatCurrency(res.revenue)}</p>
+                                </div>
+                                <Button 
+                                    onClick={() => handleSelectMethod(res)} 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="w-full mt-2 text-xs bg-gogo-cyan/10 hover:bg-gogo-cyan/20 text-gogo-cyan"
+                                >
+                                    Selecionar {res.method} (Jogo 2)
+                                </Button>
+                            </Card>
+                        );
+                    })}
                 </div>
 
                 <Separator />
+                
+                {/* Seleção de Métodos para Média Combinada */}
+                <h4 className="text-lg font-semibold text-gogo-orange flex items-center mb-3">
+                    <Gauge className="h-4 w-4 mr-2" /> Configurar Média Combinada ({calculations.count} métodos)
+                </h4>
+                <FormField
+                    control={form.control}
+                    name="methodsToCombine"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-sm font-medium">Métodos a incluir na Média:</FormLabel>
+                            <div className="grid grid-cols-2 gap-2 pt-2">
+                                {methodOptions.map((option) => {
+                                    const methodKey = option.method;
+                                    const isChecked = field.value.includes(methodKey);
+                                    
+                                    // Verifica se o método CCU pode ser calculado
+                                    const isDisabled = methodKey === 'ccu' && values.ccuPeak === 0;
+
+                                    return (
+                                        <div key={methodKey} className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id={`method-${methodKey}`}
+                                                checked={isChecked}
+                                                disabled={isDisabled}
+                                                onChange={() => {
+                                                    if (isChecked) {
+                                                        field.onChange(field.value.filter((v) => v !== methodKey));
+                                                    } else {
+                                                        field.onChange([...field.value, methodKey]);
+                                                    }
+                                                }}
+                                                className="h-4 w-4 text-gogo-cyan border-gray-300 rounded focus:ring-gogo-cyan"
+                                            />
+                                            <label
+                                                htmlFor={`method-${methodKey}`}
+                                                className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}
+                                            >
+                                                {option.label} {isDisabled && '(CCU = 0)'}
+                                            </label>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
                 {/* Média Combinada */}
-                <Card className="p-4 bg-gogo-cyan/10 border-2 border-gogo-cyan shadow-gogo-cyan-glow/30">
-                    <CardTitle className="text-xl font-bold mb-2 flex items-center text-gogo-cyan">
-                        <Gauge className="h-5 w-5 mr-2" /> Média Combinada
+                <Card className="p-4 bg-gogo-orange/10 border-2 border-gogo-orange shadow-gogo-orange-glow/30 mt-4">
+                    <CardTitle className="text-xl font-bold mb-2 flex items-center text-gogo-orange">
+                        <Gauge className="h-5 w-5 mr-2" /> Média Combinada ({calculations.count} Métodos)
                     </CardTitle>
                     <div className="grid grid-cols-2 gap-4">
                         <KpiCard 
@@ -299,7 +487,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, onEstimate, onC
                     </div>
                     <Button 
                         onClick={handleSelectAverage} 
-                        className="w-full mt-4 bg-gogo-orange hover:bg-gogo-orange/90"
+                        className="w-full mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90"
                         disabled={calculations.avgSales === 0}
                     >
                         Selecionar Média para Comparação (Jogo 2)

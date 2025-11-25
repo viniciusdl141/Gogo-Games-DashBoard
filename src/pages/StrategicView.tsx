@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimator'; // Importar Estimator
 
 // Mock data for categories (should eventually come from DB or configuration)
-const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação', 'Aventura', 'Outro'];
+const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação', 'Aventura', 'Visual Novel', 'Casual', 'Outro'];
 
 // Interface combinada para o Jogo 2 (pode ser SupabaseGame, GameOption ou EstimatedGame)
 type Game2Selection = SupabaseGame | GameOption | EstimatedGame | null;
@@ -198,6 +198,8 @@ const StrategicView: React.FC = () => {
                                     <DialogContent className="sm:max-w-[700px]">
                                         <GameEstimator 
                                             gameName={game1?.name || 'Jogo Estimado'}
+                                            initialPrice={game1?.suggested_price || 30.00}
+                                            initialCategory={game1?.category || 'Ação'}
                                             onEstimate={handleSelectEstimatedGame}
                                             onClose={() => setIsEstimatorOpen(false)}
                                         />
