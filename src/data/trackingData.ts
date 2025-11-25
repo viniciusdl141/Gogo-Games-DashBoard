@@ -186,6 +186,27 @@ const normalizeGameName = (name: string): string => {
     return normalized;
 };
 
+// EXPORTED HELPER: Recalculates variations based on total WL values
+export const recalculateWLSalesForPlatform = (wlSales: WLSalesPlatformEntry[], game: string, platform: Platform): WLSalesPlatformEntry[] => {
+    // Filter only real entries for calculation
+    const gamePlatformEntries = wlSales
+        .filter(e => e.game === game && e.platform === platform && !e.isPlaceholder)
+        .sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
+        
+    const otherEntries = wlSales.filter(e => e.game !== game || e.platform !== platform || e.isPlaceholder);
+
+    let lastWL = 0;
+    const recalculatedGamePlatformEntries = gamePlatformEntries.map(entry => {
+        const currentWL = entry.wishlists;
+        const currentVariation = currentWL - lastWL;
+        lastWL = currentWL;
+        return { ...entry, variation: currentVariation };
+    });
+
+    // Recombine real entries with placeholders (placeholders should not have their variation recalculated here)
+    return [...otherEntries, ...recalculatedGamePlatformEntries].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
+};
+
 
 const processWLSalesSheet = (sheetData: any[], rawGameName: string, platform: Platform): WLSalesPlatformEntry[] => {
     const gameName = normalizeGameName(rawGameName);
@@ -205,7 +226,8 @@ const processWLSalesSheet = (sheetData: any[], rawGameName: string, platform: Pl
     sheetData.forEach(item => {
         const dateKey = item.Data ?? item.__EMPTY;
         const wlValue = item.WL ?? item.__EMPTY_1;
-        const variation = item.Variação ?? item.__EMPTY_9;
+        // We ignore raw variation here, it will be recalculated later
+        // const variation = item.Variação ?? item.__EMPTY_9; 
 
         if (typeof dateKey === 'number' && typeof wlValue === 'number' && dateKey > 10000) {
             const sales = salesMap.get(dateKey) || 0;
@@ -227,7 +249,7 @@ const processWLSalesSheet = (sheetData: any[], rawGameName: string, platform: Pl
                 platform: platform, // Set platform
                 wishlists: wlValue,
                 sales: sales,
-                variation: Number(variation) || 0,
+                variation: 0, // Initialize variation to 0, it will be recalculated
                 saleType: 'Padrão', 
                 frequency: frequency, 
             });
@@ -399,8 +421,8 @@ export const getTrackingData = (): TrackingData => {
     const demoTracking = processDemoTracking(rawData['Tracking da demo']);
     const resultSummary = processResultSummary(rawData['RESUMO DE RESULTADOS']);
 
-    // Process WL Sales by Platform (assuming Steam for existing data)
-    const wlSales: WLSalesPlatformEntry[] = [
+    // Process WL Sales by Platform (initial raw load)
+    let wlSales: WLSalesPlatformEntry[] = [
         ...processWLSalesSheet(rawData['Total WL - Legacy of Evil'], 'Legacy of Evil', 'Steam'),
         ...processWLSalesSheet(rawData['Total WL - Hellbrella'], 'Hellbrella', 'Steam'),
         ...processWLSalesSheet(rawData['Total WL - The Mare Show'], 'The Mare Show', 'Steam'),
@@ -411,6 +433,26 @@ export const getTrackingData = (): TrackingData => {
         ...processWLSalesSheet(rawData['TOTAL WL IOS - LIA HACKING DEST'], 'Lia Hacking Destiny', 'iOS'),
         ...processWLSalesSheet(rawData['TOTAL WL XBOX- LIA HACKING DEST'], 'Lia Hacking Destiny', 'Xbox'),
     ];
+
+    // --- NEW: Recalculate variations globally after initial load ---
+    const gamesInWLSales = Array.from(new Set(wlSales.map(e => e.game)));
+    const platformsInWLSales = Array.from(new Set(wlSales.map(e => e.platform)));
+    
+    let finalWLSales: WLSalesPlatformEntry[] = [];
+    
+    gamesInWLSales.forEach(game => {
+        platformsInWLSales.forEach(platform => {
+            // Filter entries relevant to this game/platform combination
+            const entriesForGamePlatform = wlSales.filter(e => e.game === game && e.platform === platform);
+            if (entriesForGamePlatform.length > 0) {
+                // Recalculate variations for this specific platform/game timeline
+                const recalculated = recalculateWLSalesForPlatform(entriesForGamePlatform, game, platform);
+                finalWLSales.push(...recalculated);
+            }
+        });
+    });
+    wlSales = finalWLSales;
+    // --- End Recalculation ---
 
     const wlDetails: WlDetails[] = [
         processWlDetails(rawData['Total WL - Legacy of Evil'], 'Legacy of Evil'),

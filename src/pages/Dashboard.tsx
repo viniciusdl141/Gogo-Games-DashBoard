@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { getTrackingData, InfluencerTrackingEntry, InfluencerSummaryEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, WLSalesPlatformEntry, ResultSummaryEntry, WlDetails, SaleType, Platform, ManualEventMarker, TrafficEntry, TrackingData } from '@/data/trackingData';
+import { getTrackingData, InfluencerTrackingEntry, InfluencerSummaryEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, WLSalesPlatformEntry, ResultSummaryEntry, WlDetails, SaleType, Platform, ManualEventMarker, TrafficEntry, TrackingData, recalculateWLSalesForPlatform } from '@/data/trackingData';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from '@/components/ui/card';
@@ -160,27 +160,6 @@ const Dashboard = () => {
   }, [allAvailableGames, selectedGameName]);
 
 
-  // Função auxiliar para recalcular variações de WL
-  const recalculateWLSales = useCallback((wlSales: WLSalesPlatformEntry[], game: string, platform: Platform): WLSalesPlatformEntry[] => {
-    // Filter only real entries for calculation
-    const gamePlatformEntries = wlSales
-        .filter(e => e.game === game && e.platform === platform && !e.isPlaceholder)
-        .sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
-        
-    const otherEntries = wlSales.filter(e => e.game !== game || e.platform !== platform || e.isPlaceholder);
-
-    let lastWL = 0;
-    const recalculatedGamePlatformEntries = gamePlatformEntries.map(entry => {
-        const currentWL = entry.wishlists;
-        const currentVariation = currentWL - lastWL;
-        lastWL = currentWL;
-        return { ...entry, variation: currentVariation };
-    });
-
-    // Recombine real entries with placeholders (placeholders should not have their variation recalculated here)
-    return [...otherEntries, ...recalculatedGamePlatformEntries].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
-  }, []);
-
   // --- Game Management Handlers ---
   const handleAddGame = useCallback(async (gameName: string, launchDate: string | null, suggestedPrice: number, capsuleImageUrl: string | null) => {
     const normalizedGameName = gameName.trim();
@@ -306,9 +285,10 @@ const Dashboard = () => {
                 
                 // Recalculate variations for all affected platforms in the current game
                 platformsAffected.forEach(platform => {
-                    const entriesForPlatform = updatedWLSalesForCurrentGame.filter(e => e.platform === platform);
-                    const recalculatedEntries = recalculateWLSales(entriesForPlatform, gameName, platform as Platform);
-                    finalWLSales = finalWLSales.filter(e => e.game !== gameName || e.platform !== platform).concat(recalculatedEntries);
+                    const entriesForPlatform = updatedWLSalesForCurrentGame.filter(e => e.game === gameName && e.platform === platform);
+                    // Use the exported recalculation function
+                    const recalculated = recalculateWLSalesForPlatform(entriesForPlatform, gameName, platform as Platform);
+                    finalWLSales = finalWLSales.filter(e => e.game !== gameName || e.platform !== platform).concat(recalculated);
                 });
                 
                 newTrackingData.wlSales = finalWLSales;
@@ -330,7 +310,7 @@ const Dashboard = () => {
 
         return newTrackingData;
     });
-  }, [selectedGameName, recalculateWLSales]);
+  }, [selectedGameName]);
 
 
   // --- WL/Sales Handlers ---
@@ -342,7 +322,7 @@ const Dashboard = () => {
         );
         
         // Recalculate only for the specific game and platform
-        const finalWLSales = recalculateWLSales(updatedWLSales, updatedEntry.game, updatedEntry.platform);
+        const finalWLSales = recalculateWLSalesForPlatform(updatedWLSales, updatedEntry.game, updatedEntry.platform);
 
         return {
             ...prevData,
@@ -350,7 +330,7 @@ const Dashboard = () => {
         };
     });
     setClickedWLSalesEntry(null); // Close dialog
-  }, [recalculateWLSales]);
+  }, []);
 
   const handleAddWLSalesEntry = useCallback((newEntry: Omit<WLSalesPlatformEntry, 'date' | 'variation' | 'id'> & { date: string, saleType: SaleType, platform: Platform }) => {
     const dateObject = new Date(newEntry.date);
@@ -365,7 +345,7 @@ const Dashboard = () => {
         
         const updatedWLSales = [...prevData.wlSales, entryToAdd];
         // Recalculate only for the specific game and platform
-        const finalWLSales = recalculateWLSales(updatedWLSales, newEntry.game, newEntry.platform);
+        const finalWLSales = recalculateWLSalesForPlatform(updatedWLSales, newEntry.game, newEntry.platform);
 
         return {
             ...prevData,
@@ -374,7 +354,7 @@ const Dashboard = () => {
     });
     
     setIsAddWLSalesFormOpen(false);
-  }, [recalculateWLSales]);
+  }, []);
   
   // NOVO HANDLER: Adição Diária Simplificada
   const handleAddDailyWLSalesEntry = useCallback((newEntry: { date: string, platform: Platform, wishlists: number, sales: number }) => {
@@ -395,7 +375,7 @@ const Dashboard = () => {
         
         const updatedWLSales = [...prevData.wlSales, entryToAdd];
         // Recalculate only for the specific game and platform
-        const finalWLSales = recalculateWLSales(updatedWLSales, selectedGameName, newEntry.platform);
+        const finalWLSales = recalculateWLSalesForPlatform(updatedWLSales, selectedGameName, newEntry.platform);
 
         return {
             ...prevData,
@@ -405,7 +385,7 @@ const Dashboard = () => {
     
     setIsAddDailyWLSalesFormOpen(false);
     toast.success(`Entrada diária de WL/Vendas para ${newEntry.platform} adicionada.`);
-  }, [recalculateWLSales, selectedGameName]);
+  }, [selectedGameName]);
 
 
   const handleDeleteWLSalesEntry = useCallback((id: string) => {
@@ -416,7 +396,7 @@ const Dashboard = () => {
         const updatedWLSales = prevData.wlSales.filter(entry => entry.id !== id);
         
         // Recalculate variations for the affected game and platform
-        const finalWLSales = recalculateWLSales(updatedWLSales, entryToDelete.game, entryToDelete.platform);
+        const finalWLSales = recalculateWLSalesForPlatform(updatedWLSales, entryToDelete.game, entryToDelete.platform);
         
         return {
             ...prevData,
@@ -424,7 +404,7 @@ const Dashboard = () => {
         };
     });
     toast.success("Entrada de Wishlist/Vendas removida com sucesso.");
-  }, [recalculateWLSales]);
+  }, []);
 
   const handleChartPointClick = useCallback((entry: WLSalesPlatformEntry) => {
     // Set the clicked entry to open the action menu dialog
@@ -1075,7 +1055,7 @@ const Dashboard = () => {
       manualEventMarkers, 
       kpis,
     };
-  }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame, selectedTimeFrame]);
+  }, [selectedGameName, selectedPlatform, trackingData, selectedGame, selectedTimeFrame]);
 
   // Determine if a manual marker already exists for the selected date
   const existingMarkerForClickedEntry = useMemo(() => {
