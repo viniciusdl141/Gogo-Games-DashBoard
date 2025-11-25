@@ -87,7 +87,7 @@ interface GameEstimatorProps {
     onClose: () => void;
 }
 
-const calculateMethod = (method: EstimationMethod, reviews: number, priceBRL: number, discountFactor: number, ccuPeak: number, nbMultiplier: number, category: string): { sales: number, revenue: number, method: string, timeframe: string } | null => {
+const calculateMethod = (method: EstimationMethod, reviews: number, priceBRL: number, discountFactor: number, ccuPeak: number, nbMultiplier: number, category: string, values: EstimatorFormValues): { sales: number, revenue: number, method: string, timeframe: string } | null => {
     const priceUSD = priceBRL / 5; // Simplificação da conversão BRL -> USD
 
     switch (method) {
@@ -159,12 +159,12 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
         const { reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, methodsToCombine } = values;
         
         const allMethods: { method: EstimationMethod, result: { sales: number, revenue: number, method: string, timeframe: string } | null }[] = [
-            { method: 'boxleiter', result: calculateMethod('boxleiter', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
-            { method: 'carless', result: calculateMethod('carless', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
-            { method: 'gamalytic', result: calculateMethod('gamalytic', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
-            { method: 'vginsights', result: calculateMethod('vginsights', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
-            { method: 'ccu', result: calculateMethod('ccu', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
-            { method: 'revenue', result: calculateMethod('revenue', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category) },
+            { method: 'boxleiter', result: calculateMethod('boxleiter', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
+            { method: 'carless', result: calculateMethod('carless', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
+            { method: 'gamalytic', result: calculateMethod('gamalytic', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
+            { method: 'vginsights', result: calculateMethod('vginsights', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
+            { method: 'ccu', result: calculateMethod('ccu', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
+            { method: 'revenue', result: calculateMethod('revenue', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
         ];
 
         const results = allMethods.map(m => m.result).filter((r): r is NonNullable<typeof r> => r !== null);
@@ -205,7 +205,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             estimatedSales: calculations.avgSales,
             estimatedRevenue: calculations.avgRevenue,
             estimationMethod: 'Média Híbrida',
-            timeframe: 'Ciclo de Vida Total (Média)', // Timeframe para a média
+            timeframe: 'Ciclo de Vida Total (Média Ponderada)', // Definindo o timeframe da média
         };
         onEstimate(avgGame);
         onClose(); // Fecha o modal
@@ -236,37 +236,37 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
         { 
             method: 'boxleiter', 
             label: 'Boxleiter Ajustado (M=30)', 
-            description: 'Fórmula clássica simplificada: Vendas ≈ Reviews x 30. É uma estimativa de ciclo de vida total, baseada em dados históricos de 2014-2017.',
+            description: 'Fórmula clássica simplificada: Vendas ≈ Reviews x 30. É uma estimativa de ciclo de vida total, baseada em dados históricos de 2014-2017. **Referência:** Artigo original de Jake Birkett (Grey Alien Games) que estabeleceu a lógica "1 review ≈ X vendas".',
             source: 'Referência Original: Artigo de Jake Birkett (Grey Alien Games) que estabeleceu a lógica "1 review ≈ X vendas".'
         },
         { 
             method: 'carless', 
             label: 'Simon Carless (NB)', 
-            description: 'Multiplicador baseado no ano de lançamento (NB Number), ajustando para a mudança de reviews da Steam. Tende a ser mais conservador para jogos recentes.',
+            description: 'Multiplicador baseado no ano de lançamento (NB Number), ajustando para a mudança de reviews da Steam. Tende a ser mais conservador para jogos recentes. **Referência:** Simon Carless (GameDiscoverCo) explica a mudança do multiplicador (30x-60x) para jogos pós-2022 no Game World Observer.',
             source: 'Referência: Simon Carless (GameDiscoverCo) explica a mudança do multiplicador (30x-60x) para jogos pós-2022 no Game World Observer.'
         },
         { 
             method: 'gamalytic', 
             label: 'Gamalytic (Preço Ponderado)', 
-            description: 'Multiplicador ajustado pelo preço do jogo. Jogos baratos (<R$25) usam M=20; jogos caros (>R$100) usam M=50. Foca em como o preço afeta a taxa de conversão de reviews.',
+            description: 'Multiplicador ajustado pelo preço do jogo. Jogos baratos (<R$25) usam M=20; jogos caros (>R$100) usam M=50. Foca em como o preço afeta a taxa de conversão de reviews. **Referência:** Documentação oficial da Gamalytic, detalhando o uso de probabilidade condicional para corrigir vieses de preço.',
             source: 'Referência: Documentação oficial da Gamalytic, detalhando o uso de probabilidade condicional para corrigir vieses de preço.'
         },
         { 
             method: 'vginsights', 
             label: 'VG Insights (Gênero Ponderado)', 
-            description: 'Multiplicador ajustado pelo gênero. Nichos (RPG/Horror) usam M=30; Casuais/Simulação usam M=55. Leva em conta o engajamento do público por categoria.',
+            description: 'Multiplicador ajustado pelo gênero. Nichos (RPG/Horror) usam M=30; Casuais/Simulação usam M=55. Leva em conta o engajamento do público por categoria. **Referência:** Estudo da VG Insights sobre a relação Reviews/Vendas por Gênero. Publicam relatórios anuais cruciais.',
             source: 'Referência: Estudo da VG Insights sobre a relação Reviews/Vendas por Gênero. Publicam relatórios anuais cruciais.'
         },
         { 
             method: 'ccu', 
             label: 'SteamDB CCU', 
-            description: 'Vendas Totais ≈ Pico CCU x M_CCU. M_CCU é 40 para Multiplayer e 100 para Singleplayer. Estima o ciclo de vida total com base na popularidade máxima.',
+            description: 'Vendas Totais ≈ Pico CCU x M_CCU. M_CCU é 40 para Multiplayer e 100 para Singleplayer. Estima o ciclo de vida total com base na popularidade máxima. **Referência:** Dados públicos do SteamDB. A regra de 20x-50x o CCU da primeira semana é baseada em post-mortems de desenvolvedores (Ars Technica/Gamasutra).',
             source: 'Referência: Dados públicos do SteamDB. A regra de 20x-50x o CCU da primeira semana é baseada em post-mortems de desenvolvedores (Ars Technica/Gamasutra).'
         },
         { 
             method: 'revenue', 
             label: 'Receita Simplificada', 
-            description: 'Estima a Receita Líquida: (Reviews x 30) x Preço x 0.65. O fator 0.65 remove taxas da Steam e impostos, focando no retorno financeiro.',
+            description: 'Estima a Receita Líquida: (Reviews x 30) x Preço x 0.65. O fator 0.65 remove taxas da Steam e impostos, focando no retorno financeiro. **Referência:** Fórmulas de cálculo de receita líquida pós-Steam (30% fee).',
             source: 'Referência: Fórmulas de cálculo de receita líquida pós-Steam (30% fee).'
         },
     ];
@@ -452,7 +452,6 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                                                     <TooltipContent className="max-w-xs">
                                                         <p className="font-semibold">{methodInfo.label}</p>
                                                         <p className="text-xs mt-1">{methodInfo.description}</p>
-                                                        <p className="text-xs mt-1 italic text-gogo-cyan">{methodInfo.source}</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             )}
@@ -532,7 +531,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                                                         htmlFor={`method-${methodKey}`}
                                                         className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}
                                                     >
-                                                        {option.label} {isDisabled && '(CCU = 0)'}
+                                                        {option.label.split('(')[0].trim()} {isDisabled && '(CCU = 0)'}
                                                     </label>
                                                 </div>
                                             );
