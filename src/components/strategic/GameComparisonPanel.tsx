@@ -46,14 +46,16 @@ const extractGameMetrics = (game: ComparisonGame, trackingData: TrackingData | u
     let latestReview = null;
     let summaryTableData: ResultSummaryEntry[] = [];
     let isLocalTracking = false;
-    let timeframe = null; // NEW: Timeframe for estimated results
+    let timeframe = null; 
+    let estimatedRevenue = 0; // NEW: Initialize estimated revenue
 
     if (isEstimated) {
         totalSales = game.estimatedSales;
         totalWishlists = game.reviewCount || 0; 
         totalInvestment = 0; 
         wlToSalesConversionRate = totalWishlists > 0 ? totalSales / totalWishlists : 0;
-        timeframe = game.timeframe; // Get timeframe from EstimatedGame
+        timeframe = game.timeframe; 
+        estimatedRevenue = game.estimatedRevenue; // NEW: Extract estimated revenue
         
         if (game.reviewCount) {
             latestReview = {
@@ -115,7 +117,8 @@ const extractGameMetrics = (game: ComparisonGame, trackingData: TrackingData | u
         summaryTableData,
         isEstimated,
         isLocalTracking,
-        timeframe, // NEW: Include timeframe
+        timeframe, 
+        estimatedRevenue, // NEW: Return estimated revenue
     };
 };
 
