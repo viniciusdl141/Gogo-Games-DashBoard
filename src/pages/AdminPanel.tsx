@@ -9,7 +9,7 @@ import { Plus, Home, Edit, Trash2, Users, Gamepad2, Loader2, Settings } from 'lu
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery } from '@tanstack/react-query';
 import { getStudios, addStudio, updateStudio, deleteStudio, Studio } from '@/integrations/supabase/studios';
-import { getGames, Game as SupabaseGame } from '@/integrations/supabase/games';
+import { getGames, deleteGame as deleteGameFromSupabase, Game as SupabaseGame } from '@/integrations/supabase/games';
 import StudioForm from '@/components/admin/StudioForm';
 import UserForm from '@/components/admin/UserForm';
 import { toast } from 'sonner';
@@ -122,6 +122,17 @@ const AdminPanel: React.FC = () => {
         } catch (error) {
             console.error("Error deleting studio:", error);
             toast.error("Falha ao deletar estúdio.");
+        }
+    };
+
+    const handleDeleteGameAdmin = async (gameId: string, gameName: string) => {
+        try {
+            await deleteGameFromSupabase(gameId);
+            refetchGames();
+            toast.success(`Jogo "${gameName}" excluído permanentemente do Supabase.`);
+        } catch (error) {
+            console.error("Error deleting game:", error);
+            toast.error("Falha ao excluir jogo.");
         }
     };
 
@@ -242,6 +253,7 @@ const AdminPanel: React.FC = () => {
                                             <TableHead>Estúdio</TableHead>
                                             <TableHead>Preço Sugerido (R$)</TableHead>
                                             <TableHead>Lançamento</TableHead>
+                                            <TableHead className="text-right">Ações</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -251,6 +263,29 @@ const AdminPanel: React.FC = () => {
                                                 <TableCell>{getStudioName(game.studio_id)}</TableCell>
                                                 <TableCell>{game.suggested_price ? `R$ ${game.suggested_price.toFixed(2)}` : '-'}</TableCell>
                                                 <TableCell>{game.launch_date ? formatDate(new Date(game.launch_date)) : '-'}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Excluir Jogo Permanentemente?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    Esta ação removerá permanentemente o jogo <span className="font-bold text-destructive">"{game.name}"</span> do Supabase. Isso não pode ser desfeito.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handleDeleteGameAdmin(game.id, game.name)} className="bg-destructive hover:bg-destructive/90">
+                                                                    Excluir Permanentemente
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
