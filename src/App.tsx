@@ -6,7 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import AdminPanel from "./pages/AdminPanel"; // Import AdminPanel from pages directory
+import AdminPanel from "./pages/AdminPanel";
+import StrategicView from "./pages/StrategicView"; // Import StrategicView
 import { SessionContextProvider, useSession } from "@/components/SessionContextProvider";
 import React from "react";
 import { ThemeProvider } from "@/components/theme-provider"; 
@@ -51,6 +52,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <AdminPanel />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/strategic" 
+                element={
+                  <ProtectedRoute>
+                    <StrategicView />
                   </ProtectedRoute>
                 } 
               />
