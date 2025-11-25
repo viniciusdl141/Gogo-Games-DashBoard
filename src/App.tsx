@@ -32,7 +32,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-      <TooltipProvider>
+      <TooltipProvider delayDuration={100} skipDelayDuration={50}> {/* Configuração para Tooltip mais responsivo */}
         <Toaster />
         <Sonner />
         <BrowserRouter>

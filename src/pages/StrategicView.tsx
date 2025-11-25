@@ -115,7 +115,7 @@ const StrategicView: React.FC = () => {
     const handleSelectEstimatedGame = (game: EstimatedGame) => {
         // Define o jogo 2 como o resultado da estimativa (EstimatedGame)
         setGame2Selection(game);
-        setIsEstimatorOpen(false);
+        setIsEstimatorOpen(false); // Fecha o modal explicitamente aqui também, embora o GameEstimator já chame onClose
     };
 
     const game1 = allGames?.find(g => g.id === game1Id);
@@ -203,7 +203,7 @@ const StrategicView: React.FC = () => {
                                             initialPrice={game1?.suggested_price || 30.00}
                                             initialCategory={game1?.category || 'Ação'}
                                             onEstimate={handleSelectEstimatedGame}
-                                            onClose={() => setIsEstimatorOpen(false)}
+                                            onClose={() => setIsEstimatorOpen(false)} // Passa a função de fechar
                                         />
                                     </DialogContent>
                                 </Dialog>
