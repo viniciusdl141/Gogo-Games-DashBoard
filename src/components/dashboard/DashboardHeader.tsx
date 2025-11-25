@@ -34,9 +34,11 @@ const DashboardHeader: React.FC = () => {
     return (
         <header className="flex items-center justify-between mb-8 pb-4 border-b border-border">
             <div className="flex flex-col">
-                <h1 className="text-4xl font-extrabold text-gogo-cyan drop-shadow-md font-gamer">
-                    Gogo Games Dashboard
-                </h1>
+                <img 
+                    src="/googo.webp" 
+                    alt="GoGo Games Interactive Logo" 
+                    className="h-12 w-auto" 
+                />
                 <p className="text-lg text-muted-foreground mt-2">
                     {isAdmin ? 'Modo: Administrador' : `Modo: Estúdio (${userRole})`}
                 </p>
