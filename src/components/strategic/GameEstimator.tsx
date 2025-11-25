@@ -208,6 +208,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             estimationMethod: 'Média Híbrida',
         };
         onEstimate(avgGame);
+        onClose(); // Fecha o modal após a seleção
     };
     
     const handleSelectMethod = (methodResult: { sales: number, revenue: number, method: string }) => {
@@ -227,6 +228,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             estimationMethod: methodResult.method,
         };
         onEstimate(singleGame);
+        onClose(); // Fecha o modal após a seleção
     };
 
     const methodOptions: { method: EstimationMethod, label: string, description: string, source: string }[] = [

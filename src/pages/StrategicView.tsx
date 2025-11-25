@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import GameComparisonPanel from '@/components/strategic/GameComparisonPanel';
 import SimilarGamesSearch from '@/components/strategic/SimilarGamesSearch';
 import GameSalesAnalyzer from '@/components/strategic/GameSalesAnalyzer'; // NEW IMPORT
+import EstimationMethodReferences from '@/components/strategic/EstimationMethodReferences'; // NEW IMPORT
 import { TrackingData, getTrackingData } from '@/data/trackingData';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { GameOption } from '@/integrations/supabase/functions';
@@ -259,6 +260,11 @@ const StrategicView: React.FC = () => {
                         game2={game2}
                         localTrackingData={localTrackingData}
                     />
+                </AnimatedPanel>
+                
+                {/* --- Referências --- */}
+                <AnimatedPanel delay={0.6}>
+                    <EstimationMethodReferences />
                 </AnimatedPanel>
             </div>
             <MadeWithDyad />
