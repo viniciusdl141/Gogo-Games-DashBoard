@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { Calculator, TrendingUp, DollarSign, MessageSquare, Gauge } from 'lucide-react';
+import { Calculator, TrendingUp, DollarSign, MessageSquare, Gauge, List } from 'lucide-react';
 import KpiCard from '../dashboard/KpiCard';
 import { GameOption } from '@/integrations/supabase/functions';
 
