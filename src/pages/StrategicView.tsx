@@ -9,24 +9,29 @@ import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import AnimatedPanel from '@/components/AnimatedPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home, BarChart3, Filter, ArrowRightLeft, Loader2 } from 'lucide-react';
+import { Home, BarChart3, Filter, ArrowRightLeft, Loader2, Search, Calculator } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GameComparisonPanel from '@/components/strategic/GameComparisonPanel';
-import SimilarGamesSearch from '@/components/strategic/SimilarGamesSearch'; // Importar novo componente
+import SimilarGamesSearch from '@/components/strategic/SimilarGamesSearch';
 import { TrackingData, getTrackingData } from '@/data/trackingData';
 import { MadeWithDyad } from '@/components/made-with-dyad';
-import { GameOption } from '@/integrations/supabase/functions'; // Importar GameOption
+import { GameOption } from '@/integrations/supabase/functions';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimator'; // Importar Estimator
 
 // Mock data for categories (should eventually come from DB or configuration)
 const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação', 'Aventura', 'Outro'];
+
+// Interface combinada para o Jogo 2 (pode ser SupabaseGame, GameOption ou EstimatedGame)
+type Game2Selection = SupabaseGame | GameOption | EstimatedGame | null;
 
 const StrategicView: React.FC = () => {
     const { isAdmin, isLoading: isSessionLoading } = useSession();
     const navigate = useNavigate();
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [game1Id, setGame1Id] = useState<string | null>(null);
-    // game2Id agora pode ser um ID do Supabase ou um objeto GameOption temporário
-    const [game2Selection, setGame2Selection] = useState<SupabaseGame | GameOption | null>(null);
+    const [game2Selection, setGame2Selection] = useState<Game2Selection>(null);
+    const [isEstimatorOpen, setIsEstimatorOpen] = useState(false);
     
     // Load all games (Admin view)
     const { data: allGames, isLoading: isGamesLoading } = useQuery<SupabaseGame[], Error>({
@@ -67,7 +72,7 @@ const StrategicView: React.FC = () => {
     }
 
     const handleSelectGame = (gameId: string) => {
-        // Se o jogo 1 for selecionado, limpa o jogo 2 (que pode ser um jogo similar)
+        // Se o jogo 1 for selecionado, limpa o jogo 2 (que pode ser um jogo similar ou estimado)
         if (game1Id === gameId) {
             setGame1Id(null);
             setGame2Selection(null);
@@ -94,16 +99,21 @@ const StrategicView: React.FC = () => {
             launch_date: game.launchDate,
             suggested_price: game.suggestedPrice,
             capsule_image_url: game.capsuleImageUrl,
-            category: null, // Categoria não é relevante para o GameOption
+            category: null,
             created_at: new Date().toISOString(),
             studio_id: null,
-            // Adiciona campos extras do GameOption para que GameComparisonPanel possa usá-los
             priceUSD: game.priceUSD,
             reviewCount: game.reviewCount,
             reviewSummary: game.reviewSummary,
             developer: game.developer,
             publisher: game.publisher,
         } as SupabaseGame); // Força o tipo para SupabaseGame para compatibilidade com GameComparisonPanel
+    };
+
+    const handleSelectEstimatedGame = (game: EstimatedGame) => {
+        // Define o jogo 2 como o resultado da estimativa (EstimatedGame)
+        setGame2Selection(game);
+        setIsEstimatorOpen(false);
     };
 
     const game1 = allGames?.find(g => g.id === game1Id);
@@ -149,19 +159,54 @@ const StrategicView: React.FC = () => {
                                 </SelectContent>
                             </Select>
                             <p className="text-sm text-muted-foreground">
-                                Selecione um jogo (Jogo 1) e, opcionalmente, um segundo jogo (Jogo 2) ou use a busca de similares.
+                                Selecione um jogo (Jogo 1) e, opcionalmente, um segundo jogo (Jogo 2) ou use as ferramentas abaixo.
                             </p>
                         </CardContent>
                     </Card>
                 </AnimatedPanel>
 
-                {/* --- Busca de Similares --- */}
-                <AnimatedPanel delay={0.2}>
-                    <SimilarGamesSearch 
-                        selectedGame={game1}
-                        onSelectGameForComparison={handleSelectSimilarGame}
-                    />
-                </AnimatedPanel>
+                {/* --- Ferramentas de Comparação (Busca e Estimador) --- */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <AnimatedPanel delay={0.2}>
+                        <SimilarGamesSearch 
+                            selectedGame={game1}
+                            onSelectGameForComparison={handleSelectSimilarGame}
+                        />
+                    </AnimatedPanel>
+                    
+                    <AnimatedPanel delay={0.25}>
+                        <Card className="shadow-md h-full flex flex-col">
+                            <CardHeader>
+                                <CardTitle className="text-xl flex items-center">
+                                    <Calculator className="h-5 w-5 mr-2 text-gogo-cyan" /> Estimativa de Vendas (Fórmulas)
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex-grow flex flex-col justify-between">
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Use Reviews e Preço para estimar vendas e receita líquida de um jogo similar usando métodos de mercado (Boxleiter, Carless, CCU).
+                                </p>
+                                <Dialog open={isEstimatorOpen} onOpenChange={setIsEstimatorOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button 
+                                            className="w-full bg-gogo-orange hover:bg-gogo-orange/90"
+                                            disabled={!game1}
+                                        >
+                                            <Calculator className="h-4 w-4 mr-2" /> 
+                                            {game1 ? `Estimar Jogo 2 (Baseado em ${game1.name})` : 'Selecione Jogo 1 Primeiro'}
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[700px]">
+                                        <GameEstimator 
+                                            gameName={game1?.name || 'Jogo Estimado'}
+                                            onEstimate={handleSelectEstimatedGame}
+                                            onClose={() => setIsEstimatorOpen(false)}
+                                        />
+                                    </DialogContent>
+                                </Dialog>
+                            </CardContent>
+                        </Card>
+                    </AnimatedPanel>
+                </div>
 
                 {/* --- Lista de Jogos Filtrados para Seleção --- */}
                 <AnimatedPanel delay={0.3}>
@@ -175,7 +220,9 @@ const StrategicView: React.FC = () => {
                             {filteredGames.map(game => {
                                 const isSelected1 = game.id === game1Id;
                                 const isSelected2 = game2Selection && 'id' in game2Selection && game2Selection.id === game.id;
-                                const isDisabled = !isSelected1 && !isSelected2 && game1Id && game2Selection; // Desabilita se Jogo 1 e Jogo 2 (Supabase ou Similar) já estiverem selecionados
+                                
+                                // Desabilita se Jogo 1 e Jogo 2 (Supabase) já estiverem selecionados
+                                const isDisabled = !isSelected1 && !isSelected2 && game1Id && game2Selection && 'id' in game2Selection && !game2Selection.id.startsWith('similar-'); 
 
                                 return (
                                     <Button
