@@ -18,18 +18,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { WLSalesPlatformEntry, Platform } from '@/data/trackingData';
 import { addDays, startOfDay, isBefore, isEqual } from 'date-fns';
-import { List, Calendar, DollarSign } from 'lucide-react';
+import { List, Calendar, DollarSign, TrendingUp } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { toast } from 'sonner';
 
 // Definindo o tipo de plataforma
 const PlatformEnum = z.enum(['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra']);
 
-// Schema de validação
+// Schema de validação: Agora aceita a variação diária
 const formSchema = z.object({
     platform: PlatformEnum.default('Steam'),
     date: z.string().min(1, "A data é obrigatória (formato YYYY-MM-DD)."),
-    wishlists: z.number().min(0, "Wishlists deve ser um número positivo."),
+    dailyVariation: z.number({ invalid_type_error: "Variação deve ser um número." }).default(0), // Novo campo para WL Ganhas/Perdidas
     sales: z.number().min(0, "Vendas deve ser um número positivo.").default(0),
 });
 
@@ -38,13 +38,13 @@ type DailyWLSalesFormValues = z.infer<typeof formSchema>;
 interface AddDailyWLSalesFormProps {
     gameName: string;
     wlSalesData: WLSalesPlatformEntry[];
-    onSave: (data: DailyWLSalesFormValues) => void;
+    onSave: (data: Omit<DailyWLSalesFormValues, 'dailyVariation'> & { wishlists: number, variation: number }) => void;
     onClose: () => void;
 }
 
 const AddDailyWLSalesForm: React.FC<AddDailyWLSalesFormProps> = ({ gameName, wlSalesData, onSave, onClose }) => {
     
-    // 1. Função para obter a última WL registrada e a próxima data sugerida
+    // Função para obter a última WL registrada e a próxima data sugerida
     const getLatestData = (currentPlatform: Platform) => {
         const platformData = wlSalesData
             .filter(e => e.platform === currentPlatform)
@@ -56,14 +56,11 @@ const AddDailyWLSalesForm: React.FC<AddDailyWLSalesFormProps> = ({ gameName, wlS
         let lastWL = 0;
 
         if (lastEntry && lastEntry.date) {
-            // A WL anterior é a WL total do último registro
             lastWL = lastEntry.wishlists;
-            
-            // A data sugerida é o dia seguinte ao último registro
             nextDate = addDays(startOfDay(lastEntry.date), 1);
         }
         
-        // Se a data sugerida for anterior a hoje, usa hoje como default, a menos que não haja dados.
+        // Se a próxima data for anterior a hoje, usa hoje como default, a menos que não haja dados.
         if (platformData.length > 0 && isBefore(startOfDay(nextDate), startOfDay(new Date()))) {
              nextDate = new Date();
         }
@@ -83,7 +80,7 @@ const AddDailyWLSalesForm: React.FC<AddDailyWLSalesFormProps> = ({ gameName, wlS
         defaultValues: {
             platform: currentPlatform,
             date: nextDate,
-            wishlists: lastWL, // Preenche com a última WL registrada
+            dailyVariation: 0,
             sales: 0,
         },
     });
@@ -94,7 +91,7 @@ const AddDailyWLSalesForm: React.FC<AddDailyWLSalesFormProps> = ({ gameName, wlS
         form.reset({
             platform: currentPlatform,
             date: newNextDate,
-            wishlists: newLastWL,
+            dailyVariation: 0,
             sales: 0,
         });
     }, [currentPlatform, wlSalesData]);
@@ -109,24 +106,29 @@ const AddDailyWLSalesForm: React.FC<AddDailyWLSalesFormProps> = ({ gameName, wlS
             return;
         }
         
-        // 2. Validação de WL: Se a data for posterior ao último registro, a WL deve ser maior ou igual.
-        if (lastEntryDate && (isEqual(entryDate, addDays(lastEntryDate, 1)) || isBefore(lastEntryDate, entryDate))) {
-            if (values.wishlists < lastWL) {
-                form.setError('wishlists', { message: `A WL total deve ser maior ou igual à última WL registrada (${formatNumber(lastWL)}).` });
-                return;
-            }
+        // 2. Cálculo da WL Total na Data
+        const newTotalWL = lastWL + values.dailyVariation;
+        
+        // 3. Validação de WL Total (apenas se for o primeiro registro, ou se a WL total for negativa)
+        if (newTotalWL < 0) {
+            form.setError('dailyVariation', { message: `A WL total resultante (${formatNumber(newTotalWL)}) não pode ser negativa.` });
+            return;
         }
         
-        // Se a data for retroativa, permitimos, mas a WL anterior usada para cálculo de variação será a última WL registrada.
+        // 4. Se a data for retroativa, a WL Total será calculada com base na última WL registrada,
+        // mas o Dashboard recalculará a variação de todos os dias subsequentes.
         
-        onSave(values); 
+        onSave({
+            platform: values.platform,
+            date: values.date,
+            sales: values.sales,
+            wishlists: newTotalWL, // Salva o total calculado
+            variation: values.dailyVariation, // Salva a variação inserida
+        }); 
     };
 
-    const currentWL = form.watch('wishlists');
-    
-    // A WL anterior para cálculo da variação é sempre a última WL registrada,
-    // a menos que seja o primeiro registro (lastWL = 0).
-    const variation = currentWL - lastWL;
+    const dailyVariation = form.watch('dailyVariation');
+    const newTotalWL = lastWL + dailyVariation;
 
     return (
         <Form {...form}>
@@ -178,27 +180,27 @@ const AddDailyWLSalesForm: React.FC<AddDailyWLSalesFormProps> = ({ gameName, wlS
                         <Input value={formatNumber(lastWL)} disabled className="bg-muted" />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-muted-foreground">Variação WL (Calculada)</Label>
+                        <Label className="text-muted-foreground">WL Total Calculada</Label>
                         <Input 
-                            value={formatNumber(variation)} 
+                            value={formatNumber(newTotalWL)} 
                             disabled 
-                            className={`font-bold ${variation >= 0 ? 'text-green-500' : 'text-red-500'} bg-muted`} 
+                            className={`font-bold ${newTotalWL >= lastWL ? 'text-green-500' : 'text-red-500'} bg-muted`} 
                         />
                     </div>
                 </div>
 
                 <FormField
                     control={form.control}
-                    name="wishlists"
+                    name="dailyVariation"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel className="flex items-center">
-                                <List className="h-4 w-4 mr-2" /> Wishlists Totais na Data
+                                <TrendingUp className="h-4 w-4 mr-2" /> Variação Diária WL (Ganhas/Perdidas)
                             </FormLabel>
                             <FormControl>
                                 <Input 
                                     type="number" 
-                                    placeholder={formatNumber(lastWL)} 
+                                    placeholder="Ex: 500" 
                                     {...field} 
                                     onChange={e => field.onChange(Number(e.target.value))}
                                 />
