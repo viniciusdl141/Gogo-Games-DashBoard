@@ -183,6 +183,16 @@ const METHOD_DETAILS: Record<string, { label: string, description: string, sourc
     }
 };
 
+// Array de opções de métodos para o checkbox de combinação
+const methodOptions: { method: EstimationMethod, label: string }[] = [
+    { method: 'boxleiter', label: 'Boxleiter Ajustado (M=30)' },
+    { method: 'carless', label: 'Simon Carless (NB)' },
+    { method: 'gamalytic', label: 'Gamalytic (Preço Ponderado)' },
+    { method: 'vginsights', label: 'VG Insights (Gênero Ponderado)' },
+    { method: 'ccu', label: 'SteamDB CCU' },
+    { method: 'revenue', label: 'Receita Simplificada' },
+];
+
 
 const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 30.00, initialCategory = 'Ação', onEstimate, onClose }) => {
     const [detailsModalOpen, setDetailsModalOpen] = useState(false);
@@ -221,8 +231,8 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
 
         // Calcula a média combinada apenas dos métodos selecionados
         const combinedResults = results.filter(r => {
-            const baseMethod = allMethods.find(m => m.result === r)?.method;
-            return baseMethod && methodsToCombine.includes(baseMethod);
+            const baseMethod = allMethods.find(m => m.result === r)?.method.split('(')[0].trim().toLowerCase().replace(/\s/g, '');
+            return baseMethod && methodsToCombine.includes(baseMethod as EstimationMethod);
         });
 
         const totalSales = combinedResults.reduce((sum, r) => sum + r.sales, 0);
@@ -307,9 +317,8 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             onClose();
         };
         
-        // Usamos um estado temporário para armazenar a ação de confirmação da média
-        // Para simplificar, vamos usar o MethodDetailsModal para a média também, mas com a ação correta.
-        // O botão de seleção final será o único a chamar onEstimate e onClose.
+        // Nota: O MethodDetailsModal agora precisa saber se está confirmando a média ou um método individual.
+        // Vamos garantir que o onConfirmSelection no modal de detalhes use o selectedMethodResult.
     };
     
     // Helper para renderizar o Label com Tooltip
@@ -631,11 +640,30 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                     onConfirmSelection={() => {
                         // Se for a Média Híbrida, criamos o objeto EstimatedGame da média
                         if (selectedMethodResult.method === 'Média Híbrida') {
-                            handleSelectAverage(); // Chama a função que cria e seleciona a média
+                            // Recalculamos a média para garantir que o objeto final seja criado corretamente
+                            const avgGame: EstimatedGame = {
+                                name: `${gameName} (Média Híbrida)`,
+                                launchDate: null,
+                                suggestedPrice: values.priceBRL,
+                                priceUSD: values.priceBRL / 5, 
+                                reviewCount: values.reviews,
+                                reviewSummary: 'Estimativa',
+                                developer: null,
+                                publisher: null,
+                                capsuleImageUrl: null,
+                                source: 'Fórmulas de Estimativa',
+                                estimatedSales: calculations.avgSales,
+                                estimatedRevenue: calculations.avgRevenue,
+                                estimationMethod: 'Média Híbrida',
+                                timeframe: 'Ciclo de Vida Total (Média Ponderada)',
+                            };
+                            onEstimate(avgGame);
                         } else {
-                            // Se for um método individual, criamos o objeto EstimatedGame do método
+                            // Se for um método individual, usamos o resultado já armazenado
                             handleConfirmSelection(selectedMethodResult);
                         }
+                        setDetailsModalOpen(false);
+                        onClose();
                     }}
                 />
             )}
