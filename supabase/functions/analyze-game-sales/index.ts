@@ -9,6 +9,7 @@ const corsHeaders = {
 };
 
 // --- JSON Schema for Output ---
+// NOTE: This schema is now only used for documentation in the prompt.
 const JSON_SCHEMA = {
     type: "object",
     properties: {
@@ -66,7 +67,7 @@ const SYSTEM_PROMPT = (gameName: string) => `Você é um Analista Sênior de Mer
 Instruções Críticas:
 1. **Busca de Dados:** Encontre Reviews Totais, Preço (BRL e USD), Tags/Gêneros Principais, Pico de Jogadores (CCU All-Time Peak), CCU Atual e Data de Lançamento Oficial.
 2. **Cálculos:** Use os dados encontrados para preencher o esquema JSON, aplicando as fórmulas e regras lógicas abaixo.
-3. **Formato de Saída:** Sua resposta DEVE ser APENAS o objeto JSON estritamente seguindo o esquema fornecido.
+3. **Formato de Saída:** Sua resposta DEVE ser APENAS o objeto JSON estritamente seguindo o esquema fornecido. **NÃO ENVOLVA O JSON EM MARKDOWN BLOCKS (\`\`\`json).**
 
 ---
 ### 📐 FÓRMULAS E REGRAS LÓGICAS PARA CÁLCULO:
@@ -110,11 +111,11 @@ async function callGeminiWebSearchAndAnalyze(aiApiKey: string, gameName: string)
             parts: [{ text: prompt }]
         }],
         tools: [{ googleSearch: {} }], // Habilita a ferramenta de busca
-        // Reintroduzindo 'config' para estruturar a resposta JSON
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: JSON_SCHEMA,
-        }
+        // REMOVENDO CONFIG:
+        // config: {
+        //     responseMimeType: "application/json",
+        //     responseSchema: JSON_SCHEMA,
+        // }
     };
 
     const response = await fetch(url, {

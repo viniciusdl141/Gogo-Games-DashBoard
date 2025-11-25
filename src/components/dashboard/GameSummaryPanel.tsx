@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, List, TrendingUp, Info, Eye, Megaphone, CalendarDays, Tag } from 'lucide-react';
+import { DollarSign, List, TrendingUp, Info, Eye, Megaphone, CalendarDays, Tag, Presentation } from 'lucide-react';
 import KpiCard from './KpiCard';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import EditGameGeneralInfoForm from './EditGameGeneralInfoForm'; // Importar o novo nome
 import GameCapsule from './GameCapsule'; 
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom'; // Importar useNavigate
 
 interface GameSummaryPanelProps {
     gameId: string; // Adicionado gameId
@@ -55,6 +56,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     investmentSources,
     onUpdateLaunchDate
 }) => {
+    const navigate = useNavigate();
     // Usar suggestedPrice como valor inicial, mas permitir edição local
     const [gamePrice, setGamePrice] = React.useState(suggestedPrice);
     React.useEffect(() => {
@@ -74,6 +76,10 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     const handleShareChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = parseFloat(e.target.value);
         setRevenueShare(isNaN(value) ? 0 : value / 100);
+    };
+
+    const handlePresentationMode = () => {
+        navigate(`/presentation/${gameId}`);
     };
 
     // --- Cálculos de Receita ---
@@ -116,6 +122,16 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                 {/* Contador de Lançamento e Botão de Edição */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
                     {launchDate && <LaunchTimer launchDate={launchDate} />}
+                    
+                    <Button 
+                        onClick={handlePresentationMode} 
+                        variant="default" 
+                        size="sm" 
+                        className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white"
+                    >
+                        <Presentation className="h-4 w-4 mr-2" /> Modo Apresentação
+                    </Button>
+
                     <Dialog open={isLaunchDateDialogOpen} onOpenChange={setIsLaunchDateDialogOpen}>
                         <DialogTrigger asChild>
                             <Button 

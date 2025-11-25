@@ -4,10 +4,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./Index";
-import NotFound from "./NotFound"; // Corrigido o caminho para NotFound
+import NotFound from "./NotFound";
 import Login from "./Login";
-import AdminPanel from "./AdminPanel"; // Import AdminPanel
-import { SessionContextProvider, useSession } from "@/components/SessionContextProvider"; // Corrigido o caminho
+import AdminPanel from "./AdminPanel";
+import StrategicView from "./StrategicView";
+import PresentationMode from "./PresentationMode"; // Import PresentationMode
+import { SessionContextProvider, useSession } from "@/components/SessionContextProvider";
 import React from "react";
 import { ThemeProvider } from "@/components/theme-provider"; 
 
@@ -31,7 +33,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-      <TooltipProvider>
+      <TooltipProvider delayDuration={100} skipDelayDuration={50}>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -51,6 +53,22 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <AdminPanel />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/strategic" 
+                element={
+                  <ProtectedRoute>
+                    <StrategicView />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/presentation/:gameId" 
+                element={
+                  <ProtectedRoute>
+                    <PresentationMode />
                   </ProtectedRoute>
                 } 
               />
