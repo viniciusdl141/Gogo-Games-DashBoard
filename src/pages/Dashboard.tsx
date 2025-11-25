@@ -770,7 +770,7 @@ const Dashboard = () => {
         .filter(m => m.game.trim() === gameName);
 
     // Filter manual traffic tracking
-    const trafficTracking = trackingData.trafficTracking
+    const trafficTrackingFiltered = trackingData.trafficTracking // Renamed local variable
         .filter(t => t.game.trim() === gameName);
 
 
@@ -960,8 +960,8 @@ const Dashboard = () => {
 
     // Find the latest traffic entry for the current game/platform (defaulting to Steam if 'All' selected)
     const relevantPlatform = selectedPlatform === 'All' ? 'Steam' : selectedPlatform;
-    const latestTrafficEntry = trackingData.trafficTracking
-        .filter(t => t.game.trim() === gameName && t.platform === relevantPlatform)
+    const latestTrafficEntry = trafficTrackingFiltered // Use the filtered local variable
+        .filter(t => t.platform === relevantPlatform)
         .sort((a, b) => (b.endDate?.getTime() || 0) - (a.endDate?.getTime() || 0))[0];
 
     if (latestTrafficEntry && latestTrafficEntry.startDate && latestTrafficEntry.endDate) {
@@ -1022,12 +1022,12 @@ const Dashboard = () => {
       eventTracking, 
       paidTraffic,
       demoTracking: trackingData.demoTracking.filter(d => d.game.trim() === gameName),
-      trafficTracking, 
+      trafficTracking: trafficTrackingFiltered, // Use the filtered local variable
       wlDetails: trackingData.wlDetails.find(d => d.game.trim() === gameName),
       manualEventMarkers, 
       kpis,
     };
-  }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame, selectedTimeFrame, trafficTracking]);
+  }, [selectedGameName, selectedPlatform, trackingData, recalculateWLSales, selectedGame, selectedTimeFrame]);
 
   // Determine if a manual marker already exists for the selected date
   const existingMarkerForClickedEntry = useMemo(() => {
