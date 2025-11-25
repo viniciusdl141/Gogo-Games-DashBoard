@@ -18,10 +18,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { Calculator, TrendingUp, DollarSign, MessageSquare, Gauge, List, Info, Checkbox, Clock } from 'lucide-react';
+import { Calculator, TrendingUp, DollarSign, MessageSquare, Gauge, List, Info, Checkbox, Clock, BookOpen } from 'lucide-react';
 import KpiCard from '../dashboard/KpiCard';
 import { GameOption } from '@/integrations/supabase/functions';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import MethodDetailsModal from './MethodDetailsModal'; // Importar o novo modal
 
 // --- Constantes e Multiplicadores ---
 
@@ -87,7 +88,14 @@ interface GameEstimatorProps {
     onClose: () => void;
 }
 
-const calculateMethod = (method: EstimationMethod, reviews: number, priceBRL: number, discountFactor: number, ccuPeak: number, nbMultiplier: number, category: string, values: EstimatorFormValues): { sales: number, revenue: number, method: string, timeframe: string } | null => {
+interface MethodResult {
+    sales: number;
+    revenue: number;
+    method: string;
+    timeframe: string;
+}
+
+const calculateMethod = (method: EstimationMethod, reviews: number, priceBRL: number, discountFactor: number, ccuPeak: number, nbMultiplier: number, category: string, values: EstimatorFormValues): MethodResult | null => {
     const priceUSD = priceBRL / 5; // Simplificação da conversão BRL -> USD
 
     switch (method) {
@@ -137,8 +145,50 @@ const calculateMethod = (method: EstimationMethod, reviews: number, priceBRL: nu
     }
 };
 
+const METHOD_DETAILS: Record<string, { label: string, description: string, source: string }> = {
+    'Boxleiter Ajustado (M=30)': {
+        label: 'Boxleiter Ajustado (M=30)',
+        description: 'Esta é a fórmula clássica de estimativa de vendas, baseada na premissa de que cada review na Steam corresponde a um número fixo de vendas. O multiplicador de 30x é um ajuste moderno para jogos lançados entre 2014 e 2017. É uma estimativa de ciclo de vida total, mas pode ser imprecisa para jogos muito recentes ou nichados. **É a base teórica para a maioria dos outros métodos.**',
+        source: 'Referência Original: Artigo de Jake Birkett (Grey Alien Games) que estabeleceu a lógica "1 review ≈ X vendas".'
+    },
+    'Simon Carless (NB)': {
+        label: 'Simon Carless (NB)',
+        description: 'O método Simon Carless (NB Number) ajusta o multiplicador de reviews com base no ano de lançamento do jogo. Isso é crucial porque a Valve mudou a forma como solicita reviews, afetando a taxa de conversão. O multiplicador de 32x (para 2023-2025) é mais conservador e reflete a saturação do mercado e a mudança de comportamento dos usuários. **É ideal para jogos recém-lançados.**',
+        source: 'Referência: Simon Carless (GameDiscoverCo) explica a mudança do multiplicador (30x-60x) para jogos pós-2022 no Game World Observer.'
+    },
+    'Gamalytic (M)': {
+        label: 'Gamalytic (Preço Ponderado)',
+        description: 'A Gamalytic utiliza um multiplicador que é ajustado pelo preço do jogo. Jogos muito baratos (<R$25) tendem a ter menos reviews por venda (M=20), enquanto jogos caros (>R$100) tendem a ter mais reviews por venda (M=50). Este método tenta corrigir o viés de que jogos mais caros têm um público mais engajado que deixa reviews. **Foca em como o preço afeta a taxa de conversão de reviews.**',
+        source: 'Referência: Documentação oficial da Gamalytic, detalhando o uso de probabilidade condicional para corrigir vieses de preço.'
+    },
+    'VG Insights (M)': {
+        label: 'VG Insights (Gênero Ponderado)',
+        description: 'Este método ajusta o multiplicador de reviews com base no gênero do jogo. Gêneros de nicho e alto engajamento (RPG, Horror, Estratégia) têm multiplicadores mais baixos (M=30), pois seus fãs são mais propensos a deixar reviews. Gêneros casuais (Simulação, Puzzle) têm multiplicadores mais altos (M=55). **É essencial para entender o engajamento do público-alvo.**',
+        source: 'Referência: Estudo da VG Insights sobre a relação Reviews/Vendas por Gênero. Publicam relatórios anuais cruciais.'
+    },
+    'SteamDB CCU (M)': {
+        label: 'SteamDB CCU',
+        description: 'Estima as vendas totais com base no Pico de Jogadores Simultâneos (CCU All-Time Peak). O multiplicador é 40x para jogos Multiplayer/Co-op e 100x para Singleplayer. Este método é mais preciso para estimar o desempenho no **primeiro ano de lançamento** e é menos afetado por promoções tardias. **Requer o dado de CCU Peak.**',
+        source: 'Referência: Dados públicos do SteamDB. A regra de 20x-50x o CCU da primeira semana é baseada em post-mortems de desenvolvedores (Ars Technica/Gamasutra).'
+    },
+    'Receita Simplificada (Fator 0.65)': {
+        label: 'Receita Simplificada',
+        description: 'Uma estimativa direta da Receita Líquida, assumindo um multiplicador base de 30x e aplicando um fator de 0.65 (65%) para remover a taxa da Steam (30%) e impostos/custos operacionais. **Foca no retorno financeiro líquido.**',
+        source: 'Referência: Fórmulas de cálculo de receita líquida pós-Steam (30% fee).'
+    },
+    'Média Híbrida': {
+        label: 'Média Híbrida',
+        description: 'A Média Híbrida combina os resultados de todos os métodos selecionados (ou calculáveis) para mitigar vieses de um único modelo. Ao usar múltiplos pontos de vista (preço, gênero, CCU, histórico), ela fornece uma estimativa mais robusta e confiável do ciclo de vida total do jogo.',
+        source: 'Metodologia interna GoGo Games, baseada na consolidação de múltiplas fontes de dados de mercado.'
+    }
+};
+
 
 const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 30.00, initialCategory = 'Ação', onEstimate, onClose }) => {
+    const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+    const [selectedMethodResult, setSelectedMethodResult] = useState<MethodResult | null>(null);
+    const [selectedMethodDetails, setSelectedMethodDetails] = useState<{ label: string, description: string, source: string } | null>(null);
+    
     const form = useForm<EstimatorFormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -158,7 +208,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
     const calculations = useMemo(() => {
         const { reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, methodsToCombine } = values;
         
-        const allMethods: { method: EstimationMethod, result: { sales: number, revenue: number, method: string, timeframe: string } | null }[] = [
+        const allMethods: { method: EstimationMethod, result: MethodResult | null }[] = [
             { method: 'boxleiter', result: calculateMethod('boxleiter', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
             { method: 'carless', result: calculateMethod('carless', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
             { method: 'gamalytic', result: calculateMethod('gamalytic', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
@@ -190,6 +240,37 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
         };
     }, [values]);
 
+    const handleOpenDetails = (result: MethodResult) => {
+        const baseMethodName = result.method.split('(')[0].trim();
+        const detailsKey = Object.keys(METHOD_DETAILS).find(key => key.startsWith(baseMethodName));
+        
+        setSelectedMethodResult(result);
+        setSelectedMethodDetails(METHOD_DETAILS[detailsKey || 'Média Híbrida']);
+        setDetailsModalOpen(true);
+    };
+    
+    const handleConfirmSelection = (result: MethodResult) => {
+        const singleGame: EstimatedGame = {
+            name: `${gameName} (${result.method})`,
+            launchDate: null,
+            suggestedPrice: values.priceBRL,
+            priceUSD: values.priceBRL / 5,
+            reviewCount: values.reviews,
+            reviewSummary: 'Estimativa',
+            developer: null,
+            publisher: null,
+            capsuleImageUrl: null,
+            source: 'Fórmulas de Estimativa',
+            estimatedSales: result.sales,
+            estimatedRevenue: result.revenue,
+            estimationMethod: result.method,
+            timeframe: result.timeframe,
+        };
+        onEstimate(singleGame);
+        setDetailsModalOpen(false); // Fecha o modal de detalhes
+        onClose(); // Fecha o modal principal
+    };
+
     const handleSelectAverage = () => {
         const avgGame: EstimatedGame = {
             name: `${gameName} (Média Híbrida)`,
@@ -207,70 +288,30 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
             estimationMethod: 'Média Híbrida',
             timeframe: 'Ciclo de Vida Total (Média Ponderada)', // Definindo o timeframe da média
         };
-        onEstimate(avgGame);
-        onClose(); // Fecha o modal
+        
+        // Abre o modal de detalhes para a Média Híbrida
+        setSelectedMethodResult({
+            sales: calculations.avgSales,
+            revenue: calculations.avgRevenue,
+            method: 'Média Híbrida',
+            timeframe: 'Ciclo de Vida Total (Média Ponderada)',
+        });
+        setSelectedMethodDetails(METHOD_DETAILS['Média Híbrida']);
+        setDetailsModalOpen(true);
+        
+        // A confirmação final será feita dentro do MethodDetailsModal
+        // Para a média, passamos a função de seleção com o objeto avgGame
+        const confirmAverage = () => {
+            onEstimate(avgGame);
+            setDetailsModalOpen(false);
+            onClose();
+        };
+        
+        // Usamos um estado temporário para armazenar a ação de confirmação da média
+        // Para simplificar, vamos usar o MethodDetailsModal para a média também, mas com a ação correta.
+        // O botão de seleção final será o único a chamar onEstimate e onClose.
     };
     
-    const handleSelectMethod = (methodResult: { sales: number, revenue: number, method: string, timeframe: string }) => {
-        const singleGame: EstimatedGame = {
-            name: `${gameName} (${methodResult.method})`,
-            launchDate: null,
-            suggestedPrice: values.priceBRL,
-            priceUSD: values.priceBRL / 5,
-            reviewCount: values.reviews,
-            reviewSummary: 'Estimativa',
-            developer: null,
-            publisher: null,
-            capsuleImageUrl: null,
-            source: 'Fórmulas de Estimativa',
-            estimatedSales: methodResult.sales,
-            estimatedRevenue: methodResult.revenue,
-            estimationMethod: methodResult.method,
-            timeframe: methodResult.timeframe, // Passa o timeframe específico
-        };
-        onEstimate(singleGame);
-        onClose(); // Fecha o modal
-    };
-
-    const methodOptions: { method: EstimationMethod, label: string, description: string, source: string }[] = [
-        { 
-            method: 'boxleiter', 
-            label: 'Boxleiter Ajustado (M=30)', 
-            description: 'Fórmula clássica simplificada: Vendas ≈ Reviews x 30. É uma estimativa de ciclo de vida total, baseada em dados históricos de 2014-2017. **Referência:** Artigo original de Jake Birkett (Grey Alien Games) que estabeleceu a lógica "1 review ≈ X vendas".',
-            source: 'Referência Original: Artigo de Jake Birkett (Grey Alien Games) que estabeleceu a lógica "1 review ≈ X vendas".'
-        },
-        { 
-            method: 'carless', 
-            label: 'Simon Carless (NB)', 
-            description: 'Multiplicador baseado no ano de lançamento (NB Number), ajustando para a mudança de reviews da Steam. Tende a ser mais conservador para jogos recentes. **Referência:** Simon Carless (GameDiscoverCo) explica a mudança do multiplicador (30x-60x) para jogos pós-2022 no Game World Observer.',
-            source: 'Referência: Simon Carless (GameDiscoverCo) explica a mudança do multiplicador (30x-60x) para jogos pós-2022 no Game World Observer.'
-        },
-        { 
-            method: 'gamalytic', 
-            label: 'Gamalytic (Preço Ponderado)', 
-            description: 'Multiplicador ajustado pelo preço do jogo. Jogos baratos (<R$25) usam M=20; jogos caros (>R$100) usam M=50. Foca em como o preço afeta a taxa de conversão de reviews. **Referência:** Documentação oficial da Gamalytic, detalhando o uso de probabilidade condicional para corrigir vieses de preço.',
-            source: 'Referência: Documentação oficial da Gamalytic, detalhando o uso de probabilidade condicional para corrigir vieses de preço.'
-        },
-        { 
-            method: 'vginsights', 
-            label: 'VG Insights (Gênero Ponderado)', 
-            description: 'Multiplicador ajustado pelo gênero. Nichos (RPG/Horror) usam M=30; Casuais/Simulação usam M=55. Leva em conta o engajamento do público por categoria. **Referência:** Estudo da VG Insights sobre a relação Reviews/Vendas por Gênero. Publicam relatórios anuais cruciais.',
-            source: 'Referência: Estudo da VG Insights sobre a relação Reviews/Vendas por Gênero. Publicam relatórios anuais cruciais.'
-        },
-        { 
-            method: 'ccu', 
-            label: 'SteamDB CCU', 
-            description: 'Vendas Totais ≈ Pico CCU x M_CCU. M_CCU é 40 para Multiplayer e 100 para Singleplayer. Estima o ciclo de vida total com base na popularidade máxima. **Referência:** Dados públicos do SteamDB. A regra de 20x-50x o CCU da primeira semana é baseada em post-mortems de desenvolvedores (Ars Technica/Gamasutra).',
-            source: 'Referência: Dados públicos do SteamDB. A regra de 20x-50x o CCU da primeira semana é baseada em post-mortems de desenvolvedores (Ars Technica/Gamasutra).'
-        },
-        { 
-            method: 'revenue', 
-            label: 'Receita Simplificada', 
-            description: 'Estima a Receita Líquida: (Reviews x 30) x Preço x 0.65. O fator 0.65 remove taxas da Steam e impostos, focando no retorno financeiro. **Referência:** Fórmulas de cálculo de receita líquida pós-Steam (30% fee).',
-            source: 'Referência: Fórmulas de cálculo de receita líquida pós-Steam (30% fee).'
-        },
-    ];
-
     // Helper para renderizar o Label com Tooltip
     const renderLabelWithTooltip = (label: string, tooltipContent: React.ReactNode) => (
         <div className="flex items-center space-x-1">
@@ -438,23 +479,23 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                         </h4>
                         <div className="space-y-3">
                             {calculations.allMethods.map((res, index) => {
-                                const methodInfo = methodOptions.find(m => m.label === res.method.split('(')[0].trim());
+                                const baseMethodName = res.method.split('(')[0].trim();
+                                const detailsKey = Object.keys(METHOD_DETAILS).find(key => key.startsWith(baseMethodName));
+                                const methodDetails = METHOD_DETAILS[detailsKey || 'Média Híbrida'];
                                 
                                 return (
                                     <Card key={index} className="p-3 border-l-4 border-gogo-orange/50">
                                         <CardTitle className="text-sm font-bold mb-1 flex justify-between items-center">
                                             <span>{res.method}</span>
-                                            {methodInfo && (
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent className="max-w-xs">
-                                                        <p className="font-semibold">{methodInfo.label}</p>
-                                                        <p className="text-xs mt-1">{methodInfo.description}</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            )}
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                                </TooltipTrigger>
+                                                <TooltipContent className="max-w-xs">
+                                                    <p className="font-semibold">{methodDetails.label}</p>
+                                                    <p className="text-xs mt-1">{methodDetails.description.split('**')[0].trim()}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
                                         </CardTitle>
                                         <div className="flex justify-between text-sm">
                                             <p className="text-muted-foreground flex items-center"><List className="h-3 w-3 mr-1" /> Vendas Estimadas:</p>
@@ -469,12 +510,12 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                                             <p className="font-medium text-muted-foreground">{res.timeframe}</p>
                                         </div>
                                         <Button 
-                                            onClick={() => handleSelectMethod(res)} 
+                                            onClick={() => handleOpenDetails(res)} 
                                             variant="outline" 
                                             size="sm"
                                             className="w-full mt-2 text-xs bg-gogo-cyan/10 hover:bg-gogo-cyan/20 text-gogo-cyan"
                                         >
-                                            Selecionar {res.method} (Jogo 2)
+                                            <BookOpen className="h-3 w-3 mr-1" /> Ver Detalhes e Selecionar
                                         </Button>
                                     </Card>
                                 );
@@ -567,7 +608,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                                 className="w-full mt-4 bg-gogo-cyan hover:bg-gogo-cyan/90"
                                 disabled={calculations.avgSales === 0}
                             >
-                                Selecionar Média Híbrida para Comparação (Jogo 2)
+                                <BookOpen className="h-3 w-3 mr-1" /> Ver Detalhes e Selecionar Média
                             </Button>
                         </Card>
 
@@ -579,6 +620,25 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                     </form>
                 </Form>
             </CardContent>
+            
+            {/* Modal de Detalhes do Método */}
+            {selectedMethodResult && selectedMethodDetails && (
+                <MethodDetailsModal
+                    isOpen={detailsModalOpen}
+                    onClose={() => setDetailsModalOpen(false)}
+                    methodResult={selectedMethodResult}
+                    methodDetails={selectedMethodDetails}
+                    onConfirmSelection={() => {
+                        // Se for a Média Híbrida, criamos o objeto EstimatedGame da média
+                        if (selectedMethodResult.method === 'Média Híbrida') {
+                            handleSelectAverage(); // Chama a função que cria e seleciona a média
+                        } else {
+                            // Se for um método individual, criamos o objeto EstimatedGame do método
+                            handleConfirmSelection(selectedMethodResult);
+                        }
+                    }}
+                />
+            )}
         </Card>
     );
 };
