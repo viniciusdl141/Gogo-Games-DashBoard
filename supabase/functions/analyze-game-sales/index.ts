@@ -99,6 +99,7 @@ Instruções Críticas:
 **Esquema JSON de Saída:** ${JSON.stringify(JSON_SCHEMA)}`;
 
 async function callGeminiWebSearchAndAnalyze(aiApiKey: string, gameName: string): Promise<any> {
+    // Usando a chave como query parameter
     const url = `${GEMINI_API_URL}?key=${aiApiKey}`;
     
     const prompt = SYSTEM_PROMPT(gameName);
@@ -109,10 +110,9 @@ async function callGeminiWebSearchAndAnalyze(aiApiKey: string, gameName: string)
             parts: [{ text: prompt }]
         }],
         tools: [{ googleSearch: {} }], // Habilita a ferramenta de busca
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: JSON_SCHEMA,
-        }
+        // Adicionando responseMimeType e responseSchema no nível superior do corpo
+        responseMimeType: "application/json",
+        responseSchema: JSON_SCHEMA,
     };
 
     const response = await fetch(url, {
