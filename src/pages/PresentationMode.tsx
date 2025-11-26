@@ -91,6 +91,8 @@ const PresentationMode: React.FC = () => {
     }
 
     if (!selectedGame || !filteredData) {
+        // Se o jogo não for encontrado, navegamos de volta para o dashboard
+        // Mas se o 404 estiver vindo do roteador, este código não será alcançado.
         return (
             <div className="min-h-screen flex items-center justify-center p-8 gaming-background">
                 <Card className="p-6 text-center">

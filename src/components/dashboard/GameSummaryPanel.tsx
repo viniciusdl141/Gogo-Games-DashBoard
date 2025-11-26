@@ -83,7 +83,9 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     };
 
     const handlePresentationMode = () => {
-        // Ensure gameId is used correctly in the navigation path
+        // Log the ID before navigating
+        console.log("Attempting to navigate to Presentation Mode with gameId:", gameId);
+        
         if (gameId) {
             navigate(`/presentation/${gameId}`);
         } else {
