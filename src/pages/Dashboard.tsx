@@ -57,6 +57,7 @@ import { Input } from '@/components/ui/input';
 import EditGameGeneralInfoForm from '@/components/dashboard/EditGameGeneralInfoForm'; // NOVO IMPORT
 import AddDailyWLSalesForm from '@/components/dashboard/AddDailyWLSalesForm'; // NOVO IMPORT
 import PlatformThemeWrapper from '@/components/PlatformThemeWrapper'; // NEW IMPORT
+import SteamPageDetailsManager from '@/components/dashboard/SteamPageDetailsManager'; // NEW IMPORT
 
 // Initialize data once
 const initialRawData = getTrackingData();
@@ -98,12 +99,10 @@ const Dashboard = () => {
   const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
   const [isAddDailyWLSalesFormOpen, setIsAddDailyWLSalesFormOpen] = useState(false); // NOVO STATE
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
-  const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false);
   const [isColorConfigOpen, setIsColorConfigOpen] = useState(false); 
   const [chartColors, setChartColors] = useState<WLSalesChartColors>(defaultChartColors); // INICIALIZAÇÃO CORRIGIDA
   
   const [clickedWLSalesEntry, setClickedWLSalesEntry] = useState<WLSalesPlatformEntry | null>(null);
-  const [editingDemoEntry, setEditingDemoEntry] = useState<DemoTrackingEntry | null>(null);
   
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
   const [isAIDataProcessorOpen, setIsAIDataProcessorOpen] = useState(false); // NEW STATE
@@ -600,7 +599,6 @@ const Dashboard = () => {
         ...prevData,
         demoTracking: [...prevData.demoTracking, entryToAdd].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)),
     }));
-    setIsAddDemoFormOpen(false);
     toast.success("Entrada de Demo Tracking adicionada.");
   }, [selectedGameName]);
 
@@ -611,7 +609,6 @@ const Dashboard = () => {
             entry.id === updatedEntry.id ? updatedEntry : entry
         ).sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0)),
     }));
-    setEditingDemoEntry(null); // Close dialog
     toast.success("Entrada de Demo Tracking atualizada.");
   }, []);
 
@@ -1241,7 +1238,6 @@ const Dashboard = () => {
                                         <TabsTrigger value="influencers" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Influencers</TabsTrigger>
                                         <TabsTrigger value="events" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Eventos</TabsTrigger>
                                         <TabsTrigger value="paid-traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego Pago</TabsTrigger>
-                                        <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Demo</TabsTrigger>
                                     </TabsList>
 
                                     <TabsContent value="overview" className="space-y-6 mt-4">
@@ -1422,45 +1418,19 @@ const Dashboard = () => {
                                             <SalesByTypeChart data={filteredData.wlSales.filter(e => e.platform === 'Steam' || selectedPlatform === 'Steam')} />
                                         </AnimatedPanel>
                                         
-                                        {filteredData.wlDetails && (
-                                            <AnimatedPanel delay={0.1}>
-                                                <WlDetailsManager 
-                                                    details={filteredData.wlDetails} 
-                                                    gameName={selectedGameName}
-                                                    allGames={allAvailableGames.map(g => g.name)} 
-                                                    onUpdateDetails={handleUpdateWlDetails}
-                                                    onAddTraffic={handleAddTrafficEntry} 
-                                                />
-                                            </AnimatedPanel>
-                                        )}
-
-                                        <AnimatedPanel delay={0.2}>
-                                            <DemoTrackingPanel 
-                                                data={filteredData.demoTracking} 
-                                                onDeleteTracking={handleDeleteDemoEntry} 
-                                                onEditTracking={(entry) => setEditingDemoEntry(entry)}
+                                        <AnimatedPanel delay={0.1}>
+                                            <SteamPageDetailsManager
+                                                gameName={selectedGameName}
+                                                wlDetails={filteredData.wlDetails}
+                                                demoTracking={filteredData.demoTracking}
+                                                allGames={allAvailableGames.map(g => g.name)}
+                                                onUpdateWlDetails={handleUpdateWlDetails}
+                                                onAddTraffic={handleAddTrafficEntry}
+                                                onAddDemo={handleAddDemoEntry}
+                                                onEditDemo={handleEditDemoEntry}
+                                                onDeleteDemo={handleDeleteDemoEntry}
                                             />
                                         </AnimatedPanel>
-                                        
-                                        <div className="flex justify-end mb-4 space-x-2">
-                                            <Dialog open={isAddDemoFormOpen} onOpenChange={setIsAddDemoFormOpen}>
-                                                <DialogTrigger asChild>
-                                                    <Button onClick={() => setIsAddDemoFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
-                                                        <Plus className="h-4 w-4 mr-2" /> Adicionar Demo
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="sm:max-w-[600px]">
-                                                    <DialogHeader>
-                                                        <DialogTitle>Adicionar Nova Entrada de Demo Tracking</DialogTitle>
-                                                    </DialogHeader>
-                                                    <AddDemoForm 
-                                                        gameName={selectedGameName} 
-                                                        onSave={handleAddDemoEntry} 
-                                                        onClose={() => setIsAddDemoFormOpen(false)} 
-                                                    />
-                                                </DialogContent>
-                                            </Dialog>
-                                        </div>
                                     </TabsContent>
 
                                     <TabsContent value="comparisons" className="space-y-6 mt-4">
@@ -1580,28 +1550,7 @@ const Dashboard = () => {
                                             />
                                         </AnimatedPanel>
                                     </TabsContent>
-                                    
-                                    <TabsContent value="demo" className="space-y-6 mt-4">
-                                        {/* Conteúdo da aba Demo movido para steam-page, mas mantendo o formulário de edição aqui para consistência se necessário */}
-                                        <p className="text-muted-foreground">O tracking de Demo foi movido para a aba "Página Steam" para consolidar dados específicos da Steam.</p>
-                                    </TabsContent>
                                 </Tabs>
-
-                                {/* Dialog for editing Demo Tracking entry */}
-                                <Dialog open={!!editingDemoEntry} onOpenChange={(open) => !open && setEditingDemoEntry(null)}>
-                                    <DialogContent className="sm:max-w-[600px]">
-                                        <DialogHeader>
-                                            <DialogTitle>Editar Entrada de Demo Tracking</DialogTitle>
-                                        </DialogHeader>
-                                        {editingDemoEntry && (
-                                            <EditDemoForm 
-                                                entry={editingDemoEntry}
-                                                onSave={handleEditDemoEntry}
-                                                onClose={() => setEditingDemoEntry(null)}
-                                            />
-                                        )}
-                                    </DialogContent>
-                                </Dialog>
 
                                 {/* NEW: Dialog for WL Sales Action Menu (triggered by chart click or manual button) */}
                                 <Dialog open={!!clickedWLSalesEntry} onOpenChange={(open) => !open && setClickedWLSalesEntry(null)}>
