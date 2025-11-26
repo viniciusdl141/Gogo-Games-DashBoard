@@ -51,6 +51,15 @@ interface PresentationSlideProps {
     trackingData: TrackingData;
 }
 
+// Helper function to format values based on key (moved outside render function)
+const formatValue = (key: string, value: number | string | undefined): string => {
+    if (value === undefined || value === null || value === '' || value === '#DIV/0!' || (typeof value === 'number' && isNaN(value))) return '-';
+    const numValue = Number(value);
+    if (key.includes('Real') || key.includes('Custo')) return formatCurrency(numValue);
+    return String(value);
+};
+
+
 const PresentationSlide: React.FC<PresentationSlideProps> = ({ slideId, slideTitle, gameData, allGames, trackingData }) => {
     const { 
         gameName, totalSales, totalWishlists, totalInvestment, launchDate, capsuleImageUrl, category,
@@ -148,13 +157,6 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ slideId, slideTit
             'Real/WL': Number(formatValue('Real/WL', r['Real/WL']).replace(/[^0-9.,]/g, '').replace(',', '.')) || 0,
             'Custo por venda': Number(formatValue('Custo por venda', r['Custo por venda']).replace(/[^0-9.,]/g, '').replace(',', '.')) || 0,
         }));
-
-        const formatValue = (key: string, value: number | string | undefined): string => {
-            if (value === undefined || value === null || value === '' || value === '#DIV/0!' || (typeof value === 'number' && isNaN(value))) return '-';
-            const numValue = Number(value);
-            if (key.includes('Real') || key.includes('Custo')) return formatCurrency(numValue);
-            return String(value);
-        };
 
         return (
             <div className="space-y-6">
