@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, List, TrendingUp, Info, Eye, Megaphone, CalendarDays, Tag, Presentation } from 'lucide-react';
+import { DollarSign, List, TrendingUp, Info, Eye, Megaphone, CalendarDays, Tag, Presentation, Image, Loader2 } from 'lucide-react';
 import KpiCard from './KpiCard';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,8 @@ import EditGameGeneralInfoForm from './EditGameGeneralInfoForm'; // Importar o n
 import GameCapsule from './GameCapsule'; 
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom'; // Importar useNavigate
+import { fetchAndSetGameMetadata, Game as SupabaseGame } from '@/integrations/supabase/games'; // Importar a nova função
+import { toast } from 'sonner';
 
 interface GameSummaryPanelProps {
     gameId: string; // Adicionado gameId
@@ -38,6 +40,7 @@ interface GameSummaryPanelProps {
     category: string | null; // NOVO PROP
     investmentSources: { influencers: number, events: number, paidTraffic: number };
     onUpdateLaunchDate: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null, category: string | null) => void; // Assinatura atualizada
+    onMetadataUpdate: () => void; // Novo prop para forçar o refetch de games no Dashboard
 }
 
 const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({ 
@@ -54,9 +57,12 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     capsuleImageUrl, // Receber capsuleImageUrl
     category, // Receber category
     investmentSources,
-    onUpdateLaunchDate
+    onUpdateLaunchDate,
+    onMetadataUpdate,
 }) => {
     const navigate = useNavigate();
+    const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+    
     // Usar suggestedPrice como valor inicial, mas permitir edição local
     const [gamePrice, setGamePrice] = React.useState(suggestedPrice);
     React.useEffect(() => {
@@ -81,6 +87,47 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     const handlePresentationMode = () => {
         navigate(`/presentation/${gameId}`);
     };
+    
+    const handleFetchMetadata = async () => {
+        if (gameId.startsWith('game-')) {
+            toast.error("Este jogo não está salvo no Supabase. Adicione-o primeiro.");
+            return;
+        }
+        
+        setIsFetchingMetadata(true);
+        toast.loading(`Buscando metadados para "${gameName}"...`, { id: 'fetch-meta' });
+
+        try {
+            // Create a mock SupabaseGame object for the fetcher function
+            const gameToFetch: SupabaseGame = {
+                id: gameId,
+                name: gameName,
+                launch_date: launchDate ? launchDate.toISOString().split('T')[0] : null,
+                suggested_price: suggestedPrice,
+                capsule_image_url: capsuleImageUrl,
+                category: category,
+                created_at: new Date().toISOString(),
+                studio_id: null,
+            };
+            
+            const updatedGame = await fetchAndSetGameMetadata(gameToFetch);
+
+            toast.dismiss('fetch-meta');
+            if (updatedGame) {
+                toast.success(`Metadados e imagem da cápsula atualizados para "${gameName}".`);
+                onMetadataUpdate(); // Trigger refetch in Dashboard parent
+            } else {
+                toast.info(`Nenhuma nova informação encontrada para "${gameName}".`);
+            }
+        } catch (error) {
+            console.error("Error fetching metadata:", error);
+            toast.dismiss('fetch-meta');
+            toast.error(`Falha ao buscar metadados: ${error.message}`);
+        } finally {
+            setIsFetchingMetadata(false);
+        }
+    };
+
 
     // --- Cálculos de Receita ---
     
@@ -158,6 +205,22 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                             />
                         </DialogContent>
                     </Dialog>
+                    
+                    {/* Botão de Busca de Imagem/Metadados */}
+                    <Button 
+                        onClick={handleFetchMetadata} 
+                        variant="outline" 
+                        size="sm" 
+                        disabled={isFetchingMetadata || gameId.startsWith('game-')}
+                        className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10"
+                    >
+                        {isFetchingMetadata ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Image className="h-4 w-4 mr-2" />
+                        )}
+                        Buscar Imagem/Metadados
+                    </Button>
                 </div>
 
                 {/* KPIs de Vendas e WL */}

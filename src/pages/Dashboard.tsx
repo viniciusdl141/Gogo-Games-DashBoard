@@ -1256,6 +1256,7 @@ const Dashboard = () => {
                                     launchDate={filteredData.kpis.launchDate}
                                     investmentSources={filteredData.kpis.investmentSources}
                                     onUpdateLaunchDate={handleUpdateLaunchDate}
+                                    onMetadataUpdate={refetchSupabaseGames} // Passando a função de refetch
                                     // Pass suggested price and image URL
                                     suggestedPrice={filteredData.kpis.suggestedPrice} 
                                     capsuleImageUrl={filteredData.kpis.capsuleImageUrl}

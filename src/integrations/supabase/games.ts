@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { invokeGameDataFetcher, GameOption } from './functions'; // Import GameOption and fetcher
 
 export interface Game {
   id: string;
@@ -39,4 +40,38 @@ export const updateGame = async (id: string, updates: Partial<Game>): Promise<Ga
 export const deleteGame = async (id: string): Promise<void> => {
   const { error } = await supabase.from('games').delete().eq('id', id);
   if (error) throw error;
+};
+
+// Hardcoded API Key for Gemini (used for web search)
+const GEMINI_API_KEY = 'AIzaSyCao7UHpJgeYGExguqjvecUwdeztYhnxWU';
+
+/**
+ * Fetches game metadata from the web using AI and updates the Supabase record.
+ * @returns The updated game object or null if no data was found.
+ */
+export const fetchAndSetGameMetadata = async (game: Game): Promise<Game | null> => {
+    const { results } = await invokeGameDataFetcher(game.name, GEMINI_API_KEY);
+
+    if (results.length === 0) {
+        return null;
+    }
+
+    // Prioritize the first result found
+    const bestMatch = results[0];
+
+    const updates: Partial<Game> = {
+        capsule_image_url: bestMatch.capsuleImageUrl || game.capsule_image_url,
+        launch_date: bestMatch.launchDate || game.launch_date,
+        suggested_price: bestMatch.suggestedPrice || game.suggested_price,
+        category: bestMatch.category || game.category,
+        // We don't update developer/publisher/priceUSD here as they are not stored in the main Game table, 
+        // but they are useful for the WebSearchGameForm.
+    };
+
+    // Only update if there is at least one new piece of information
+    if (Object.values(updates).some(v => v !== null && v !== undefined)) {
+        return updateGame(game.id, updates);
+    }
+
+    return null;
 };
