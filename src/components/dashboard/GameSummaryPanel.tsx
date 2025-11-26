@@ -18,29 +18,29 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import LaunchTimer from './LaunchTimer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import EditGameGeneralInfoForm from './EditGameGeneralInfoForm'; // Importar o novo nome
+import EditGameGeneralInfoForm from './EditGameGeneralInfoForm';
 import GameCapsule from './GameCapsule'; 
 import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom'; // Importar useNavigate
-import { fetchAndSetGameMetadata, Game as SupabaseGame } from '@/integrations/supabase/games'; // Importar a nova função
+import { useNavigate } from 'react-router-dom';
+import { fetchAndSetGameMetadata, Game as SupabaseGame } from '@/integrations/supabase/games';
 import { toast } from 'sonner';
 
 interface GameSummaryPanelProps {
-    gameId: string; // Adicionado gameId
+    gameId: string;
     gameName: string;
     totalSales: number;
     totalWishlists: number;
     totalInvestment: number;
-    totalInfluencerViews: number; // KPI separado
-    totalEventViews: number; // KPI separado
-    totalImpressions: number; // KPI separado
+    totalInfluencerViews: number;
+    totalEventViews: number;
+    totalImpressions: number;
     launchDate: Date | null;
-    suggestedPrice: number; // Novo prop
-    capsuleImageUrl: string | null; // NOVO PROP
-    category: string | null; // NOVO PROP
+    suggestedPrice: number;
+    capsuleImageUrl: string | null;
+    category: string | null;
     investmentSources: { influencers: number, events: number, paidTraffic: number };
-    onUpdateLaunchDate: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null, category: string | null) => void; // Assinatura atualizada
-    onMetadataUpdate: () => void; // Novo prop para forçar o refetch de games no Dashboard
+    onUpdateLaunchDate: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null, category: string | null) => void;
+    onMetadataUpdate: () => void;
 }
 
 const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({ 
@@ -54,16 +54,14 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     totalImpressions,
     launchDate,
     suggestedPrice, 
-    capsuleImageUrl, // Receber capsuleImageUrl
-    category, // Receber category
+    capsuleImageUrl,
+    category,
     investmentSources,
     onUpdateLaunchDate,
     onMetadataUpdate,
 }) => {
     const navigate = useNavigate();
-    // Removendo isFetchingMetadata e handleFetchMetadata daqui
     
-    // Usar suggestedPrice como valor inicial, mas permitir edição local
     const [gamePrice, setGamePrice] = React.useState(suggestedPrice);
     React.useEffect(() => {
         setGamePrice(suggestedPrice);
@@ -94,12 +92,11 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     const grossRevenue = totalSales * gamePrice;
     const netRevenue = grossRevenue * revenueShare;
     const netProfit = netRevenue - totalInvestment;
-    // const roiPercentage = totalInvestment > 0 ? (netProfit / totalInvestment) * 100 : 0; // Não usado na UI, removido para simplificar
 
     // 2. Cálculos baseados em inputs manuais (Calculadora)
     const totalManualSales = salesBRL + salesUSD;
     const grossManualRevenue = totalManualSales * gamePrice;
-    const netManualRevenue = grossManualRevenue * revenueShare; // netManualRevenue é calculado aqui
+    const netManualRevenue = grossManualRevenue * revenueShare;
     const netManualProfit = netManualRevenue - totalInvestment;
     const roiManualPercentage = totalInvestment > 0 ? (netManualProfit / totalInvestment) * 100 : 0;
 
@@ -173,8 +170,6 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                         </DialogTrigger>
                         {/* O DialogContent é renderizado acima, mas o Trigger é mantido aqui para o botão */}
                     </Dialog>
-                    
-                    {/* Botão de Busca de Imagem/Metadados REMOVIDO DAQUI */}
                 </div>
 
                 {/* KPIs de Vendas e WL */}
