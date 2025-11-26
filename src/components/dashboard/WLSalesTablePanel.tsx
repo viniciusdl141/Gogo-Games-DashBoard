@@ -58,6 +58,9 @@ const WLSalesTablePanel: React.FC<WLSalesTablePanelProps> = ({ data, onDelete, o
     if (data.length === 0) {
         return null;
     }
+    
+    // Sort data by date descending (most recent first)
+    const sortedData = [...data].sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0));
 
     return (
         <Card>
@@ -80,7 +83,7 @@ const WLSalesTablePanel: React.FC<WLSalesTablePanelProps> = ({ data, onDelete, o
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {data.map((item) => (
+                            {sortedData.map((item) => (
                                 <TableRow key={item.id}>
                                     <TableCell className="font-medium">{formatDate(item.date)}</TableCell>
                                     <TableCell className="text-center">
