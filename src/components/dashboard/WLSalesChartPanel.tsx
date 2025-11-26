@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { WLSalesPlatformEntry, EntryFrequency, EventTrackingEntry, ManualEventMarker } from '@/data/trackingData'; // Import ManualEventMarker
+import { WLSalesPlatformEntry, EntryFrequency, EventTrackingEntry, ManualEventMarker, Platform } from '@/data/trackingData'; // Import ManualEventMarker and Platform
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     LineChart,
@@ -14,7 +14,7 @@ import {
     ResponsiveContainer,
     Dot,
 } from 'recharts';
-import { formatDate, formatNumber } from '@/lib/utils';
+import { formatDate, formatNumber, cn } from '@/lib/utils'; // Import cn
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { startOfDay, isBefore, isEqual } from 'date-fns';
 
@@ -31,7 +31,8 @@ interface WLSalesChartPanelProps {
     onPointClick: (entry: WLSalesPlatformEntry) => void;
     eventTracking: EventTrackingEntry[];
     manualEventMarkers: ManualEventMarker[];
-    chartColors: WLSalesChartColors; // Novo prop
+    chartColors: WLSalesChartColors;
+    selectedPlatform: Platform | 'All'; // NEW PROP
 }
 
 // Helper function to check if a date is within an event period (automatic or manual)
@@ -290,7 +291,7 @@ const CustomLegend = (props: any) => {
 };
 
 
-const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClick, eventTracking, manualEventMarkers, chartColors }) => {
+const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClick, eventTracking, manualEventMarkers, chartColors, selectedPlatform }) => {
     if (data.length === 0) {
         return (
             <Card>
@@ -299,6 +300,16 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
             </Card>
         );
     }
+
+    // Determine theme classes for the card
+    const isPlaystation = selectedPlatform === 'Playstation';
+    const isNintendo = selectedPlatform === 'Nintendo';
+    
+    const cardClasses = cn(
+        isPlaystation && "ps-card-glow bg-card border-ps-blue/50",
+        isNintendo && "nintendo-card-shadow bg-card border-nintendo-red/50",
+        !isPlaystation && !isNintendo && "shadow-md"
+    );
 
     // Recharts expects data to be an array of objects with keys for X and Y axes.
     const chartData = data.map(item => ({
@@ -331,7 +342,7 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
     };
 
     return (
-        <Card>
+        <Card className={cardClasses}>
             <CardHeader>
                 <CardTitle>Evolução Diária de Wishlists e Vendas</CardTitle>
             </CardHeader>
@@ -349,7 +360,6 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
                             minTickGap={30}
                             angle={-45}
                             textAnchor="end"
-                            height={60}
                         />
                         <YAxis />
                         <Tooltip content={<CustomTooltip eventTracking={eventTracking} manualEventMarkers={manualEventMarkers} />} />

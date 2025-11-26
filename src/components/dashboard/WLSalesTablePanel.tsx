@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { WLSalesPlatformEntry } from '@/data/trackingData';
+import { WLSalesPlatformEntry, Platform } from '@/data/trackingData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Table,
@@ -11,7 +11,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { formatDate, formatNumber } from '@/lib/utils';
+import { formatDate, formatNumber, cn } from '@/lib/utils';
 import { Trash2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +35,7 @@ interface WLSalesTablePanelProps {
     onDelete: (id: string) => void;
     onEdit: (entry: WLSalesPlatformEntry) => void;
     games: string[]; // Lista de todos os jogos disponíveis
+    selectedPlatform: Platform | 'All'; // NEW PROP
 }
 
 const getPlatformColorClass = (platform: string) => {
@@ -52,18 +53,28 @@ const getPlatformColorClass = (platform: string) => {
     }
 };
 
-const WLSalesTablePanel: React.FC<WLSalesTablePanelProps> = ({ data, onDelete, onEdit, games }) => {
+const WLSalesTablePanel: React.FC<WLSalesTablePanelProps> = ({ data, onDelete, onEdit, games, selectedPlatform }) => {
     const [openDialogId, setOpenDialogId] = useState<string | null>(null);
 
     if (data.length === 0) {
         return null;
     }
     
+    // Determine theme classes for the card
+    const isPlaystation = selectedPlatform === 'Playstation';
+    const isNintendo = selectedPlatform === 'Nintendo';
+    
+    const cardClasses = cn(
+        isPlaystation && "ps-card-glow bg-card border-ps-blue/50",
+        isNintendo && "nintendo-card-shadow bg-card border-nintendo-red/50",
+        !isPlaystation && !isNintendo && "shadow-md"
+    );
+
     // Sort data by date descending (most recent first)
     const sortedData = [...data].sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0));
 
     return (
-        <Card>
+        <Card className={cardClasses}>
             <CardHeader>
                 <CardTitle>Histórico Diário de Wishlists e Vendas</CardTitle>
             </CardHeader>

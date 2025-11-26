@@ -69,6 +69,17 @@
     --network-tiktok: 0 0% 0%; /* #000000 */
     --network-googleads: 217 82% 61%; /* #4285F4 */
     --network-outra: 215 14% 45%; /* #6B7280 */
+    
+    /* --- Custom Console Themes Variables --- */
+    /* PlayStation Theme */
+    --ps-blue: 220 80% 50%; /* Primary PS Blue */
+    --ps-dark: 220 10% 10%; /* Dark background */
+    --ps-light: 220 10% 90%; /* Light text */
+
+    /* Nintendo Theme (Switch Red/Gray) */
+    --nintendo-red: 356 100% 48%; /* Primary Nintendo Red */
+    --nintendo-gray: 210 10% 20%; /* Dark Gray background */
+    --nintendo-light: 0 0% 98%; /* Light text/card */
   }
 
   .dark {
@@ -131,6 +142,15 @@
     --network-tiktok: 0 0% 10%; 
     --network-googleads: 217 70% 65%; 
     --network-outra: 215 10% 55%; 
+    
+    /* --- Custom Console Themes Variables (Dark Mode) --- */
+    --ps-blue: 220 80% 60%; 
+    --ps-dark: 220 10% 5%; 
+    --ps-light: 220 10% 95%; 
+
+    --nintendo-red: 356 100% 55%; 
+    --nintendo-gray: 210 10% 15%; 
+    --nintendo-light: 0 0% 98%; 
   }
 }
 
@@ -178,6 +198,72 @@
     }
     to {
       background-position: 100% 100%;
+    }
+  }
+  
+  /* --- PlayStation Theme Styles --- */
+  .theme-playstation {
+    --background: var(--ps-dark);
+    --foreground: var(--ps-light);
+    --card: 220 10% 15%; /* Slightly lighter card */
+    --card-foreground: var(--ps-light);
+    --border: 220 10% 25%;
+    --primary: var(--ps-blue);
+    --primary-foreground: 0 0% 100%;
+    --gogo-cyan: var(--ps-blue); /* Override Gogo Cyan for consistency */
+    --gogo-orange: 24 100% 60%; /* Keep orange for contrast/alerts */
+    
+    /* Custom PS4 UI elements simulation */
+    .ps-card-glow {
+        box-shadow: 0 0 10px hsla(var(--ps-blue)/0.5);
+        transition: box-shadow 0.3s ease-in-out;
+    }
+    .ps-card-glow:hover {
+        box-shadow: 0 0 20px hsla(var(--ps-blue)/0.8);
+    }
+    .ps-background-pattern {
+        background-image: 
+            radial-gradient(at 0% 0%, hsla(var(--ps-blue)/0.2) 0px, transparent 50%),
+            radial-gradient(at 100% 100%, hsla(var(--ps-blue)/0.2) 0px, transparent 50%),
+            linear-gradient(135deg, hsla(var(--ps-dark)/0.8) 25%, transparent 25%),
+            linear-gradient(225deg, hsla(var(--ps-dark)/0.8) 25%, transparent 25%),
+            linear-gradient(45deg, hsla(var(--ps-dark)/0.8) 25%, transparent 25%),
+            linear-gradient(315deg, hsla(var(--ps-dark)/0.8) 25%, hsla(var(--ps-dark)/0.8) 25%);
+        background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px, 30px 30px, 30px 30px;
+        background-position: 0 0, 0 0, 0 0, 15px 0, 15px -15px, 0px 15px;
+        animation: background-pan 120s linear infinite reverse;
+    }
+  }
+
+  /* --- Nintendo Theme Styles --- */
+  .theme-nintendo {
+    --background: var(--nintendo-gray);
+    --foreground: var(--nintendo-light);
+    --card: 210 10% 25%; /* Slightly darker card */
+    --card-foreground: var(--nintendo-light);
+    --border: 210 10% 35%;
+    --primary: var(--nintendo-red);
+    --primary-foreground: 0 0% 100%;
+    --gogo-cyan: var(--nintendo-red); /* Override Gogo Cyan for consistency */
+    --gogo-orange: 24 100% 60%; /* Keep orange for contrast/alerts */
+    
+    /* Custom Nintendo UI elements simulation */
+    .nintendo-card-shadow {
+        box-shadow: 4px 4px 0px hsla(var(--nintendo-red)/0.8);
+        border: 2px solid hsl(var(--nintendo-red));
+        transition: all 0.1s ease-out;
+    }
+    .nintendo-card-shadow:hover {
+        box-shadow: 6px 6px 0px hsla(var(--nintendo-red)/1);
+        transform: translate(-2px, -2px);
+    }
+    .nintendo-background-pattern {
+        background-color: hsl(var(--nintendo-gray));
+        background-image: 
+            radial-gradient(at 0% 0%, hsla(var(--nintendo-red)/0.2) 0px, transparent 50%),
+            radial-gradient(at 100% 100%, hsla(var(--nintendo-red)/0.2) 0px, transparent 50%),
+            repeating-linear-gradient(45deg, hsla(var(--nintendo-gray)/0.5) 0, hsla(var(--nintendo-gray)/0.5) 1px, transparent 1px, transparent 10px);
+        background-size: 100% 100%, 100% 100%, 10px 10px;
     }
   }
 }
