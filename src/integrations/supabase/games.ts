@@ -50,6 +50,7 @@ const GEMINI_API_KEY = 'AIzaSyCao7UHpJgeYGExguqjvecUwdeztYhnxWU';
  * @returns The updated game object or null if no data was found.
  */
 export const fetchAndSetGameMetadata = async (game: Game): Promise<Game | null> => {
+    // NOTE: We are using the hardcoded key here, which is generally bad practice but required by the current setup.
     const { results } = await invokeGameDataFetcher(game.name, GEMINI_API_KEY);
 
     if (results.length === 0) {
@@ -70,7 +71,16 @@ export const fetchAndSetGameMetadata = async (game: Game): Promise<Game | null> 
 
     // Only update if there is at least one new piece of information
     if (Object.values(updates).some(v => v !== null && v !== undefined)) {
-        return updateGame(game.id, updates);
+        // Ensure we only pass non-null values if they are meant to be updated
+        const cleanUpdates: Partial<Game> = {};
+        for (const key in updates) {
+            const k = key as keyof Partial<Game>;
+            if (updates[k] !== undefined) {
+                cleanUpdates[k] = updates[k];
+            }
+        }
+        
+        return updateGame(game.id, cleanUpdates);
     }
 
     return null;
