@@ -134,7 +134,14 @@ async function callGeminiAPI(aiApiKey: string, rawData: string, gameName: string
         body: JSON.stringify(body),
     });
 
-    const responseJson = await response.json();
+    const responseText = await response.text();
+    let responseJson;
+
+    try {
+        responseJson = JSON.parse(responseText);
+    } catch {
+        throw new Error(`Resposta inválida da API Gemini. Status: ${response.status}. Resposta bruta: ${responseText.substring(0, 200)}...`);
+    }
 
     if (!response.ok) {
         // Tenta extrair a mensagem de erro do Gemini
@@ -142,14 +149,25 @@ async function callGeminiAPI(aiApiKey: string, rawData: string, gameName: string
         throw new Error(`Falha na API Gemini (Status ${response.status}): ${errorDetail}`);
     }
 
+    // O Gemini pode retornar o JSON como uma string dentro do campo 'text'
     const content = responseJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     
     if (!content) {
         throw new Error("A IA (Gemini) não retornou conteúdo JSON válido.");
     }
     
-    // O Gemini pode retornar o JSON como uma string dentro do campo 'text'
-    return JSON.parse(content);
+    try {
+        // Tenta analisar o JSON retornado
+        return JSON.parse(content);
+    } catch {
+        // Se falhar, tenta limpar o conteúdo (removendo markdown blocks)
+        const cleanedContent = content.replace(/```json\s*|```/g, '').trim();
+        try {
+            return JSON.parse(cleanedContent);
+        } catch {
+            throw new Error(`A IA retornou JSON malformado: ${content.substring(0, 200)}...`);
+        }
+    }
 }
 
 
