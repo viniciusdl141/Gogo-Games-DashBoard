@@ -61,7 +61,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     onMetadataUpdate,
 }) => {
     const navigate = useNavigate();
-    const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+    // Removendo isFetchingMetadata e handleFetchMetadata daqui
     
     // Usar suggestedPrice como valor inicial, mas permitir edição local
     const [gamePrice, setGamePrice] = React.useState(suggestedPrice);
@@ -88,47 +88,6 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
         navigate(`/presentation/${gameId}`);
     };
     
-    const handleFetchMetadata = async () => {
-        if (gameId.startsWith('game-')) {
-            toast.error("Este jogo não está salvo no Supabase. Adicione-o primeiro.");
-            return;
-        }
-        
-        setIsFetchingMetadata(true);
-        toast.loading(`Buscando metadados para "${gameName}"...`, { id: 'fetch-meta' });
-
-        try {
-            // Create a mock SupabaseGame object for the fetcher function
-            const gameToFetch: SupabaseGame = {
-                id: gameId,
-                name: gameName,
-                launch_date: launchDate ? launchDate.toISOString().split('T')[0] : null,
-                suggested_price: suggestedPrice,
-                capsule_image_url: capsuleImageUrl,
-                category: category,
-                created_at: new Date().toISOString(),
-                studio_id: null,
-            };
-            
-            const updatedGame = await fetchAndSetGameMetadata(gameToFetch);
-
-            toast.dismiss('fetch-meta');
-            if (updatedGame) {
-                toast.success(`Metadados e imagem da cápsula atualizados para "${gameName}".`);
-                onMetadataUpdate(); // Trigger refetch in Dashboard parent
-            } else {
-                toast.info(`Nenhuma nova informação encontrada para "${gameName}".`);
-            }
-        } catch (error) {
-            console.error("Error fetching metadata:", error);
-            toast.dismiss('fetch-meta');
-            toast.error(`Falha ao buscar metadados: ${error.message}`);
-        } finally {
-            setIsFetchingMetadata(false);
-        }
-    };
-
-
     // --- Cálculos de Receita ---
     
     // 1. Cálculos baseados em totalSales (dados de tracking)
@@ -149,11 +108,32 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
         <Card>
             <CardHeader>
                 <div className="flex items-start space-x-4">
-                    <GameCapsule 
-                        imageUrl={capsuleImageUrl} 
-                        gameName={gameName} 
-                        className="w-32 h-12 flex-shrink-0" 
-                    />
+                    <Dialog open={isLaunchDateDialogOpen} onOpenChange={setIsLaunchDateDialogOpen}>
+                        <DialogTrigger asChild>
+                            <GameCapsule 
+                                imageUrl={capsuleImageUrl} 
+                                gameName={gameName} 
+                                className="w-32 h-12 flex-shrink-0" 
+                                onClick={() => setIsLaunchDateDialogOpen(true)} // Torna a cápsula clicável
+                            />
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[400px]">
+                            <DialogHeader>
+                                <DialogTitle>Editar Informações Gerais</DialogTitle>
+                            </DialogHeader>
+                            <EditGameGeneralInfoForm 
+                                gameId={gameId}
+                                gameName={gameName}
+                                currentLaunchDate={launchDate}
+                                currentCapsuleImageUrl={capsuleImageUrl}
+                                currentCategory={category}
+                                onSave={onUpdateLaunchDate}
+                                onClose={() => setIsLaunchDateDialogOpen(false)}
+                                onMetadataUpdate={onMetadataUpdate} // Passando o handler de refetch
+                            />
+                        </DialogContent>
+                    </Dialog>
+                    
                     <div>
                         <CardTitle className="text-2xl">Resumo Geral do Jogo: {gameName}</CardTitle>
                         {category && (
@@ -179,6 +159,7 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                         <Presentation className="h-4 w-4 mr-2" /> Modo Apresentação
                     </Button>
 
+                    {/* Botão de Edição de Informações Gerais (mantido para acesso rápido) */}
                     <Dialog open={isLaunchDateDialogOpen} onOpenChange={setIsLaunchDateDialogOpen}>
                         <DialogTrigger asChild>
                             <Button 
@@ -190,37 +171,10 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                                 <CalendarDays className="h-4 w-4 mr-2" /> Editar Informações Gerais
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[400px]">
-                            <DialogHeader>
-                                <DialogTitle>Editar Informações Gerais</DialogTitle>
-                            </DialogHeader>
-                            <EditGameGeneralInfoForm 
-                                gameId={gameId}
-                                gameName={gameName}
-                                currentLaunchDate={launchDate}
-                                currentCapsuleImageUrl={capsuleImageUrl}
-                                currentCategory={category} // Passando a categoria atual
-                                onSave={onUpdateLaunchDate}
-                                onClose={() => setIsLaunchDateDialogOpen(false)}
-                            />
-                        </DialogContent>
+                        {/* O DialogContent é renderizado acima, mas o Trigger é mantido aqui para o botão */}
                     </Dialog>
                     
-                    {/* Botão de Busca de Imagem/Metadados */}
-                    <Button 
-                        onClick={handleFetchMetadata} 
-                        variant="outline" 
-                        size="sm" 
-                        disabled={isFetchingMetadata || gameId.startsWith('game-')}
-                        className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10"
-                    >
-                        {isFetchingMetadata ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                            <Image className="h-4 w-4 mr-2" />
-                        )}
-                        Buscar Imagem/Metadados
-                    </Button>
+                    {/* Botão de Busca de Imagem/Metadados REMOVIDO DAQUI */}
                 </div>
 
                 {/* KPIs de Vendas e WL */}

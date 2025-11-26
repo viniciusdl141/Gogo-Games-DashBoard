@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { Image, Loader2, Search } from 'lucide-react';
+import { fetchAndSetGameMetadata, Game as SupabaseGame } from '@/integrations/supabase/games';
 
 // Mock data for categories (must match StrategicView)
 const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação', 'Aventura', 'Outro'];
@@ -36,9 +38,11 @@ interface EditGameGeneralInfoFormProps {
     currentCategory: string | null; // Novo prop
     onSave: (gameId: string, launchDate: string | null, capsuleImageUrl: string | null, category: string | null) => void; // Assinatura atualizada
     onClose: () => void;
+    onMetadataUpdate: () => void; // Handler para forçar o refetch no Dashboard
 }
 
-const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ gameId, gameName, currentLaunchDate, currentCapsuleImageUrl, currentCategory, onSave, onClose }) => {
+const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ gameId, gameName, currentLaunchDate, currentCapsuleImageUrl, currentCategory, onSave, onClose, onMetadataUpdate }) => {
+    const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
     const defaultDateString = currentLaunchDate ? currentLaunchDate.toISOString().split('T')[0] : '';
 
     const form = useForm<GameMetadataFormValues>({
@@ -57,11 +61,75 @@ const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({ gameI
         toast.success(`Informações gerais para "${gameName}" atualizadas.`);
         onClose();
     };
+    
+    const handleFetchMetadata = async () => {
+        if (gameId.startsWith('game-')) {
+            toast.error("Este jogo não está salvo no Supabase. Adicione-o primeiro.");
+            return;
+        }
+        
+        setIsFetchingMetadata(true);
+        toast.loading(`Buscando metadados para "${gameName}"...`, { id: 'fetch-meta-edit' });
+
+        try {
+            // Create a mock SupabaseGame object for the fetcher function
+            const gameToFetch: SupabaseGame = {
+                id: gameId,
+                name: gameName,
+                launch_date: form.getValues('launchDate') || null,
+                suggested_price: 0, // Price is not critical for this fetch
+                capsule_image_url: form.getValues('capsuleImageUrl') || null,
+                category: form.getValues('category') || null,
+                created_at: new Date().toISOString(),
+                studio_id: null,
+            };
+            
+            const updatedGame = await fetchAndSetGameMetadata(gameToFetch);
+
+            toast.dismiss('fetch-meta-edit');
+            if (updatedGame) {
+                // Update form fields with new data
+                form.setValue('capsuleImageUrl', updatedGame.capsule_image_url || '');
+                form.setValue('launchDate', updatedGame.launch_date || '');
+                form.setValue('category', updatedGame.category || '');
+                
+                // Trigger parent update (Dashboard refetch)
+                onMetadataUpdate(); 
+                toast.success(`Metadados e imagem da cápsula atualizados para "${gameName}".`);
+            } else {
+                toast.info(`Nenhuma nova informação encontrada para "${gameName}".`);
+            }
+        } catch (error) {
+            console.error("Error fetching metadata:", error);
+            toast.dismiss('fetch-meta-edit');
+            toast.error(`Falha ao buscar metadados: ${error.message}`);
+        } finally {
+            setIsFetchingMetadata(false);
+        }
+    };
+
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
                 <h3 className="text-lg font-semibold">Editar Informações Gerais do Jogo: {gameName}</h3>
+                
+                <Button 
+                    type="button"
+                    onClick={handleFetchMetadata} 
+                    disabled={isFetchingMetadata || gameId.startsWith('game-')}
+                    className="w-full text-sm bg-gogo-cyan hover:bg-gogo-cyan/90 text-white"
+                >
+                    {isFetchingMetadata ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                        <Search className="h-4 w-4 mr-2" />
+                    )}
+                    Buscar Metadados e Imagem (IA)
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                    Busca a data de lançamento, imagem e categoria na web.
+                </p>
                 
                 <FormField
                     control={form.control}
