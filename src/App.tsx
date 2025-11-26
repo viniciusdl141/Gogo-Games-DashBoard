@@ -7,7 +7,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminPanel from "./pages/AdminPanel";
-import StrategicView from "./pages/StrategicView"; // Import StrategicView
+import StrategicView from "./pages/StrategicView";
+import PresentationMode from "./pages/PresentationMode"; // Import PresentationMode
 import { SessionContextProvider, useSession } from "@/components/SessionContextProvider";
 import React from "react";
 import { ThemeProvider } from "@/components/theme-provider"; 
@@ -32,7 +33,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-      <TooltipProvider delayDuration={100} skipDelayDuration={50}> {/* Configuração para Tooltip mais responsivo */}
+      <TooltipProvider delayDuration={100} skipDelayDuration={50}>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -60,6 +61,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <StrategicView />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/presentation/:gameId" 
+                element={
+                  <ProtectedRoute>
+                    <PresentationMode />
                   </ProtectedRoute>
                 } 
               />
