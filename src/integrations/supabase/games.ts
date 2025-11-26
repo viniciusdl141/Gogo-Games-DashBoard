@@ -51,7 +51,8 @@ const GEMINI_API_KEY = 'AIzaSyCao7UHpJgeYGExguqjvecUwdeztYhnxWU';
  */
 export const fetchAndSetGameMetadata = async (game: Game): Promise<Game | null> => {
     // NOTE: We are using the hardcoded key here, which is generally bad practice but required by the current setup.
-    const { results } = await invokeGameDataFetcher(game.name, GEMINI_API_KEY);
+    const response = await invokeGameDataFetcher(game.name, GEMINI_API_KEY);
+    const results = response.results; // Access results safely
 
     if (results.length === 0) {
         return null;
