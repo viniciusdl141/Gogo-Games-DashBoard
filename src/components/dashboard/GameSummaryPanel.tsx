@@ -83,7 +83,12 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     };
 
     const handlePresentationMode = () => {
-        navigate(`/presentation/${gameId}`);
+        // Ensure gameId is used correctly in the navigation path
+        if (gameId) {
+            navigate(`/presentation/${gameId}`);
+        } else {
+            toast.error("ID do jogo não encontrado para o modo apresentação.");
+        }
     };
     
     // --- Cálculos de Receita ---
