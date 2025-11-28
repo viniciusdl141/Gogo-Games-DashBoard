@@ -14,7 +14,7 @@ import AddDailyWLSalesForm from './AddDailyWLSalesForm';
 import { toast } from 'sonner';
 
 // Assets (usando paths relativos para os arquivos que você forneceu)
-const PS_LOGO = '/ps_logo_sony.png'; // ALTERADO PARA O NOVO ARQUIVO
+const PS_LOGO = '/ps_logo_white.png'; // Usando o logo branco
 const PS_PLUS_LOGO = '/ps_plus.webp';
 const PS_STARS_LOGO = '/ps_stars.png'; // Mantendo este como placeholder, se necessário
 
