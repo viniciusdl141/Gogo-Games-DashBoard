@@ -57,6 +57,7 @@ import { Input } from '@/components/ui/input';
 import EditGameGeneralInfoForm from '@/components/dashboard/EditGameGeneralInfoForm'; // NOVO IMPORT
 import AddDailyWLSalesForm from '@/components/dashboard/AddDailyWLSalesForm'; // NOVO IMPORT
 import PlatformThemeWrapper from '@/components/PlatformThemeWrapper'; // NEW IMPORT
+import PlaystationDashboardContent from '@/components/dashboard/PlaystationDashboardContent'; // NEW IMPORT
 
 // Initialize data once
 const initialRawData = getTrackingData();
@@ -1026,9 +1027,9 @@ const Dashboard = () => {
     const kpis = {
         gameId,
         totalInvestment,
-        totalInfluencerViews,
-        totalEventViews,
-        totalImpressions,
+        totalInfluencerViews: influencerTracking.reduce((sum, item) => sum + item.views, 0),
+        totalEventViews: eventTracking.reduce((sum, item) => sum + item.views, 0),
+        totalImpressions: paidTraffic.reduce((sum, item) => sum + item.impressions, 0),
         totalWLGenerated,
         totalSales,
         totalWishlists,
@@ -1302,121 +1303,139 @@ const Dashboard = () => {
                                                 </CardContent>
                                             </Card>
                                         </AnimatedPanel>
-
-                                        <AnimatedPanel delay={0.1}>
-                                            <div className="flex flex-wrap justify-end gap-2 mb-4">
-                                                <Dialog open={isColorConfigOpen} onOpenChange={setIsColorConfigOpen}>
-                                                    <DialogTrigger asChild>
-                                                        <Button variant="outline" size="sm" className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10">
-                                                            <Palette className="h-4 w-4 mr-2" /> Cores do Gráfico
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                    <DialogContent className="sm:max-w-[450px]">
-                                                        <DialogHeader>
-                                                            <DialogTitle>Configurar Cores</DialogTitle>
-                                                        </DialogHeader>
-                                                        <ColorConfigForm />
-                                                    </DialogContent>
-                                                </Dialog>
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm" 
-                                                    onClick={() => {
-                                                        // Create a temporary placeholder entry for today to open the action menu
-                                                        const todayEntry: WLSalesPlatformEntry = {
-                                                            id: generateLocalUniqueId('temp-today'),
-                                                            date: startOfDay(new Date()),
-                                                            game: selectedGameName,
-                                                            platform: selectedPlatform === 'All' ? 'Steam' : selectedPlatform,
-                                                            wishlists: filteredData.wlSales.length > 0 ? filteredData.wlSales[filteredData.wlSales.length - 1].wishlists : 0,
-                                                            sales: 0,
-                                                            variation: 0,
-                                                            saleType: 'Padrão',
-                                                            frequency: 'Diário',
-                                                            isPlaceholder: true,
-                                                        };
-                                                        setClickedWLSalesEntry(todayEntry);
-                                                    }} 
-                                                    className="text-gogo-orange border-gogo-orange hover:bg-gogo-orange/10"
-                                                >
-                                                    <CalendarPlus className="h-4 w-4 mr-2" /> Marcar Evento Manual
-                                                </Button>
-                                                <Button variant="outline" size="sm" onClick={() => setIsHistoryVisible(!isHistoryVisible)} className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10">
-                                                    {isHistoryVisible ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                                                    {isHistoryVisible ? 'Ocultar Histórico' : 'Mostrar Histórico'}
-                                                </Button>
-                                                <ExportDataButton 
-                                                    data={filteredData.wlSales.filter(e => !e.isPlaceholder)} // Do not export placeholders
-                                                    filename={`${selectedGameName}_${selectedPlatform}_WL_Vendas.csv`} 
-                                                    label="WL/Vendas"
-                                                />
-                                                
-                                                {/* NOVO BOTÃO: Adição Diária Simplificada */}
-                                                <Dialog open={isAddDailyWLSalesFormOpen} onOpenChange={setIsAddDailyWLSalesFormOpen}>
-                                                    <DialogTrigger asChild>
-                                                        <Button onClick={() => setIsAddDailyWLSalesFormOpen(true)} className="bg-gogo-orange hover:bg-gogo-orange/90 text-white">
-                                                            <Plus className="h-4 w-4 mr-2" /> Adição Diária Rápida
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                    <DialogContent className="sm:max-w-[450px]">
-                                                        <DialogHeader>
-                                                            <DialogTitle>Adição Diária Rápida de Wishlist/Vendas</DialogTitle>
-                                                        </DialogHeader>
-                                                        <AddDailyWLSalesForm 
-                                                            gameName={selectedGameName}
-                                                            wlSalesData={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName && !e.isPlaceholder)}
-                                                            onSave={handleAddDailyWLSalesEntry} 
-                                                            onClose={() => setIsAddDailyWLSalesFormOpen(false)} 
-                                                        />
-                                                    </DialogContent>
-                                                </Dialog>
-                                                
-                                                {/* BOTÃO ANTIGO: Adição Detalhada */}
-                                                <Dialog open={isAddWLSalesFormOpen} onOpenChange={setIsAddWLSalesFormOpen}>
-                                                    <DialogTrigger asChild>
-                                                        <Button onClick={() => setIsAddWLSalesFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
-                                                            <Plus className="h-4 w-4 mr-2" /> Adicionar WL/Venda (Detalhado)
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                    <DialogContent className="sm:max-w-[600px]">
-                                                        <DialogHeader>
-                                                            <DialogTitle>Adicionar Entrada Detalhada de Wishlist/Vendas</DialogTitle>
-                                                        </DialogHeader>
-                                                        <AddWLSalesForm 
-                                                            games={allAvailableGames.map(g => g.name)} 
-                                                            onSave={handleAddWLSalesEntry} 
-                                                            onClose={() => setIsAddWLSalesFormOpen(false)} 
-                                                        />
-                                                    </DialogContent>
-                                                </Dialog>
-                                            </div>
-                                        </AnimatedPanel>
                                         
-                                        <AnimatedPanel delay={0.2}>
-                                            <WLSalesChartPanel 
-                                                data={filteredData.wlSales} 
-                                                onPointClick={handleChartPointClick} 
+                                        {/* --- CONTEÚDO CONDICIONAL DA ABA WL-SALES --- */}
+                                        {selectedPlatform === 'Playstation' ? (
+                                            <PlaystationDashboardContent
+                                                gameName={selectedGameName}
+                                                wlSales={filteredData.wlSales}
                                                 eventTracking={filteredData.eventTracking}
                                                 manualEventMarkers={filteredData.manualEventMarkers}
-                                                chartColors={chartColors} // Passando as cores
-                                                selectedPlatform={selectedPlatform} // NEW PROP
+                                                wlSalesDataForRecalculation={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName)}
+                                                allGames={allAvailableGames.map(g => g.name)}
+                                                onPointClick={handleChartPointClick}
+                                                onDeleteWLSalesEntry={handleDeleteWLSalesEntry}
+                                                onEditWLSalesEntry={handleEditWLSalesEntry}
+                                                onAddDailyWLSalesEntry={handleAddDailyWLSalesEntry}
                                             />
-                                        </AnimatedPanel>
-                                        
-                                        {isHistoryVisible && (
-                                            <AnimatedPanel delay={0.3}>
-                                                <WLSalesTablePanel 
-                                                    data={filteredData.wlSales.filter(e => !e.isPlaceholder)} // Do not show placeholders in table
-                                                    onDelete={handleDeleteWLSalesEntry} 
-                                                    onEdit={handleEditWLSalesEntry}
-                                                    games={allAvailableGames.map(g => g.name)}
-                                                    selectedPlatform={selectedPlatform} // NEW PROP
-                                                />
-                                            </AnimatedPanel>
+                                        ) : (
+                                            <>
+                                                <AnimatedPanel delay={0.1}>
+                                                    <div className="flex flex-wrap justify-end gap-2 mb-4">
+                                                        <Dialog open={isColorConfigOpen} onOpenChange={setIsColorConfigOpen}>
+                                                            <DialogTrigger asChild>
+                                                                <Button variant="outline" size="sm" className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10">
+                                                                    <Palette className="h-4 w-4 mr-2" /> Cores do Gráfico
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="sm:max-w-[450px]">
+                                                                <DialogHeader>
+                                                                    <DialogTitle>Configurar Cores</DialogTitle>
+                                                                </DialogHeader>
+                                                                <ColorConfigForm />
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm" 
+                                                            onClick={() => {
+                                                                // Create a temporary placeholder entry for today to open the action menu
+                                                                const todayEntry: WLSalesPlatformEntry = {
+                                                                    id: generateLocalUniqueId('temp-today'),
+                                                                    date: startOfDay(new Date()),
+                                                                    game: selectedGameName,
+                                                                    platform: selectedPlatform === 'All' ? 'Steam' : selectedPlatform,
+                                                                    wishlists: filteredData.wlSales.length > 0 ? filteredData.wlSales[filteredData.wlSales.length - 1].wishlists : 0,
+                                                                    sales: 0,
+                                                                    variation: 0,
+                                                                    saleType: 'Padrão',
+                                                                    frequency: 'Diário',
+                                                                    isPlaceholder: true,
+                                                                };
+                                                                setClickedWLSalesEntry(todayEntry);
+                                                            }} 
+                                                            className="text-gogo-orange border-gogo-orange hover:bg-gogo-orange/10"
+                                                        >
+                                                            <CalendarPlus className="h-4 w-4 mr-2" /> Marcar Evento Manual
+                                                        </Button>
+                                                        <Button variant="outline" size="sm" onClick={() => setIsHistoryVisible(!isHistoryVisible)} className="text-gogo-cyan border-gogo-cyan hover:bg-gogo-cyan/10">
+                                                            {isHistoryVisible ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                                                            {isHistoryVisible ? 'Ocultar Histórico' : 'Mostrar Histórico'}
+                                                        </Button>
+                                                        <ExportDataButton 
+                                                            data={filteredData.wlSales.filter(e => !e.isPlaceholder)} // Do not export placeholders
+                                                            filename={`${selectedGameName}_${selectedPlatform}_WL_Vendas.csv`} 
+                                                            label="WL/Vendas"
+                                                        />
+                                                        
+                                                        {/* NOVO BOTÃO: Adição Diária Simplificada */}
+                                                        <Dialog open={isAddDailyWLSalesFormOpen} onOpenChange={setIsAddDailyWLSalesFormOpen}>
+                                                            <DialogTrigger asChild>
+                                                                <Button onClick={() => setIsAddDailyWLSalesFormOpen(true)} className="bg-gogo-orange hover:bg-gogo-orange/90 text-white">
+                                                                    <Plus className="h-4 w-4 mr-2" /> Adição Diária Rápida
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="sm:max-w-[450px]">
+                                                                <DialogHeader>
+                                                                    <DialogTitle>Adição Diária Rápida de Wishlist/Vendas</DialogTitle>
+                                                                </DialogHeader>
+                                                                <AddDailyWLSalesForm 
+                                                                    gameName={selectedGameName}
+                                                                    wlSalesData={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName && !e.isPlaceholder)}
+                                                                    onSave={handleAddDailyWLSalesEntry} 
+                                                                    onClose={() => setIsAddDailyWLSalesFormOpen(false)} 
+                                                                />
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                        
+                                                        {/* BOTÃO ANTIGO: Adição Detalhada */}
+                                                        <Dialog open={isAddWLSalesFormOpen} onOpenChange={setIsAddWLSalesFormOpen}>
+                                                            <DialogTrigger asChild>
+                                                                <Button onClick={() => setIsAddWLSalesFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
+                                                                    <Plus className="h-4 w-4 mr-2" /> Adicionar WL/Venda (Detalhado)
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="sm:max-w-[600px]">
+                                                                <DialogHeader>
+                                                                    <DialogTitle>Adicionar Entrada Detalhada de Wishlist/Vendas</DialogTitle>
+                                                                </DialogHeader>
+                                                                <AddWLSalesForm 
+                                                                    games={allAvailableGames.map(g => g.name)} 
+                                                                    onSave={handleAddWLSalesEntry} 
+                                                                    onClose={() => setIsAddWLSalesFormOpen(false)} 
+                                                                />
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    </div>
+                                                </AnimatedPanel>
+                                                
+                                                <AnimatedPanel delay={0.2}>
+                                                    <WLSalesChartPanel 
+                                                        data={filteredData.wlSales} 
+                                                        onPointClick={handleChartPointClick} 
+                                                        eventTracking={filteredData.eventTracking}
+                                                        manualEventMarkers={filteredData.manualEventMarkers}
+                                                        chartColors={chartColors} // Passando as cores
+                                                        selectedPlatform={selectedPlatform} // NEW PROP
+                                                    />
+                                                </AnimatedPanel>
+                                                
+                                                {isHistoryVisible && (
+                                                    <AnimatedPanel delay={0.3}>
+                                                        <WLSalesTablePanel 
+                                                            data={filteredData.wlSales.filter(e => !e.isPlaceholder)} // Do not show placeholders in table
+                                                            onDelete={handleDeleteWLSalesEntry} 
+                                                            onEdit={handleEditWLSalesEntry}
+                                                            games={allAvailableGames.map(g => g.name)}
+                                                            selectedPlatform={selectedPlatform} // NEW PROP
+                                                        />
+                                                    </AnimatedPanel>
+                                                )}
+                                            </>
                                         )}
+                                        {/* --- FIM CONTEÚDO CONDICIONAL --- */}
                                     </TabsContent>
                                     
-                                    {/* STEAM PAGE TAB */}
                                     <TabsContent value="steam-page" className="space-y-6 mt-4">
                                         <AnimatedPanel delay={0}>
                                             <SalesByTypeChart data={filteredData.wlSales.filter(e => e.platform === 'Steam' || selectedPlatform === 'Steam')} />
@@ -1465,7 +1484,7 @@ const Dashboard = () => {
 
                                     <TabsContent value="comparisons" className="space-y-6 mt-4">
                                         <AnimatedPanel delay={0}>
-                                            <WlComparisonsPanel data={filteredData.wlSales} allPlatforms={ALL_PLATFORMS} />
+                                            <WlComparisonsPanel data={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName)} allPlatforms={ALL_PLATFORMS} />
                                         </AnimatedPanel>
                                     </TabsContent>
 
