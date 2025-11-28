@@ -157,6 +157,15 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
                                 src={activeAsset} 
                                 alt={activeMenuItem} 
                                 className="w-full h-full object-cover opacity-50" 
+                                // Adicionando um fallback simples para garantir que o texto apareça mesmo sem imagem
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                        parent.style.backgroundColor = 'hsl(var(--ps-dark))';
+                                    }
+                                }}
                             />
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                                 <p className="text-3xl font-bold text-white font-gamer drop-shadow-lg">
