@@ -21,7 +21,6 @@ export default {
     extend: {
       fontFamily: {
         sans: ['"Inter"', 'sans-serif'], // Adicionando a fonte Inter
-        gamer: ['"Press Start 2P"', 'cursive'], // NEW: Fonte Gamer
       },
       colors: {
         border: "hsl(var(--border))",
@@ -30,8 +29,8 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         // Gogo Games Custom Colors
-        'gogo-cyan': 'hsl(var(--gogo-cyan))', // Base Cyan/Light Blue
-        'gogo-orange': 'hsl(var(--gogo-orange))', // Base Orange/Copper
+        'gogo-cyan': '#00BFFF', // Base Cyan/Light Blue
+        'gogo-orange': '#FF6600', // Base Orange/Copper
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -72,23 +71,23 @@ export default {
         },
         // Platform specific colors
         platform: {
-          steam: 'hsl(var(--platform-steam))',
-          xbox: 'hsl(var(--platform-xbox))',
-          playstation: 'hsl(var(--platform-playstation))',
-          nintendo: 'hsl(var(--platform-nintendo))',
-          android: 'hsl(var(--platform-android))',
-          ios: 'hsl(var(--platform-ios))',
-          epicgames: 'hsl(var(--platform-epicgames))',
-          outra: 'hsl(var(--platform-outra))', // Gray
+          steam: '#1B2838',
+          xbox: '#107C10',
+          playstation: '#003791',
+          nintendo: '#E4000F',
+          android: '#3DDC84',
+          ios: '#000000',
+          epicgames: '#313131',
+          outra: '#6B7280', // Gray
         },
         // Network specific colors for Paid Traffic
         network: {
-          meta: 'hsl(var(--network-meta))',
-          reddit: 'hsl(var(--network-reddit))',
-          youtube: 'hsl(var(--network-youtube))',
-          tiktok: 'hsl(var(--network-tiktok))',
-          googleads: 'hsl(var(--network-googleads))',
-          outra: 'hsl(var(--network-outra))', // Gray
+          meta: '#1877F2',
+          reddit: '#FF4500',
+          youtube: '#FF0000',
+          tiktok: '#000000',
+          googleads: '#4285F4',
+          outra: '#6B7280', // Gray
         }
       },
       borderRadius: {
@@ -113,29 +112,11 @@ export default {
             height: "0",
           },
         },
-        "background-pan": { // Adicionando keyframe para animação de fundo
-          from: {
-            "background-position": "0% 0%",
-          },
-          to: {
-            "background-position": "100% 100%",
-          },
-        },
-        "pulse-slow": { // NEW: Animação de pulso lento
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.7" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "background-pan": "background-pan 60s linear infinite", // Aplicando a animação
-        "pulse-slow": "pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite", // Aplicando a nova animação
       },
-      boxShadow: { // Adicionando sombras personalizadas para o efeito de glow
-        'gogo-cyan-glow': '0 0 15px 5px hsla(var(--gogo-cyan-glow)/0.5), 0 0 30px 10px hsla(var(--gogo-cyan-glow)/0.3)',
-        'gogo-orange-glow': '0 0 15px 5px hsla(var(--gogo-orange-glow)/0.5), 0 0 30px 10px hsla(var(--gogo-orange-glow)/0.3)',
-      }
     },
   },
   plugins: [tailwindcssAnimate], // Usando o plugin importado

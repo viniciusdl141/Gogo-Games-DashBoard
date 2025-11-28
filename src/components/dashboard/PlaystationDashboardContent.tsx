@@ -5,7 +5,7 @@ import { WLSalesPlatformEntry, EventTrackingEntry, ManualEventMarker, Platform }
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { cn, formatNumber } from '@/lib/utils';
-import { Gamepad2, Plus, MessageSquare, DollarSign, Clock, ArrowRight, ArrowLeft, Image, Home, Zap, Disc, Headset } from 'lucide-react'; // Importando ícones necessários
+import { Gamepad2, Plus, MessageSquare, DollarSign, Clock, ArrowRight, ArrowLeft, Image } from 'lucide-react'; // Importando Image
 import WLSalesChartPanel from './WLSalesChartPanel';
 import WLSalesTablePanel from './WLSalesTablePanel';
 import ExportDataButton from './ExportDataButton';
@@ -13,16 +13,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import AddDailyWLSalesForm from './AddDailyWLSalesForm';
 import { toast } from 'sonner';
 
-// Assets (Reintroduzindo o caminho do logo)
-const PS_LOGO = '/ps_logo_sony.png'; 
+// Assets (usando paths relativos para os arquivos que você forneceu)
+const PS_LOGO = '/ps_logo_sony.png'; // ALTERADO PARA O NOVO ARQUIVO
+const PS_PLUS_LOGO = '/ps_plus.webp';
+const PS_STARS_LOGO = '/ps_stars.png'; // Mantendo este como placeholder, se necessário
 
-// Itens do menu horizontal da PlayStation (Removendo o campo 'asset' permanentemente)
+// Itens do menu horizontal da PlayStation
 const PS_MENU_ITEMS = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'ps_plus', label: 'PS Plus', icon: Zap },
-    { id: 'add_ons', label: 'Add-Ons', icon: Disc },
-    { id: 'free_to_play', label: 'Free to Play', icon: DollarSign },
-    { id: 'vr', label: 'VR', icon: Headset },
+    { id: 'home', label: 'Home', icon: Gamepad2, asset: '/ps_home.webp' },
+    { id: 'ps_plus', label: 'PS Plus', icon: Plus, asset: '/ps_plus.webp' },
+    { id: 'add_ons', label: 'Add-Ons', icon: MessageSquare, asset: '/ps_addons.webp' },
+    { id: 'free_to_play', label: 'Free to Play', icon: DollarSign, asset: '/ps_f2p.webp' },
+    { id: 'vr', label: 'VR', icon: Clock, asset: '/ps_vr.webp' },
 ];
 
 interface PlaystationDashboardContentProps {
@@ -61,24 +63,28 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
     const [activeMenuItem, setActiveMenuItem] = useState(PS_MENU_ITEMS[0].id);
     const [isAddDailyWLSalesFormOpen, setIsAddDailyWLSalesFormOpen] = useState(false);
     const [isHistoryVisible, setIsHistoryVisible] = useState(true);
-    const [isLogoError, setIsLogoError] = useState(false); 
+    const [isLogoError, setIsLogoError] = useState(false); // Novo estado para erro do logo
 
     // Reset error state when component mounts or game changes
     React.useEffect(() => {
         setIsLogoError(false);
     }, [gameName]);
-    
+
     const filteredWLSales = useMemo(() => {
+        // Filter WL Sales based on the active menu item (simulating different store sections)
         if (activeMenuItem === 'ps_plus') {
+            // Simulate PS Plus sales (e.g., only Bundle/DLC sales)
             return wlSales.filter(e => e.saleType === 'Bundle' || e.saleType === 'DLC');
         }
         if (activeMenuItem === 'free_to_play') {
+            // Simulate F2P tracking (only WL data, sales should be 0)
             return wlSales.filter(e => e.sales === 0);
         }
+        // Default to all sales for Home/Add-ons/VR
         return wlSales;
     }, [wlSales, activeMenuItem]);
 
-    const activeMenuLabel = PS_MENU_ITEMS.find(i => i.id === activeMenuItem)?.label;
+    const activeAsset = PS_MENU_ITEMS.find(item => item.id === activeMenuItem)?.asset;
 
     return (
         <div className="space-y-6 p-4 theme-playstation ps-background-pattern min-h-[calc(100vh-100px)]">
@@ -86,7 +92,7 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
             {/* --- PlayStation Horizontal Menu (Simulação) --- */}
             <div className="flex items-center space-x-6 p-4 bg-ps-dark/80 backdrop-blur-sm rounded-lg shadow-xl border border-ps-blue/50">
                 {isLogoError ? (
-                    <div className="h-8 w-auto flex items-center justify-center text-ps-light font-bold text-2xl font-gamer">PS</div>
+                    <div className="h-8 w-auto flex items-center justify-center text-ps-light font-bold text-lg">PS</div>
                 ) : (
                     <img 
                         src={PS_LOGO} 
@@ -122,7 +128,7 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
             <Card className="ps-card-glow bg-card/90 border-ps-blue/50">
                 <CardHeader className="flex flex-row items-center justify-between border-b border-border p-4">
                     <CardTitle className="text-2xl font-bold text-ps-blue flex items-center">
-                        <Gamepad2 className="h-6 w-6 mr-2" /> {gameName} - {activeMenuLabel}
+                        <Gamepad2 className="h-6 w-6 mr-2" /> {gameName} - {PS_MENU_ITEMS.find(i => i.id === activeMenuItem)?.label}
                     </CardTitle>
                     
                     <div className="flex flex-wrap justify-end gap-2">
@@ -162,20 +168,30 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
                 </CardHeader>
                 
                 <CardContent className="p-4 space-y-6">
-                    {/* Painel de simulação de fundo (usando apenas CSS e texto) */}
-                    <div className="relative h-48 w-full overflow-hidden rounded-lg mb-4 flex items-center justify-center bg-ps-dark/50 border border-ps-blue/50">
-                        <div className="absolute inset-0 bg-gradient-to-br from-ps-blue/20 to-ps-dark/50 animate-pulse-slow">
-                            {/* Gradiente sutil para simular o visual dinâmico da PS Store */}
+                    {/* Imagem de fundo simulando a tela principal */}
+                    {activeAsset && (
+                        <div className="relative h-48 w-full overflow-hidden rounded-lg mb-4">
+                            <img 
+                                src={activeAsset} 
+                                alt={activeMenuItem} 
+                                className="w-full h-full object-cover opacity-50" 
+                                // Adicionando um fallback simples para garantir que o texto apareça mesmo sem imagem
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                        parent.style.backgroundColor = 'hsl(var(--ps-dark))';
+                                    }
+                                }}
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <p className="text-3xl font-bold text-white font-gamer drop-shadow-lg">
+                                    {PS_MENU_ITEMS.find(i => i.id === activeMenuItem)?.label}
+                                </p>
+                            </div>
                         </div>
-                        <div className="text-center p-4 relative z-10">
-                            <p className="text-3xl font-bold text-ps-light font-gamer drop-shadow-lg">
-                                {activeMenuLabel}
-                            </p>
-                            <p className="text-sm text-ps-light/70 mt-2">
-                                Dados de Wishlist e Vendas para PlayStation.
-                            </p>
-                        </div>
-                    </div>
+                    )}
 
                     <WLSalesChartPanel 
                         data={filteredWLSales} 
