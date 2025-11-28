@@ -81,7 +81,7 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
     const activeAsset = PS_MENU_ITEMS.find(item => item.id === activeMenuItem)?.asset;
 
     return (
-        <div className="space-y-6 p-4 theme-playstation ps-background-pattern min-h-[calc(100vh-100px)]">
+        <div className="space-y-6"> {/* Removendo p-4 e background pattern daqui */}
             
             {/* --- PlayStation Horizontal Menu (Simulação) --- */}
             <div className="flex items-center space-x-6 p-4 bg-ps-dark/80 backdrop-blur-sm rounded-lg shadow-xl border border-ps-blue/50">
@@ -107,7 +107,8 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
             </div>
 
             {/* --- Conteúdo Principal (Gráfico e Ações) --- */}
-            <Card className="ps-card-glow bg-card/90 border-ps-blue/50">
+            {/* Ajuste o fundo do Card principal para ser semi-transparente */}
+            <Card className="ps-card-glow bg-card/50 backdrop-blur-sm border-ps-blue/50">
                 <CardHeader className="flex flex-row items-center justify-between border-b border-border p-4">
                     <CardTitle className="text-2xl font-bold text-ps-blue flex items-center">
                         <Gamepad2 className="h-6 w-6 mr-2" /> {gameName} - {PS_MENU_ITEMS.find(i => i.id === activeMenuItem)?.label}

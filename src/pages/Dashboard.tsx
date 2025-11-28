@@ -1245,7 +1245,11 @@ const Dashboard = () => {
                         {filteredData && (
                             <>
                                 <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-                                    <TabsList className={cn("flex w-full overflow-x-auto whitespace-nowrap border-b border-border bg-card text-muted-foreground rounded-t-lg p-0 h-auto shadow-md", isPlaystationTheme && "tabs-list-override shadow-lg border-border")}>
+                                    {/* Ajuste TabsList para transparência */}
+                                    <TabsList className={cn(
+                                        "flex w-full overflow-x-auto whitespace-nowrap border-b border-border text-muted-foreground rounded-t-lg p-0 h-auto shadow-md", 
+                                        isPlaystationTheme ? "bg-card/50 backdrop-blur-sm border-ps-blue/50" : "bg-card"
+                                    )}>
                                         <TabsTrigger value="overview" className={cn("min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10", isPlaystationTheme && "tabs-trigger-override data-[state=active]:bg-ps-blue data-[state=active]:text-ps-light data-[state=active]:border-b-2 data-[state=active]:border-ps-blue hover:bg-ps-blue/20")}>Visão Geral</TabsTrigger>
                                         <TabsTrigger value="wl-sales" className={cn("min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10", isPlaystationTheme && "tabs-trigger-override data-[state=active]:bg-ps-blue data-[state=active]:text-ps-light data-[state=active]:border-b-2 data-[state=active]:border-ps-blue hover:bg-ps-blue/20")}>Evolução WL/Vendas</TabsTrigger>
                                         <TabsTrigger value="steam-page" className={cn("min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10", isPlaystationTheme && "tabs-trigger-override data-[state=active]:bg-ps-blue data-[state=active]:text-ps-light data-[state=active]:border-b-2 data-[state=active]:border-ps-blue hover:bg-ps-blue/20")}>Página Steam</TabsTrigger> 
@@ -1256,7 +1260,7 @@ const Dashboard = () => {
                                         <TabsTrigger value="demo" className={cn("min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10", isPlaystationTheme && "tabs-trigger-override data-[state=active]:bg-ps-blue data-[state=active]:text-ps-light data-[state=active]:border-b-2 data-[state=active]:border-ps-blue hover:bg-ps-blue/20")}>Demo</TabsTrigger>
                                     </TabsList>
 
-                                    <TabsContent value="overview" className="space-y-6 mt-4">
+                                    <TabsContent value="overview" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/50 backdrop-blur-sm p-4 rounded-lg shadow-lg")}>
                                         <AnimatedPanel delay={0}>
                                             <GameSummaryPanel 
                                                 gameId={filteredData.kpis.gameId}
@@ -1297,7 +1301,8 @@ const Dashboard = () => {
 
                                     <TabsContent value="wl-sales" className="space-y-6 mt-4">
                                         <AnimatedPanel delay={0}>
-                                            <Card className={cn("bg-muted/50 border-none shadow-none", isPlaystationTheme && "bg-card/50 border-border")}>
+                                            {/* Ajuste Card do filtro de plataforma para transparência */}
+                                            <Card className={cn("bg-muted/50 border-none shadow-none", isPlaystationTheme && "bg-card/20 backdrop-blur-sm border-ps-blue/50")}>
                                                 <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
                                                     <Label htmlFor="platform-select" className="font-semibold text-foreground min-w-[150px]">Filtrar por Plataforma:</Label>
                                                     <Select onValueChange={(value: Platform | 'All') => setSelectedPlatform(value)} defaultValue={selectedPlatform}>
@@ -1323,7 +1328,7 @@ const Dashboard = () => {
                                                 wlSales={filteredData.wlSales} 
                                                 eventTracking={filteredData.eventTracking}
                                                 manualEventMarkers={filteredData.manualEventMarkers}
-                                                // Passando TODOS os dados de WL do jogo para que o formulário de adição possa calcular a WL anterior
+                                                // Passando TODOS os dados de WL do jogo para o cálculo da WL anterior
                                                 wlSalesDataForRecalculation={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName)}
                                                 allGames={allAvailableGames.map(g => g.name)}
                                                 onPointClick={handleChartPointClick}
@@ -1449,7 +1454,8 @@ const Dashboard = () => {
                                         {/* --- FIM CONTEÚDO CONDICIONAL --- */}
                                     </TabsContent>
                                     
-                                    <TabsContent value="steam-page" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/80 p-4 rounded-lg shadow-lg")}>
+                                    {/* Ajuste TabsContent para transparência */}
+                                    <TabsContent value="steam-page" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/50 backdrop-blur-sm p-4 rounded-lg shadow-lg")}>
                                         {/* Renderizar conteúdo da Steam Page APENAS se a plataforma selecionada for Steam ou All */}
                                         {(selectedPlatform === 'Steam' || selectedPlatform === 'All') ? (
                                             <>
@@ -1502,13 +1508,15 @@ const Dashboard = () => {
                                         )}
                                     </TabsContent>
 
-                                    <TabsContent value="comparisons" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/80 p-4 rounded-lg shadow-lg")}>
+                                    {/* Ajuste TabsContent para transparência */}
+                                    <TabsContent value="comparisons" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/50 backdrop-blur-sm p-4 rounded-lg shadow-lg")}>
                                         <AnimatedPanel delay={0}>
                                             <WlComparisonsPanel data={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName)} allPlatforms={ALL_PLATFORMS} />
                                         </AnimatedPanel>
                                     </TabsContent>
 
-                                    <TabsContent value="influencers" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/80 p-4 rounded-lg shadow-lg")}>
+                                    {/* Ajuste TabsContent para transparência */}
+                                    <TabsContent value="influencers" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/50 backdrop-blur-sm p-4 rounded-lg shadow-lg")}>
                                         <AnimatedPanel delay={0}>
                                             <div className="flex justify-end mb-4 space-x-2">
                                                 <ExportDataButton 
@@ -1546,7 +1554,8 @@ const Dashboard = () => {
                                         </AnimatedPanel>
                                     </TabsContent>
 
-                                    <TabsContent value="events" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/80 p-4 rounded-lg shadow-lg")}>
+                                    {/* Ajuste TabsContent para transparência */}
+                                    <TabsContent value="events" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/50 backdrop-blur-sm p-4 rounded-lg shadow-lg")}>
                                         <AnimatedPanel delay={0}>
                                             <div className="flex justify-end mb-4 space-x-2">
                                                 <ExportDataButton 
@@ -1583,7 +1592,8 @@ const Dashboard = () => {
                                         </AnimatedPanel>
                                     </TabsContent>
 
-                                    <TabsContent value="paid-traffic" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/80 p-4 rounded-lg shadow-lg")}>
+                                    {/* Ajuste TabsContent para transparência */}
+                                    <TabsContent value="paid-traffic" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/50 backdrop-blur-sm p-4 rounded-lg shadow-lg")}>
                                         <AnimatedPanel delay={0}>
                                             <div className="flex justify-end mb-4 space-x-2">
                                                 <ExportDataButton 
@@ -1620,7 +1630,8 @@ const Dashboard = () => {
                                         </AnimatedPanel>
                                     </TabsContent>
                                     
-                                    <TabsContent value="demo" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/80 p-4 rounded-lg shadow-lg")}>
+                                    {/* Ajuste TabsContent para transparência */}
+                                    <TabsContent value="demo" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/50 backdrop-blur-sm p-4 rounded-lg shadow-lg")}>
                                         {/* Conteúdo da aba Demo movido para steam-page, mas mantendo o formulário de edição aqui para consistência se necessário */}
                                         <p className="text-muted-foreground">O tracking de Demo foi movido para a aba "Página Steam" para consolidar dados específicos da Steam.</p>
                                     </TabsContent>
