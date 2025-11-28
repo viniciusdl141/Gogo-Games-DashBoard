@@ -208,8 +208,17 @@
     --card: 220 10% 15%; /* Slightly lighter card */
     --card-foreground: var(--ps-light);
     --border: 220 10% 25%;
+    --input: 220 10% 20%; /* Input background darker */
+    --ring: var(--ps-blue); /* Ring color is PS Blue */
     --primary: var(--ps-blue);
     --primary-foreground: 0 0% 100%;
+    --secondary: 220 10% 20%; /* Secondary/Muted elements darker */
+    --secondary-foreground: var(--ps-light);
+    --muted: 220 10% 20%;
+    --muted-foreground: 220 10% 70%;
+    --accent: 220 10% 20%;
+    --accent-foreground: var(--ps-light);
+    
     --gogo-cyan: var(--ps-blue); /* Override Gogo Cyan for consistency */
     --gogo-orange: 24 100% 60%; /* Keep orange for contrast/alerts */
     
@@ -232,6 +241,25 @@
         background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px, 30px 30px, 30px 30px;
         background-position: 0 0, 0 0, 0 0, 15px 0, 15px -15px, 0px 15px;
         animation: background-pan 120s linear infinite reverse;
+    }
+    
+    /* Ensure ResizablePanel and Tabs use PS colors */
+    .resizable-panel-root {
+        background-color: hsl(var(--background));
+        border-color: hsl(var(--border));
+    }
+    
+    /* Override TabsList background */
+    .tabs-list-override {
+        background-color: hsl(var(--card));
+    }
+    
+    /* Override TabsTrigger active state */
+    .tabs-trigger-override[data-state="active"] {
+        background-color: hsl(var(--ps-blue));
+        color: hsl(var(--ps-light));
+        box-shadow: 0 0 10px hsla(var(--ps-blue)/0.5);
+        border-bottom-color: hsl(var(--ps-blue));
     }
   }
 

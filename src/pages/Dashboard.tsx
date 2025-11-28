@@ -38,7 +38,7 @@ import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm';
 import EditWLSalesForm from '@/components/dashboard/EditWLSalesForm';
 import GameSummaryPanel from '@/components/dashboard/GameSummaryPanel';
 import ExportDataButton from '@/components/dashboard/ExportDataButton';
-import { formatCurrency, formatNumber, convertToCSV } from '@/lib/utils'; // Import convertToCSV
+import { formatCurrency, formatNumber, convertToCSV, cn } from '@/lib/utils'; // Import cn
 import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
 import AddDemoForm from '@/components/dashboard/AddDemoForm';
@@ -1106,7 +1106,8 @@ const Dashboard = () => {
     </div>
   );
 
-
+  const isPlaystationTheme = selectedPlatform === 'Playstation';
+  
   // Renderização condicional para quando não há jogos
   if (isSessionLoading || isGamesLoading) {
     return <div className="min-h-screen flex items-center justify-center">Carregando Dashboard...</div>;
@@ -1141,9 +1142,12 @@ const Dashboard = () => {
         <div className="min-h-screen p-4 md:p-8 font-sans">
             <ResizablePanelGroup
                 direction="horizontal"
-                className="min-h-[calc(100vh-64px)] w-full rounded-lg border border-border bg-card text-card-foreground shadow-gogo-cyan-glow transition-shadow duration-300"
+                className={cn(
+                    "min-h-[calc(100vh-64px)] w-full rounded-lg border border-border bg-card text-card-foreground shadow-gogo-cyan-glow transition-shadow duration-300",
+                    isPlaystationTheme && "resizable-panel-root shadow-none border-ps-blue/50"
+                )}
             >
-                <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="p-4 bg-muted/20 border-r border-border shadow-inner">
+                <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className={cn("p-4 bg-muted/20 border-r border-border shadow-inner", isPlaystationTheme && "bg-background/50 border-border")}>
                     <div className="flex flex-col h-full">
                         <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">Selecione um Jogo</h2>
                         <div className="flex-grow space-y-4">
@@ -1226,7 +1230,7 @@ const Dashboard = () => {
                         </div>
                     </div>
                 </ResizablePanel>
-                <ResizableHandle withHandle className="bg-border w-2 hover:bg-gogo-cyan transition-colors" />
+                <ResizableHandle withHandle className={cn("bg-border w-2 hover:bg-gogo-cyan transition-colors", isPlaystationTheme && "bg-border hover:bg-ps-blue")} />
                 <ResizablePanel defaultSize={80} className="p-6 bg-background">
                     <div className="space-y-8">
                         <DashboardHeader /> {/* USANDO O NOVO HEADER */}
@@ -1234,15 +1238,15 @@ const Dashboard = () => {
                         {filteredData && (
                             <>
                                 <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-                                    <TabsList className="flex w-full overflow-x-auto whitespace-nowrap border-b border-border bg-card text-muted-foreground rounded-t-lg p-0 h-auto shadow-md">
-                                        <TabsTrigger value="overview" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Visão Geral</TabsTrigger>
-                                        <TabsTrigger value="wl-sales" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Evolução WL/Vendas</TabsTrigger>
-                                        <TabsTrigger value="steam-page" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Página Steam</TabsTrigger> 
-                                        <TabsTrigger value="comparisons" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Comparações</TabsTrigger>
-                                        <TabsTrigger value="influencers" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Influencers</TabsTrigger>
-                                        <TabsTrigger value="events" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Eventos</TabsTrigger>
-                                        <TabsTrigger value="paid-traffic" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Tráfego Pago</TabsTrigger>
-                                        <TabsTrigger value="demo" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10">Demo</TabsTrigger>
+                                    <TabsList className={cn("flex w-full overflow-x-auto whitespace-nowrap border-b border-border bg-card text-muted-foreground rounded-t-lg p-0 h-auto shadow-md", isPlaystationTheme && "tabs-list-override shadow-lg border-border")}>
+                                        <TabsTrigger value="overview" className={cn("min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10", isPlaystationTheme && "tabs-trigger-override data-[state=active]:bg-ps-blue data-[state=active]:text-ps-light data-[state=active]:border-b-2 data-[state=active]:border-ps-blue hover:bg-ps-blue/20")}>Visão Geral</TabsTrigger>
+                                        <TabsTrigger value="wl-sales" className={cn("min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10", isPlaystationTheme && "tabs-trigger-override data-[state=active]:bg-ps-blue data-[state=active]:text-ps-light data-[state=active]:border-b-2 data-[state=active]:border-ps-blue hover:bg-ps-blue/20")}>Evolução WL/Vendas</TabsTrigger>
+                                        <TabsTrigger value="steam-page" className={cn("min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10", isPlaystationTheme && "tabs-trigger-override data-[state=active]:bg-ps-blue data-[state=active]:text-ps-light data-[state=active]:border-b-2 data-[state=active]:border-ps-blue hover:bg-ps-blue/20")}>Página Steam</TabsTrigger> 
+                                        <TabsTrigger value="comparisons" className={cn("min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10", isPlaystationTheme && "tabs-trigger-override data-[state=active]:bg-ps-blue data-[state=active]:text-ps-light data-[state=active]:border-b-2 data-[state=active]:border-ps-blue hover:bg-ps-blue/20")}>Comparações</TabsTrigger>
+                                        <TabsTrigger value="influencers" className={cn("min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10", isPlaystationTheme && "tabs-trigger-override data-[state=active]:bg-ps-blue data-[state=active]:text-ps-light data-[state=active]:border-b-2 data-[state=active]:border-ps-blue hover:bg-ps-blue/20")}>Influencers</TabsTrigger>
+                                        <TabsTrigger value="events" className={cn("min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10", isPlaystationTheme && "tabs-trigger-override data-[state=active]:bg-ps-blue data-[state=active]:text-ps-light data-[state=active]:border-b-2 data-[state=active]:border-ps-blue hover:bg-ps-blue/20")}>Eventos</TabsTrigger>
+                                        <TabsTrigger value="paid-traffic" className={cn("min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10", isPlaystationTheme && "tabs-trigger-override data-[state=active]:bg-ps-blue data-[state=active]:text-ps-light data-[state=active]:border-b-2 data-[state=active]:border-ps-blue hover:bg-ps-blue/20")}>Tráfego Pago</TabsTrigger>
+                                        <TabsTrigger value="demo" className={cn("min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:border-b-2 data-[state=active]:border-gogo-orange transition-all duration-200 hover:bg-gogo-cyan/10", isPlaystationTheme && "tabs-trigger-override data-[state=active]:bg-ps-blue data-[state=active]:text-ps-light data-[state=active]:border-b-2 data-[state=active]:border-ps-blue hover:bg-ps-blue/20")}>Demo</TabsTrigger>
                                     </TabsList>
 
                                     <TabsContent value="overview" className="space-y-6 mt-4">
@@ -1286,7 +1290,7 @@ const Dashboard = () => {
 
                                     <TabsContent value="wl-sales" className="space-y-6 mt-4">
                                         <AnimatedPanel delay={0}>
-                                            <Card className="bg-muted/50 border-none shadow-none">
+                                            <Card className={cn("bg-muted/50 border-none shadow-none", isPlaystationTheme && "bg-card/50 border-border")}>
                                                 <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
                                                     <Label htmlFor="platform-select" className="font-semibold text-foreground min-w-[150px]">Filtrar por Plataforma:</Label>
                                                     <Select onValueChange={(value: Platform | 'All') => setSelectedPlatform(value)} defaultValue={selectedPlatform}>
@@ -1305,7 +1309,7 @@ const Dashboard = () => {
                                         </AnimatedPanel>
                                         
                                         {/* --- CONTEÚDO CONDICIONAL DA ABA WL-SALES --- */}
-                                        {selectedPlatform === 'Playstation' ? (
+                                        {isPlaystationTheme ? (
                                             <PlaystationDashboardContent
                                                 gameName={selectedGameName}
                                                 wlSales={filteredData.wlSales}

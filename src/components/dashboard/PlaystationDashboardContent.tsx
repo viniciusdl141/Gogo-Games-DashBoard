@@ -14,7 +14,7 @@ import AddDailyWLSalesForm from './AddDailyWLSalesForm';
 import { toast } from 'sonner';
 
 // Assets (usando paths relativos para os arquivos que você forneceu)
-const PS_LOGO = '/ps_logo_white.png'; // Usando o logo branco
+// Removendo PS_LOGO, pois usaremos um ícone
 const PS_PLUS_LOGO = '/ps_plus.webp';
 const PS_STARS_LOGO = '/ps_stars.png'; // Mantendo este como placeholder, se necessário
 
@@ -63,13 +63,8 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
     const [activeMenuItem, setActiveMenuItem] = useState(PS_MENU_ITEMS[0].id);
     const [isAddDailyWLSalesFormOpen, setIsAddDailyWLSalesFormOpen] = useState(false);
     const [isHistoryVisible, setIsHistoryVisible] = useState(true);
-    const [isLogoError, setIsLogoError] = useState(false); // Novo estado para erro do logo
-
-    // Reset error state when component mounts or game changes
-    React.useEffect(() => {
-        setIsLogoError(false);
-    }, [gameName]);
-
+    // Removendo isLogoError, pois não usaremos imagem de logo de marca
+    
     const filteredWLSales = useMemo(() => {
         // Filter WL Sales based on the active menu item (simulating different store sections)
         if (activeMenuItem === 'ps_plus') {
@@ -91,19 +86,8 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
             
             {/* --- PlayStation Horizontal Menu (Simulação) --- */}
             <div className="flex items-center space-x-6 p-4 bg-ps-dark/80 backdrop-blur-sm rounded-lg shadow-xl border border-ps-blue/50">
-                {isLogoError ? (
-                    <div className="h-8 w-auto flex items-center justify-center text-ps-light font-bold text-lg">PS</div>
-                ) : (
-                    <img 
-                        src={PS_LOGO} 
-                        alt="PlayStation Logo" 
-                        className="h-8 w-auto" 
-                        onError={() => {
-                            setIsLogoError(true);
-                            toast.error("Falha ao carregar o logo da PlayStation. Usando fallback.");
-                        }}
-                    />
-                )}
+                {/* Substituindo o logo da marca pelo ícone do controle, que é mais fiel à UI da PSN */}
+                <Gamepad2 className="h-8 w-auto text-ps-blue" />
                 
                 <div className="flex space-x-4 overflow-x-auto">
                     {PS_MENU_ITEMS.map(item => (
