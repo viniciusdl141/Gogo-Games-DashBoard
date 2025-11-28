@@ -14,7 +14,7 @@ import AddDailyWLSalesForm from './AddDailyWLSalesForm';
 import { toast } from 'sonner';
 
 // Assets (usando paths relativos para os arquivos que você forneceu)
-const PS_LOGO = '/ps_logo.png';
+const PS_LOGO = '/ps_logo_sony.png'; // ALTERADO PARA O NOVO ARQUIVO
 const PS_PLUS_LOGO = '/ps_plus.webp';
 const PS_STARS_LOGO = '/ps_stars.png'; // Mantendo este como placeholder, se necessário
 
@@ -64,6 +64,11 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
     const [isAddDailyWLSalesFormOpen, setIsAddDailyWLSalesFormOpen] = useState(false);
     const [isHistoryVisible, setIsHistoryVisible] = useState(true);
     const [isLogoError, setIsLogoError] = useState(false); // Novo estado para erro do logo
+
+    // Reset error state when component mounts or game changes
+    React.useEffect(() => {
+        setIsLogoError(false);
+    }, [gameName]);
 
     const filteredWLSales = useMemo(() => {
         // Filter WL Sales based on the active menu item (simulating different store sections)
