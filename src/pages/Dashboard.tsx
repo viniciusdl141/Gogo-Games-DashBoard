@@ -252,7 +252,7 @@ const Dashboard = () => {
 
         // Helper to process arrays, convert dates, and assign IDs
         const processArray = (key: keyof TrackingData, prefix: string, data: any[]) => {
-            if (!Array.isArray(data)) return;
+            if (!ArrayOfdata) return;
 
             const processedData = data.map(item => {
                 const newItem = { ...item, id: generateLocalUniqueId(prefix), game: gameName };
@@ -1232,7 +1232,13 @@ const Dashboard = () => {
                     </div>
                 </ResizablePanel>
                 <ResizableHandle withHandle className={cn("bg-border w-2 hover:bg-gogo-cyan transition-colors", isPlaystationTheme && "bg-border hover:bg-ps-blue")} />
-                <ResizablePanel defaultSize={80} className={cn("p-6 bg-background", isPlaystationTheme && "bg-card/80")}>
+                <ResizablePanel 
+                    defaultSize={80} 
+                    className={cn(
+                        "p-6 bg-background", 
+                        isPlaystationTheme && "theme-playstation ps-background-pattern" // Apply PS background here
+                    )}
+                >
                     <div className="space-y-8">
                         <DashboardHeader /> {/* USANDO O NOVO HEADER */}
 
@@ -1443,12 +1449,12 @@ const Dashboard = () => {
                                         {/* --- FIM CONTEÚDO CONDICIONAL --- */}
                                     </TabsContent>
                                     
-                                    <TabsContent value="steam-page" className="space-y-6 mt-4">
+                                    <TabsContent value="steam-page" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/80 p-4 rounded-lg shadow-lg")}>
                                         {/* Renderizar conteúdo da Steam Page APENAS se a plataforma selecionada for Steam ou All */}
                                         {(selectedPlatform === 'Steam' || selectedPlatform === 'All') ? (
                                             <>
                                                 <AnimatedPanel delay={0}>
-                                                    <SalesByTypeChart data={filteredData.wlSales.filter(e => e.platform === 'Steam' || selectedPlatform === 'Steam')} />
+                                                    <SalesByTypeChart data={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName && (e.platform === 'Steam' || selectedPlatform === 'Steam'))} />
                                                 </AnimatedPanel>
                                                 
                                                 {filteredData.wlDetails && (
@@ -1496,13 +1502,13 @@ const Dashboard = () => {
                                         )}
                                     </TabsContent>
 
-                                    <TabsContent value="comparisons" className="space-y-6 mt-4">
+                                    <TabsContent value="comparisons" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/80 p-4 rounded-lg shadow-lg")}>
                                         <AnimatedPanel delay={0}>
                                             <WlComparisonsPanel data={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName)} allPlatforms={ALL_PLATFORMS} />
                                         </AnimatedPanel>
                                     </TabsContent>
 
-                                    <TabsContent value="influencers" className="space-y-6 mt-4">
+                                    <TabsContent value="influencers" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/80 p-4 rounded-lg shadow-lg")}>
                                         <AnimatedPanel delay={0}>
                                             <div className="flex justify-end mb-4 space-x-2">
                                                 <ExportDataButton 
@@ -1540,7 +1546,7 @@ const Dashboard = () => {
                                         </AnimatedPanel>
                                     </TabsContent>
 
-                                    <TabsContent value="events" className="space-y-6 mt-4">
+                                    <TabsContent value="events" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/80 p-4 rounded-lg shadow-lg")}>
                                         <AnimatedPanel delay={0}>
                                             <div className="flex justify-end mb-4 space-x-2">
                                                 <ExportDataButton 
@@ -1577,7 +1583,7 @@ const Dashboard = () => {
                                         </AnimatedPanel>
                                     </TabsContent>
 
-                                    <TabsContent value="paid-traffic" className="space-y-6 mt-4">
+                                    <TabsContent value="paid-traffic" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/80 p-4 rounded-lg shadow-lg")}>
                                         <AnimatedPanel delay={0}>
                                             <div className="flex justify-end mb-4 space-x-2">
                                                 <ExportDataButton 
@@ -1614,7 +1620,7 @@ const Dashboard = () => {
                                         </AnimatedPanel>
                                     </TabsContent>
                                     
-                                    <TabsContent value="demo" className="space-y-6 mt-4">
+                                    <TabsContent value="demo" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/80 p-4 rounded-lg shadow-lg")}>
                                         {/* Conteúdo da aba Demo movido para steam-page, mas mantendo o formulário de edição aqui para consistência se necessário */}
                                         <p className="text-muted-foreground">O tracking de Demo foi movido para a aba "Página Steam" para consolidar dados específicos da Steam.</p>
                                     </TabsContent>
