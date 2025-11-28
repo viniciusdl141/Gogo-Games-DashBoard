@@ -13,11 +13,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import AddDailyWLSalesForm from './AddDailyWLSalesForm';
 import { toast } from 'sonner';
 
-// Assets (Removendo dependência de arquivos externos)
-// const PS_LOGO = '/ps_logo_sony.png'; // REMOVIDO
-// const PS_PLUS_LOGO = '/ps_plus.webp'; // REMOVIDO
+// Assets (Reintroduzindo o caminho do logo)
+const PS_LOGO = '/ps_logo_sony.png'; 
 
-// Itens do menu horizontal da PlayStation (Removendo o campo 'asset')
+// Itens do menu horizontal da PlayStation (Removendo o campo 'asset' permanentemente)
 const PS_MENU_ITEMS = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'ps_plus', label: 'PS Plus', icon: Zap },
@@ -62,20 +61,20 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
     const [activeMenuItem, setActiveMenuItem] = useState(PS_MENU_ITEMS[0].id);
     const [isAddDailyWLSalesFormOpen, setIsAddDailyWLSalesFormOpen] = useState(false);
     const [isHistoryVisible, setIsHistoryVisible] = useState(true);
-    
-    // Não precisamos mais de isLogoError ou isAssetError
+    const [isLogoError, setIsLogoError] = useState(false); 
 
+    // Reset error state when component mounts or game changes
+    React.useEffect(() => {
+        setIsLogoError(false);
+    }, [gameName]);
+    
     const filteredWLSales = useMemo(() => {
-        // Filter WL Sales based on the active menu item (simulando diferentes store sections)
         if (activeMenuItem === 'ps_plus') {
-            // Simulate PS Plus sales (e.g., only Bundle/DLC sales)
             return wlSales.filter(e => e.saleType === 'Bundle' || e.saleType === 'DLC');
         }
         if (activeMenuItem === 'free_to_play') {
-            // Simulate F2P tracking (only WL data, sales should be 0)
             return wlSales.filter(e => e.sales === 0);
         }
-        // Default to all sales for Home/Add-ons/VR
         return wlSales;
     }, [wlSales, activeMenuItem]);
 
@@ -86,8 +85,19 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
             
             {/* --- PlayStation Horizontal Menu (Simulação) --- */}
             <div className="flex items-center space-x-6 p-4 bg-ps-dark/80 backdrop-blur-sm rounded-lg shadow-xl border border-ps-blue/50">
-                {/* Fallback de texto para o logo */}
-                <div className="h-8 w-auto flex items-center justify-center text-ps-light font-bold text-2xl font-gamer">PS</div>
+                {isLogoError ? (
+                    <div className="h-8 w-auto flex items-center justify-center text-ps-light font-bold text-2xl font-gamer">PS</div>
+                ) : (
+                    <img 
+                        src={PS_LOGO} 
+                        alt="PlayStation Logo" 
+                        className="h-8 w-auto" 
+                        onError={() => {
+                            setIsLogoError(true);
+                            toast.error("Falha ao carregar o logo da PlayStation. Usando fallback.");
+                        }}
+                    />
+                )}
                 
                 <div className="flex space-x-4 overflow-x-auto">
                     {PS_MENU_ITEMS.map(item => (
@@ -152,14 +162,17 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
                 </CardHeader>
                 
                 <CardContent className="p-4 space-y-6">
-                    {/* Painel de simulação de fundo (substituindo a imagem que falha) */}
+                    {/* Painel de simulação de fundo (usando apenas CSS e texto) */}
                     <div className="relative h-48 w-full overflow-hidden rounded-lg mb-4 flex items-center justify-center bg-ps-dark/50 border border-ps-blue/50">
-                        <div className="text-center p-4">
+                        <div className="absolute inset-0 bg-gradient-to-br from-ps-blue/20 to-ps-dark/50 animate-pulse-slow">
+                            {/* Gradiente sutil para simular o visual dinâmico da PS Store */}
+                        </div>
+                        <div className="text-center p-4 relative z-10">
                             <p className="text-3xl font-bold text-ps-light font-gamer drop-shadow-lg">
                                 {activeMenuLabel}
                             </p>
                             <p className="text-sm text-ps-light/70 mt-2">
-                                Simulação de interface PlayStation. Dados de WL/Vendas filtrados.
+                                Dados de Wishlist e Vendas para PlayStation.
                             </p>
                         </div>
                     </div>
