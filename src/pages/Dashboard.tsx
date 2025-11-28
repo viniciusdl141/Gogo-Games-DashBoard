@@ -1147,7 +1147,7 @@ const Dashboard = () => {
                     isPlaystationTheme && "resizable-panel-root shadow-none border-ps-blue/50"
                 )}
             >
-                <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className={cn("p-4 bg-muted/20 border-r border-border shadow-inner", isPlaystationTheme && "bg-background/50 border-border")}>
+                <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className={cn("p-4 bg-muted/20 border-r border-border shadow-inner", isPlaystationTheme && "bg-card/50 border-border")}>
                     <div className="flex flex-col h-full">
                         <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">Selecione um Jogo</h2>
                         <div className="flex-grow space-y-4">
@@ -1231,7 +1231,7 @@ const Dashboard = () => {
                     </div>
                 </ResizablePanel>
                 <ResizableHandle withHandle className={cn("bg-border w-2 hover:bg-gogo-cyan transition-colors", isPlaystationTheme && "bg-border hover:bg-ps-blue")} />
-                <ResizablePanel defaultSize={80} className="p-6 bg-background">
+                <ResizablePanel defaultSize={80} className={cn("p-6 bg-background", isPlaystationTheme && "bg-card/50")}>
                     <div className="space-y-8">
                         <DashboardHeader /> {/* USANDO O NOVO HEADER */}
 
@@ -1294,7 +1294,7 @@ const Dashboard = () => {
                                                 <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
                                                     <Label htmlFor="platform-select" className="font-semibold text-foreground min-w-[150px]">Filtrar por Plataforma:</Label>
                                                     <Select onValueChange={(value: Platform | 'All') => setSelectedPlatform(value)} defaultValue={selectedPlatform}>
-                                                        <SelectTrigger id="platform-select" className="w-full md:w-[200px] bg-background">
+                                                        <SelectTrigger id="platform-select" className={cn("w-full md:w-[200px] bg-background", isPlaystationTheme && "bg-card border-border text-foreground")}>
                                                             <SelectValue placeholder="Todas as Plataformas" />
                                                         </SelectTrigger>
                                                         <SelectContent>
