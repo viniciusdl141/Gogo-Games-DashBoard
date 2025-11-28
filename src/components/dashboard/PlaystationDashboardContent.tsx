@@ -14,17 +14,17 @@ import AddDailyWLSalesForm from './AddDailyWLSalesForm';
 import { toast } from 'sonner';
 
 // Assets (usando paths relativos para os arquivos que você forneceu)
-const PS_LOGO = '/ps_white.jpeg';
-const PS_PLUS_LOGO = '/psplus.png';
-const PS_STARS_LOGO = '/ps stars.png';
+const PS_LOGO = '/ps_logo.png';
+const PS_PLUS_LOGO = '/ps_plus.webp';
+const PS_STARS_LOGO = '/ps_stars.png'; // Mantendo este como placeholder, se necessário
 
 // Itens do menu horizontal da PlayStation
 const PS_MENU_ITEMS = [
-    { id: 'home', label: 'Home', icon: Gamepad2, asset: '/ps5_games.webp' },
-    { id: 'ps_plus', label: 'PS Plus', icon: Plus, asset: '/ps+.webp' },
-    { id: 'add_ons', label: 'Add-Ons', icon: MessageSquare, asset: '/add-ons.webp' },
-    { id: 'free_to_play', label: 'Free to Play', icon: DollarSign, asset: '/free to play.webp' },
-    { id: 'vr', label: 'VR', icon: Clock, asset: '/vr.webp' },
+    { id: 'home', label: 'Home', icon: Gamepad2, asset: '/ps_home.webp' },
+    { id: 'ps_plus', label: 'PS Plus', icon: Plus, asset: '/ps_plus.webp' },
+    { id: 'add_ons', label: 'Add-Ons', icon: MessageSquare, asset: '/ps_addons.webp' },
+    { id: 'free_to_play', label: 'Free to Play', icon: DollarSign, asset: '/ps_f2p.webp' },
+    { id: 'vr', label: 'VR', icon: Clock, asset: '/ps_vr.webp' },
 ];
 
 interface PlaystationDashboardContentProps {
