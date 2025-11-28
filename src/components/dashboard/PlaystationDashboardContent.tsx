@@ -14,7 +14,6 @@ import AddDailyWLSalesForm from './AddDailyWLSalesForm';
 import { toast } from 'sonner';
 
 // Assets (usando paths relativos para os arquivos que você forneceu)
-// Removendo PS_LOGO, pois usaremos um ícone
 const PS_PLUS_LOGO = '/ps_plus.webp';
 const PS_STARS_LOGO = '/ps_stars.png'; // Mantendo este como placeholder, se necessário
 
@@ -29,7 +28,8 @@ const PS_MENU_ITEMS = [
 
 interface PlaystationDashboardContentProps {
     gameName: string;
-    wlSales: WLSalesPlatformEntry[];
+    // Estes dados já vêm filtrados pelo Dashboard.tsx para a plataforma 'Playstation'
+    wlSales: WLSalesPlatformEntry[]; 
     eventTracking: EventTrackingEntry[];
     manualEventMarkers: ManualEventMarker[];
     wlSalesDataForRecalculation: WLSalesPlatformEntry[];
@@ -63,19 +63,18 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
     const [activeMenuItem, setActiveMenuItem] = useState(PS_MENU_ITEMS[0].id);
     const [isAddDailyWLSalesFormOpen, setIsAddDailyWLSalesFormOpen] = useState(false);
     const [isHistoryVisible, setIsHistoryVisible] = useState(true);
-    // Removendo isLogoError, pois não usaremos imagem de logo de marca
     
+    // Use useMemo para simular a filtragem da seção da loja, mas mantendo a base de dados completa do PS
     const filteredWLSales = useMemo(() => {
-        // Filter WL Sales based on the active menu item (simulating different store sections)
         if (activeMenuItem === 'ps_plus') {
-            // Simulate PS Plus sales (e.g., only Bundle/DLC sales)
+            // Simula PS Plus: Foca em Bundles/DLCs
             return wlSales.filter(e => e.saleType === 'Bundle' || e.saleType === 'DLC');
         }
         if (activeMenuItem === 'free_to_play') {
-            // Simulate F2P tracking (only WL data, sales should be 0)
+            // Simula F2P: Foca em entradas com 0 vendas (ou apenas WL)
             return wlSales.filter(e => e.sales === 0);
         }
-        // Default to all sales for Home/Add-ons/VR
+        // Default: Retorna todos os dados do PlayStation
         return wlSales;
     }, [wlSales, activeMenuItem]);
 
@@ -86,7 +85,6 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
             
             {/* --- PlayStation Horizontal Menu (Simulação) --- */}
             <div className="flex items-center space-x-6 p-4 bg-ps-dark/80 backdrop-blur-sm rounded-lg shadow-xl border border-ps-blue/50">
-                {/* Substituindo o logo da marca pelo ícone do controle, que é mais fiel à UI da PSN */}
                 <Gamepad2 className="h-8 w-auto text-ps-blue" />
                 
                 <div className="flex space-x-4 overflow-x-auto">
@@ -142,8 +140,9 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
                                 </DialogHeader>
                                 <AddDailyWLSalesForm 
                                     gameName={gameName}
-                                    wlSalesData={wlSalesDataForRecalculation}
-                                    onSave={onAddDailyWLSalesEntry} 
+                                    // Passando apenas os dados do PS para o cálculo da WL anterior
+                                    wlSalesData={wlSalesDataForRecalculation.filter(e => e.platform === 'Playstation')}
+                                    onSave={(data) => onAddDailyWLSalesEntry({ ...data, platform: 'Playstation' })} 
                                     onClose={() => setIsAddDailyWLSalesFormOpen(false)} 
                                 />
                             </DialogContent>
@@ -159,7 +158,6 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
                                 src={activeAsset} 
                                 alt={activeMenuItem} 
                                 className="w-full h-full object-cover opacity-50" 
-                                // Adicionando um fallback simples para garantir que o texto apareça mesmo sem imagem
                                 onError={(e) => {
                                     const target = e.target as HTMLImageElement;
                                     target.style.display = 'none';
