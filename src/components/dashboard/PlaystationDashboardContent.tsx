@@ -63,12 +63,18 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
     const [activeMenuItem, setActiveMenuItem] = useState(PS_MENU_ITEMS[0].id);
     const [isAddDailyWLSalesFormOpen, setIsAddDailyWLSalesFormOpen] = useState(false);
     const [isHistoryVisible, setIsHistoryVisible] = useState(true);
-    const [isLogoError, setIsLogoError] = useState(false); // Novo estado para erro do logo
+    const [isLogoError, setIsLogoError] = useState(false); 
+    const [isAssetError, setIsAssetError] = useState(false); // Novo estado para erro do asset
 
     // Reset error state when component mounts or game changes
     React.useEffect(() => {
         setIsLogoError(false);
     }, [gameName]);
+    
+    // Reset asset error state when menu item changes
+    React.useEffect(() => {
+        setIsAssetError(false);
+    }, [activeMenuItem]);
 
     const filteredWLSales = useMemo(() => {
         // Filter WL Sales based on the active menu item (simulating different store sections)
@@ -174,12 +180,10 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
                             <img 
                                 src={activeAsset} 
                                 alt={activeMenuItem} 
-                                className="w-full h-full object-cover opacity-50" 
-                                // Adicionando um fallback simples para garantir que o texto apareça mesmo sem imagem
+                                className={cn("w-full h-full object-cover opacity-50", isAssetError && "hidden")}
                                 onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                    const parent = target.parentElement;
+                                    setIsAssetError(true);
+                                    const parent = e.currentTarget.parentElement;
                                     if (parent) {
                                         parent.style.backgroundColor = 'hsl(var(--ps-dark))';
                                     }
@@ -189,6 +193,11 @@ const PlaystationDashboardContent: React.FC<PlaystationDashboardContentProps> = 
                                 <p className="text-3xl font-bold text-white font-gamer drop-shadow-lg">
                                     {PS_MENU_ITEMS.find(i => i.id === activeMenuItem)?.label}
                                 </p>
+                                {isAssetError && (
+                                    <p className="absolute bottom-2 text-sm text-red-400">
+                                        (Falha ao carregar imagem de fundo)
+                                    </p>
+                                )}
                             </div>
                         </div>
                     )}
