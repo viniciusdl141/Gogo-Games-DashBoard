@@ -1139,15 +1139,16 @@ const Dashboard = () => {
   // Renderização principal
   return (
     <PlatformThemeWrapper selectedPlatform={selectedPlatform}>
-        <div className="min-h-screen p-4 md:p-8 font-sans">
+        <div className="min-h-screen font-sans"> {/* Removendo padding aqui */}
             <ResizablePanelGroup
                 direction="horizontal"
                 className={cn(
-                    "min-h-[calc(100vh-64px)] w-full rounded-lg border border-border bg-card text-card-foreground shadow-gogo-cyan-glow transition-shadow duration-300",
-                    isPlaystationTheme && "resizable-panel-root shadow-none border-ps-blue/50"
+                    "min-h-[calc(100vh)] w-full rounded-none border-none bg-card text-card-foreground shadow-gogo-cyan-glow transition-shadow duration-300",
+                    // Removendo o fundo do ResizablePanelGroup e adicionando semi-transparência
+                    isPlaystationTheme && "resizable-panel-root shadow-none border-ps-blue/50 bg-card/90" 
                 )}
             >
-                <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className={cn("p-4 bg-muted/20 border-r border-border shadow-inner", isPlaystationTheme && "bg-card/50 border-border")}>
+                <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className={cn("p-4 border-r border-border shadow-inner", isPlaystationTheme && "bg-card/80 border-border")}>
                     <div className="flex flex-col h-full">
                         <h2 className="text-2xl font-bold mb-6 text-gogo-cyan">Selecione um Jogo</h2>
                         <div className="flex-grow space-y-4">
@@ -1231,7 +1232,7 @@ const Dashboard = () => {
                     </div>
                 </ResizablePanel>
                 <ResizableHandle withHandle className={cn("bg-border w-2 hover:bg-gogo-cyan transition-colors", isPlaystationTheme && "bg-border hover:bg-ps-blue")} />
-                <ResizablePanel defaultSize={80} className={cn("p-6 bg-background", isPlaystationTheme && "bg-card/50")}>
+                <ResizablePanel defaultSize={80} className={cn("p-6 bg-background", isPlaystationTheme && "bg-card/80")}>
                     <div className="space-y-8">
                         <DashboardHeader /> {/* USANDO O NOVO HEADER */}
 

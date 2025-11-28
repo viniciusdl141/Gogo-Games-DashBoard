@@ -32,11 +32,11 @@ const DashboardHeader: React.FC = () => {
     const userRole = profile?.role || 'Convidado';
     const studioId = profile?.studio_id;
     
-    // Determine if the PlayStation theme is active based on the platform filter in Dashboard (not directly available here, but we can assume the parent context handles the theme wrapper)
-    // We apply a general semi-transparent dark background to ensure readability over any theme background.
+    // Apply padding to the header content itself, but let the background stretch
     const headerClasses = cn(
         "flex items-center justify-between mb-8 pb-4 border-b border-border",
-        "bg-card/80 backdrop-blur-sm p-4 -mx-4 -mt-4 rounded-t-lg shadow-md" // Adiciona fundo semi-transparente
+        // Removendo -mx-4 -mt-4 e aplicando padding interno para alinhar com o p-6 do ResizablePanel
+        "bg-card/80 backdrop-blur-sm p-4 -mx-6 -mt-6 rounded-t-lg shadow-md" 
     );
 
     return (
