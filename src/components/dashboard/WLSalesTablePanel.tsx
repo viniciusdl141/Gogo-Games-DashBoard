@@ -66,7 +66,8 @@ const WLSalesTablePanel: React.FC<WLSalesTablePanelProps> = ({ data, onDelete, o
     }
     
     // Determine theme classes for the card
-    const isPlaystation = selectedPlatform === 'Playstation' || selectedPlatform === 'PS Plus' || selectedPlatform === 'Add-Ons' || selectedPlatform === 'Free to Play' || selectedPlatform === 'VR';
+    // Simplificando a verificação de tema, pois as categorias PS foram removidas do filtro principal
+    const isPlaystation = selectedPlatform === 'Playstation';
     const isNintendo = selectedPlatform === 'Nintendo';
     
     const cardClasses = cn(

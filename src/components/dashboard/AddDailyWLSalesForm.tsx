@@ -23,7 +23,7 @@ import { formatNumber } from '@/lib/utils';
 import { toast } from 'sonner';
 
 // Definindo o tipo de plataforma (Atualizado)
-const PlatformEnum = z.enum(['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra', 'PS Plus', 'Add-Ons', 'Free to Play', 'VR']);
+const PlatformEnum = z.enum(['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra']);
 
 // Schema de validação: Agora aceita a WL Total
 const formSchema = z.object({
@@ -46,8 +46,8 @@ const AddDailyWLSalesForm: React.FC<AddDailyWLSalesFormProps> = ({ gameName, wlS
     
     // Função para obter a última WL registrada e a próxima data sugerida
     const getLatestData = (currentPlatform: Platform) => {
-        // NOTE: When a PS Category is selected, we look for the last entry under 'Playstation'
-        const effectivePlatform = ['PS Plus', 'Add-Ons', 'Free to Play', 'VR'].includes(currentPlatform) ? 'Playstation' : currentPlatform;
+        // Agora, a plataforma efetiva é a plataforma selecionada, pois as categorias foram removidas
+        const effectivePlatform = currentPlatform;
 
         const platformData = wlSalesData
             .filter(e => e.platform === effectivePlatform)

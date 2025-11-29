@@ -68,8 +68,8 @@ export interface DemoTrackingEntry {
 
 export type SaleType = 'Padrão' | 'Bundle' | 'DLC';
 export type EntryFrequency = 'Diário' | 'Semanal' | 'Mensal';
-// Updated Platform type
-export type Platform = 'Steam' | 'Xbox' | 'Playstation' | 'Nintendo' | 'Android' | 'iOS' | 'Epic Games' | 'Outra' | 'PS Plus' | 'Add-Ons' | 'Free to Play' | 'VR';
+// Updated Platform type: Removed PS Plus, Add-Ons, Free to Play, VR
+export type Platform = 'Steam' | 'Xbox' | 'Playstation' | 'Nintendo' | 'Android' | 'iOS' | 'Epic Games' | 'Outra';
 
 export interface WLSalesPlatformEntry {
     id: string; // Unique ID for this entry
@@ -428,7 +428,7 @@ export const getTrackingData = (): TrackingData => {
         ...processWLSalesSheet(rawData['Total WL - Hellbrella'], 'Hellbrella', 'Steam'),
         ...processWLSalesSheet(rawData['Total WL - The Mare Show'], 'The Mare Show', 'Steam'),
         ...processWLSalesSheet(rawData['Total WL - Dreadstone Keep'], 'Dreadstone Keep', 'Steam'),
-        // Add other platforms from rawData, assuming 0 sales/WL for now if data is sparse
+        // Mapeando as categorias PS/Console para a plataforma base 'Playstation', 'Xbox', 'Nintendo'
         ...processWLSalesSheet(rawData['TOTAL WL NINTENDO - LIA HACKING'], 'Lia Hacking Destiny', 'Nintendo'),
         ...processWLSalesSheet(rawData['TOTAL WL ANDROID - LIA HACKING '], 'Lia Hacking Destiny', 'Android'),
         ...processWLSalesSheet(rawData['TOTAL WL IOS - LIA HACKING DEST'], 'Lia Hacking Destiny', 'iOS'),

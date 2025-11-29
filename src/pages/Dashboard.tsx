@@ -66,8 +66,9 @@ let localIdCounter = initialRawData.influencerTracking.length + initialRawData.e
 const generateLocalUniqueId = (prefix: string = 'track') => `${prefix}-${localIdCounter++}`;
 
 // Updated ALL_PLATFORMS to include PS categories
-const ALL_PLATFORMS: Platform[] = ['All', 'Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra', 'PS Plus', 'Add-Ons', 'Free to Play', 'VR'];
-const PS_CATEGORIES: Platform[] = ['PS Plus', 'Add-Ons', 'Free to Play', 'VR'];
+const ALL_PLATFORMS: Platform[] = ['All', 'Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra'];
+// Removendo PS_CATEGORIES, pois o filtro agora só mostra plataformas principais
+// const PS_CATEGORIES: Platform[] = ['PS Plus', 'Add-Ons', 'Free to Play', 'VR'];
 
 // Tipos para as configurações de cor
 interface WLSalesChartColors {
@@ -90,7 +91,7 @@ const Dashboard = () => {
   const { isAdmin, studioId, isLoading: isSessionLoading } = useSession();
   const [trackingData, setTrackingData] = useState(initialRawData);
   const [selectedGameName, setSelectedGameName] = useState<string>(trackingData.games[0] || '');
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'All'>('PS Plus'); // Default to PS Plus
+  const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'All'>('Steam'); // Default para Steam
   const [selectedTimeFrame, setSelectedTimeFrame] = useState<TimeFrame>('weekly'); 
   const [selectedTab, setSelectedTab] = useState('overview'); 
   
@@ -164,10 +165,9 @@ const Dashboard = () => {
 
 
   // --- NEW: Memoize the effective platform filter separately ---
+  // Simplificando: agora o filtro é sempre a plataforma selecionada, pois as categorias foram removidas
   const effectivePlatformFilter: Platform | 'All' = useMemo(() => {
-    return PS_CATEGORIES.includes(selectedPlatform as Platform)
-        ? 'Playstation'
-        : selectedPlatform;
+    return selectedPlatform;
   }, [selectedPlatform]);
   // --- END NEW ---
 

@@ -24,13 +24,9 @@ const PS_CHART_COLORS = {
     sales: 'hsl(220 80% 70%)', // Lighter PS Blue
 };
 
-// Opções de filtro conforme solicitado pelo usuário, mantendo 'All' e as plataformas base
+// Opções de filtro simplificadas: Apenas plataformas principais
 const filterOptions: (Platform | 'All')[] = [
     'All', 
-    'PS Plus', 
-    'Add-Ons', 
-    'Free to Play', 
-    'VR',
     'Steam', 
     'Xbox', 
     'Playstation', 
@@ -45,10 +41,6 @@ const filterOptions: (Platform | 'All')[] = [
 const getDisplayPlatformName = (platform: Platform | 'All') => {
     switch (platform) {
         case 'All': return 'Todas as Plataformas';
-        case 'PS Plus': return 'PS Plus';
-        case 'Add-Ons': return 'Add-Ons';
-        case 'Free to Play': return 'Free to Play';
-        case 'VR': return 'VR';
         default: return platform;
     }
 };
@@ -109,7 +101,7 @@ const WLSalesPanelThemed: React.FC<WLSalesPanelThemedProps> = ({
             {/* --- Filtro de Plataforma (Mantido para filtrar os dados) --- */}
             <Card className={cn("bg-card/50 border-none shadow-none", cardClasses)}>
                 <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
-                    <Label htmlFor="platform-select" className="font-semibold text-ps-light min-w-[150px]">Filtrar por Categoria/Plataforma:</Label>
+                    <Label htmlFor="platform-select" className="font-semibold text-ps-light min-w-[150px]">Filtrar por Plataforma:</Label>
                     <Select onValueChange={onPlatformChange} defaultValue={selectedPlatform}>
                         <SelectTrigger id="platform-select" className="w-full md:w-[200px] bg-card border-border text-ps-light">
                             <SelectValue placeholder="Todas as Plataformas" />
