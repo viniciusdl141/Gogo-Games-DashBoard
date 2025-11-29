@@ -764,6 +764,13 @@ const Dashboard = () => {
     const capsuleImageUrl = selectedGame?.capsule_image_url || null; // NEW: Get capsule image URL
     const category = selectedGame?.category || null; // NEW: Get category
 
+    // Filter real WL Sales by selected game AND platform
+    // If a PS Category is selected, filter by 'Playstation' platform
+    const effectivePlatformFilter = PS_CATEGORIES.includes(selectedPlatform as Platform) ? 'Playstation' : selectedPlatform;
+
+    // --- Step 4: Inject placeholder entries for event dates without WL data ---
+    const platformForInjection: Platform = effectivePlatformFilter === 'All' ? 'Steam' : effectivePlatformFilter as Platform;
+
     // 1. Filter and enhance data, recalculating dynamic fields
     const influencerTracking = trackingData.influencerTracking
         .filter(d => d.game.trim() === gameName)
@@ -789,9 +796,6 @@ const Dashboard = () => {
         }));
     
     // Filter real WL Sales by selected game AND platform
-    // If a PS Category is selected, filter by 'Playstation' platform
-    const effectivePlatformFilter = PS_CATEGORIES.includes(selectedPlatform as Platform) ? 'Playstation' : selectedPlatform;
-
     const realWLSales = trackingData.wlSales
         .filter(d => d.game.trim() === gameName)
         .filter(d => effectivePlatformFilter === 'All' || d.platform === effectivePlatformFilter)
@@ -806,9 +810,6 @@ const Dashboard = () => {
     const trafficTrackingFiltered = trackingData.trafficTracking // Renamed local variable
         .filter(t => t.game.trim() === gameName);
 
-
-    // --- Step 4: Inject placeholder entries for event dates without WL data ---
-    const platformForInjection: Platform = effectivePlatformFilter === 'All' ? 'Steam' : effectivePlatformFilter as Platform; // Default to Steam if 'All' is selected
 
     // Encontrar a data mais antiga de um registro real de WL
     const minRealWLDateTimestamp = realWLSales.length > 0 
@@ -859,7 +860,7 @@ const Dashboard = () => {
                 id: generateLocalUniqueId('wl-placeholder'),
                 date: date,
                 game: gameName,
-                platform: platformForInjection,
+                platform: platformForInjection, // Uses platformForInjection
                 wishlists: lastWLValue, // Use the last known real WL value
                 sales: 0, // Sales must be 0 or null for placeholders
                 variation: 0,
