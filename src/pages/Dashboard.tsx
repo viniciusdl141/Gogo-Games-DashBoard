@@ -766,12 +766,9 @@ const Dashboard = () => {
 
     // Filter real WL Sales by selected game AND platform
     // If a PS Category is selected, filter by 'Playstation' platform
-    let effectivePlatformFilter: Platform | 'All';
-    if (PS_CATEGORIES.includes(selectedPlatform as Platform)) {
-        effectivePlatformFilter = 'Playstation';
-    } else {
-        effectivePlatformFilter = selectedPlatform;
-    }
+    const effectivePlatformFilter: Platform | 'All' = PS_CATEGORIES.includes(selectedPlatform as Platform)
+        ? 'Playstation'
+        : selectedPlatform;
 
     // --- Step 4: Inject placeholder entries for event dates without WL data ---
     const platformForInjection: Platform = effectivePlatformFilter === 'All' ? 'Steam' : effectivePlatformFilter as Platform;
