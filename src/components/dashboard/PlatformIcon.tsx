@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Monitor, Gamepad, Smartphone, Apple, Store, Globe, Gamepad2 } from 'lucide-react'; // Importando ícones disponíveis
+import { Monitor, Gamepad, Smartphone, Apple, Store, Globe, Gamepad2, Zap, Package, Tag, Headset } from 'lucide-react'; // Importando ícones disponíveis
 import { Platform } from '@/data/trackingData';
 
 interface PlatformIconProps {
@@ -18,7 +18,12 @@ const PlatformIcon: React.FC<PlatformIconProps> = ({ platform, className = "h-4 
         switch (plat) {
             case 'steam': return 'text-platform-steam';
             case 'xbox': return 'text-platform-xbox';
-            case 'playstation': return 'text-platform-playstation';
+            case 'playstation': 
+            case 'psplus': 
+            case 'add-ons': 
+            case 'freetoplay': 
+            case 'vr': 
+                return 'text-platform-playstation';
             case 'nintendo': return 'text-platform-nintendo';
             case 'android': return 'text-platform-android';
             case 'ios': return 'text-platform-ios';
@@ -36,6 +41,14 @@ const PlatformIcon: React.FC<PlatformIconProps> = ({ platform, className = "h-4 
             return <Gamepad2 className={`${className} ${colorClass}`} style={color ? { color } : undefined} />;
         case 'playstation':
             return <Gamepad2 className={`${className} ${colorClass}`} style={color ? { color } : undefined} />;
+        case 'psplus':
+            return <Zap className={`${className} ${colorClass}`} style={color ? { color } : undefined} />; // Lightning for PS Plus
+        case 'add-ons':
+            return <Package className={`${className} ${colorClass}`} style={color ? { color } : undefined} />; // Package for Add-Ons
+        case 'freetoplay':
+            return <Tag className={`${className} ${colorClass}`} style={color ? { color } : undefined} />; // Tag for Free to Play
+        case 'vr':
+            return <Headset className={`${className} ${colorClass}`} style={color ? { color } : undefined} />; // Headset for VR
         case 'nintendo':
             return <Gamepad className={`${className} ${colorClass}`} style={color ? { color } : undefined} />;
         case 'android':

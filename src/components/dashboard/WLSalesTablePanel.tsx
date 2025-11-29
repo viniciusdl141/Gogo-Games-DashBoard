@@ -39,11 +39,16 @@ interface WLSalesTablePanelProps {
 }
 
 const getPlatformColorClass = (platform: string) => {
-    const normalizedPlatform = platform.toLowerCase().replace(/\s/g, '');
+    const normalizedPlatform = platform.toLowerCase().replace(/\s/g, '').replace(/-/g, '');
     switch (normalizedPlatform) {
         case 'steam': return 'bg-platform-steam hover:bg-platform-steam/90 text-white';
         case 'xbox': return 'bg-platform-xbox hover:bg-platform-xbox/90 text-white';
-        case 'playstation': return 'bg-platform-playstation hover:bg-platform-playstation/90 text-white';
+        case 'playstation': 
+        case 'psplus': 
+        case 'add-ons': 
+        case 'freetoplay': 
+        case 'vr': 
+            return 'bg-platform-playstation hover:bg-platform-playstation/90 text-white';
         case 'nintendo': return 'bg-platform-nintendo hover:bg-platform-nintendo/90 text-white';
         case 'android': return 'bg-platform-android hover:bg-platform-android/90 text-white';
         case 'ios': return 'bg-platform-ios hover:bg-platform-ios/90 text-white';
@@ -61,7 +66,7 @@ const WLSalesTablePanel: React.FC<WLSalesTablePanelProps> = ({ data, onDelete, o
     }
     
     // Determine theme classes for the card
-    const isPlaystation = selectedPlatform === 'Playstation';
+    const isPlaystation = selectedPlatform === 'Playstation' || selectedPlatform === 'PS Plus' || selectedPlatform === 'Add-Ons' || selectedPlatform === 'Free to Play' || selectedPlatform === 'VR';
     const isNintendo = selectedPlatform === 'Nintendo';
     
     const cardClasses = cn(

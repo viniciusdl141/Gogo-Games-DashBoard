@@ -21,7 +21,8 @@ import { toast } from 'sonner';
 // Definindo o tipo de venda
 const SaleTypeEnum = z.enum(['Padrão', 'Bundle', 'DLC']);
 const FrequencyEnum = z.enum(['Diário', 'Semanal', 'Mensal']);
-const PlatformEnum = z.enum(['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra']);
+// Definindo o tipo de plataforma (Atualizado)
+const PlatformEnum = z.enum(['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra', 'PS Plus', 'Add-Ons', 'Free to Play', 'VR']);
 
 // Schema de validação
 const formSchema = z.object({

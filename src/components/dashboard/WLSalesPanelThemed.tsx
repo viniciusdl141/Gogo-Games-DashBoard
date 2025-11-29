@@ -24,6 +24,35 @@ const PS_CHART_COLORS = {
     sales: 'hsl(220 80% 70%)', // Lighter PS Blue
 };
 
+// Opções de filtro conforme solicitado pelo usuário, mantendo 'All' e as plataformas base
+const filterOptions: (Platform | 'All')[] = [
+    'All', 
+    'PS Plus', 
+    'Add-Ons', 
+    'Free to Play', 
+    'VR',
+    'Steam', 
+    'Xbox', 
+    'Playstation', 
+    'Nintendo', 
+    'Android', 
+    'iOS', 
+    'Epic Games', 
+    'Outra'
+];
+
+// Função para obter o nome de exibição
+const getDisplayPlatformName = (platform: Platform | 'All') => {
+    switch (platform) {
+        case 'All': return 'Todas as Plataformas';
+        case 'PS Plus': return 'PS Plus';
+        case 'Add-Ons': return 'Add-Ons';
+        case 'Free to Play': return 'Free to Play';
+        case 'VR': return 'VR';
+        default: return platform;
+    }
+};
+
 interface WLSalesPanelThemedProps {
     gameName: string;
     wlSales: WLSalesPlatformEntry[]; 
@@ -70,6 +99,9 @@ const WLSalesPanelThemed: React.FC<WLSalesPanelThemedProps> = ({
 
     // O tema PlayStation é aplicado globalmente, então usamos as classes PS
     const cardClasses = "ps-card-glow bg-card/50 backdrop-blur-sm border-ps-blue/50";
+    
+    // Determine the platform to pass to the AddDailyWLSalesForm
+    const platformForDailyAdd: Platform = selectedPlatform === 'All' ? 'Steam' : (selectedPlatform as Platform);
 
     return (
         <div className="space-y-6">
@@ -77,15 +109,14 @@ const WLSalesPanelThemed: React.FC<WLSalesPanelThemedProps> = ({
             {/* --- Filtro de Plataforma (Mantido para filtrar os dados) --- */}
             <Card className={cn("bg-card/50 border-none shadow-none", cardClasses)}>
                 <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
-                    <Label htmlFor="platform-select" className="font-semibold text-ps-light min-w-[150px]">Filtrar por Plataforma:</Label>
+                    <Label htmlFor="platform-select" className="font-semibold text-ps-light min-w-[150px]">Filtrar por Categoria/Plataforma:</Label>
                     <Select onValueChange={onPlatformChange} defaultValue={selectedPlatform}>
                         <SelectTrigger id="platform-select" className="w-full md:w-[200px] bg-card border-border text-ps-light">
                             <SelectValue placeholder="Todas as Plataformas" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="All">Todas as Plataformas</SelectItem>
-                            {['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra'].map(platform => (
-                                <SelectItem key={platform} value={platform}>{platform}</SelectItem>
+                            {filterOptions.map(platform => (
+                                <SelectItem key={platform} value={platform}>{getDisplayPlatformName(platform)}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -101,7 +132,7 @@ const WLSalesPanelThemed: React.FC<WLSalesPanelThemedProps> = ({
                     
                     <div className="flex flex-wrap justify-end gap-2">
                         
-                        {/* Botões de Ação de Dados */}
+                        {/* Cores do Gráfico */}
                         <Dialog open={isColorConfigOpen} onOpenChange={onColorConfigOpenChange}>
                             <DialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="text-ps-light border-ps-blue hover:bg-ps-blue/20">
@@ -125,7 +156,7 @@ const WLSalesPanelThemed: React.FC<WLSalesPanelThemedProps> = ({
                                     id: 'temp-today',
                                     date: new Date(),
                                     game: gameName,
-                                    platform: selectedPlatform === 'All' ? 'Steam' : selectedPlatform,
+                                    platform: platformForDailyAdd,
                                     wishlists: 0, sales: 0, variation: 0, saleType: 'Padrão', frequency: 'Diário', isPlaceholder: true,
                                 });
                             }} 
@@ -158,8 +189,8 @@ const WLSalesPanelThemed: React.FC<WLSalesPanelThemedProps> = ({
                                 </DialogHeader>
                                 <AddDailyWLSalesForm 
                                     gameName={gameName}
-                                    wlSalesData={wlSalesDataForRecalculation.filter(e => e.platform === selectedPlatform || selectedPlatform === 'All')}
-                                    onSave={(data) => onAddDailyWLSalesEntry({ ...data, platform: data.platform })} 
+                                    wlSalesData={wlSalesDataForRecalculation.filter(e => e.platform === platformForDailyAdd)}
+                                    onSave={(data) => onAddDailyWLSalesEntry({ ...data, platform: platformForDailyAdd })} 
                                     onClose={() => setIsAddDailyWLSalesFormOpen(false)} 
                                 />
                             </DialogContent>

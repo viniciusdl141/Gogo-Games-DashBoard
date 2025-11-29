@@ -9,6 +9,7 @@ import { startOfDay, isBefore, isEqual } from 'date-fns';
 import { List, DollarSign, Eye, Megaphone, Download, CalendarDays, Clock } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
+import PlatformIcon from './PlatformIcon'; // Import PlatformIcon
 
 interface DailySummaryPanelProps {
     date: Date;
@@ -187,7 +188,10 @@ const DailySummaryPanel: React.FC<DailySummaryPanelProps> = ({
                             <TableBody>
                                 {dailyWLSales.map(e => (
                                     <TableRow key={e.id}>
-                                        <TableCell>{e.platform}</TableCell>
+                                        <TableCell className="flex items-center space-x-2">
+                                            <PlatformIcon platform={e.platform} className="h-4 w-4" />
+                                            <span>{e.platform}</span>
+                                        </TableCell>
                                         <TableCell className="text-right">{formatNumber(e.wishlists)}</TableCell>
                                         <TableCell className="text-right">{formatNumber(e.variation)}</TableCell>
                                         <TableCell className="text-right">{formatNumber(e.sales)}</TableCell>

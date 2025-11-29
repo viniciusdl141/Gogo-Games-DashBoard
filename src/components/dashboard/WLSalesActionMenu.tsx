@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { WLSalesPlatformEntry, ManualEventMarker, InfluencerTrackingEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry } from '@/data/trackingData';
+import { WLSalesPlatformEntry, ManualEventMarker, InfluencerTrackingEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, Platform } from '@/data/trackingData';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Edit, CalendarPlus, List, Trash2, ArrowLeft, Search } from 'lucide-react';
@@ -48,6 +48,10 @@ const WLSalesActionMenu: React.FC<WLSalesActionMenuProps> = ({
 
     const isRealData = !entry.isPlaceholder;
     const dateString = entry.date ? entry.date.toISOString().split('T')[0] : '';
+    
+    // Determine the effective platform for the entry (used for filtering data in DailySummaryPanel)
+    const effectivePlatform: Platform = ['PS Plus', 'Add-Ons', 'Free to Play', 'VR'].includes(entry.platform) ? 'Playstation' : entry.platform;
+
 
     const handleViewSummary = () => {
         setIsSummaryDialogOpen(true);
@@ -83,7 +87,7 @@ const WLSalesActionMenu: React.FC<WLSalesActionMenuProps> = ({
             default:
                 return (
                     <div className="p-4 space-y-4">
-                        <p className="text-lg font-semibold text-foreground">Ações para {formatDate(entry.date)}</p>
+                        <p className="text-lg font-semibold text-foreground">Ações para {formatDate(entry.date)} ({entry.platform})</p>
                         
                         <Button 
                             onClick={handleViewSummary} 
@@ -166,7 +170,8 @@ const WLSalesActionMenu: React.FC<WLSalesActionMenuProps> = ({
                         <DailySummaryPanel 
                             date={entry.date}
                             gameName={gameName}
-                            wlSales={allWLSales}
+                            // Filter WL Sales by the effective platform (Playstation if PS category selected)
+                            wlSales={allWLSales.filter(e => e.platform === effectivePlatform)} 
                             influencerTracking={allInfluencerTracking}
                             eventTracking={allEventTracking}
                             paidTraffic={allPaidTraffic}

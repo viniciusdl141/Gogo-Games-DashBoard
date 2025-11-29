@@ -302,7 +302,7 @@ const WLSalesChartPanel: React.FC<WLSalesChartPanelProps> = ({ data, onPointClic
     }
 
     // Determine theme classes for the card
-    const isPlaystation = selectedPlatform === 'Playstation';
+    const isPlaystation = selectedPlatform === 'Playstation' || selectedPlatform === 'PS Plus' || selectedPlatform === 'Add-Ons' || selectedPlatform === 'Free to Play' || selectedPlatform === 'VR';
     const isNintendo = selectedPlatform === 'Nintendo';
     
     const cardClasses = cn(
