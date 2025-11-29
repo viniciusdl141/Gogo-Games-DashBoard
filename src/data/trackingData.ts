@@ -68,7 +68,8 @@ export interface DemoTrackingEntry {
 
 export type SaleType = 'Padrão' | 'Bundle' | 'DLC';
 export type EntryFrequency = 'Diário' | 'Semanal' | 'Mensal';
-export type Platform = 'Steam' | 'Xbox' | 'Playstation' | 'Nintendo' | 'Android' | 'iOS' | 'Epic Games' | 'Outra';
+// Updated Platform type
+export type Platform = 'Steam' | 'Xbox' | 'Playstation' | 'Nintendo' | 'Android' | 'iOS' | 'Epic Games' | 'Outra' | 'PS Plus' | 'Add-Ons' | 'Free to Play' | 'VR';
 
 export interface WLSalesPlatformEntry {
     id: string; // Unique ID for this entry
