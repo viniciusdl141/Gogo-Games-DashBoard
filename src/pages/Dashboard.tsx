@@ -9,7 +9,7 @@ import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, 
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
-import { Label } from '@/components/ui/label';
+import { Label } from "@/components/ui/label";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -161,6 +161,15 @@ const Dashboard = () => {
   const selectedGame = useMemo(() => {
     return allAvailableGames.find(game => game.name === selectedGameName);
   }, [allAvailableGames, selectedGameName]);
+
+
+  // --- NEW: Memoize the effective platform filter separately ---
+  const effectivePlatformFilter: Platform | 'All' = useMemo(() => {
+    return PS_CATEGORIES.includes(selectedPlatform as Platform)
+        ? 'Playstation'
+        : selectedPlatform;
+  }, [selectedPlatform]);
+  // --- END NEW ---
 
 
   // --- Game Management Handlers ---
@@ -764,12 +773,6 @@ const Dashboard = () => {
     const capsuleImageUrl = selectedGame?.capsule_image_url || null; // NEW: Get capsule image URL
     const category = selectedGame?.category || null; // NEW: Get category
 
-    // Filter real WL Sales by selected game AND platform
-    // If a PS Category is selected, filter by 'Playstation' platform
-    const effectivePlatformFilter: Platform | 'All' = PS_CATEGORIES.includes(selectedPlatform as Platform)
-        ? 'Playstation'
-        : selectedPlatform;
-
     // --- Step 4: Inject placeholder entries for event dates without WL data ---
     const platformForInjection: Platform = effectivePlatformFilter === 'All' ? 'Steam' : effectivePlatformFilter as Platform;
 
@@ -1064,7 +1067,7 @@ const Dashboard = () => {
       manualEventMarkers, 
       kpis,
     };
-  }, [selectedGameName, selectedPlatform, trackingData, selectedGame, selectedTimeFrame]);
+  }, [selectedGameName, selectedPlatform, trackingData, selectedGame, selectedTimeFrame, effectivePlatformFilter]);
 
   // Determine if a manual marker already exists for the selected date
   const existingMarkerForClickedEntry = useMemo(() => {
