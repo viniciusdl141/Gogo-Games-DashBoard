@@ -1,88 +1,135 @@
 import { supabase } from './client';
-import { invokeGameDataFetcher, GameOption } from './functions'; // Import GameOption and fetcher
+import { GameMetrics } from '@/data/trackingData';
+import { toast } from 'sonner';
 
-export interface Game {
-  id: string;
-  name: string;
-  launch_date: string | null; // ISO date string 'YYYY-MM-DD'
-  suggested_price: number | null; // New field
-  capsule_image_url: string | null; // NEW FIELD
-  studio_id: string | null; // NEW FIELD
-  category: string | null; // NEW FIELD
-  created_at: string;
+// Define the structure for game options returned by the fetcher function
+export interface GameOption {
+    name: string;
+    launchDate: string | null;
+    suggestedPrice: number | null;
+    capsuleImageUrl: string | null;
+    category: string | null;
+    developer: string | null;
+    publisher: string | null;
+    priceUSD: number | null;
+    reviewSummary: string | null;
 }
 
-export const getGames = async (studioId?: string | null): Promise<Game[]> => {
-  let query = supabase.from('games').select('*');
-  
-  // Apply filtering only if studioId is provided and not null
-  if (studioId) {
-    query = query.eq('studio_id', studioId);
-  }
-  
-  const { data, error } = await query.order('name');
-  if (error) throw error;
-  return data;
-};
-
-export const addGame = async (name: string, launch_date: string | null, suggested_price: number | null = null, capsule_image_url: string | null = null, studio_id: string | null = null, category: string | null = null): Promise<Game> => {
-  const { data, error } = await supabase.from('games').insert([{ name, launch_date, suggested_price, capsule_image_url, studio_id, category }]).select().single();
-  if (error) throw error;
-  return data;
-};
-
-export const updateGame = async (id: string, updates: Partial<Game>): Promise<Game> => {
-  const { data, error } = await supabase.from('games').update(updates).eq('id', id).select().single();
-  if (error) throw error;
-  return data;
-};
-
-export const deleteGame = async (id: string): Promise<void> => {
-  const { error } = await supabase.from('games').delete().eq('id', id);
-  if (error) throw error;
-};
-
-// Hardcoded API Key for Gemini (used for web search)
-const GEMINI_API_KEY = 'AIzaSyCao7UHpJgeYGExguqjvecUwdeztYhnxWU';
-
 /**
- * Fetches game metadata from the web using AI and updates the Supabase record.
- * @returns The updated game object or null if no data was found.
+ * Fetches all games associated with the current studio ID.
+ * @param studioId The ID of the studio.
+ * @returns A promise that resolves to an array of GameMetrics or null on error.
  */
-export const fetchAndSetGameMetadata = async (game: Game): Promise<Game | null> => {
-    // NOTE: We are using the hardcoded key here, which is generally bad practice but required by the current setup.
-    const response = await invokeGameDataFetcher(game.name, GEMINI_API_KEY);
-    const results = response.results; // Access results safely
+export async function fetchGamesByStudio(studioId: string): Promise<GameMetrics[] | null> {
+    const { data, error } = await supabase
+        .from('games')
+        .select('*')
+        .eq('studio_id', studioId);
 
-    if (results.length === 0) {
+    if (error) {
+        console.error('Error fetching games:', error);
+        toast.error('Falha ao carregar jogos.');
         return null;
     }
 
-    // Prioritize the first result found
-    const bestMatch = results[0];
+    return data as GameMetrics[];
+}
 
-    const updates: Partial<Game> = {
-        capsule_image_url: bestMatch.capsuleImageUrl || game.capsule_image_url,
+/**
+ * Updates the details of a specific game in the database.
+ * @param gameId The ID of the game to update.
+ * @param updates The fields to update.
+ * @returns A promise that resolves to the updated GameMetrics or null on error.
+ */
+export async function updateGameDetails(gameId: string, updates: Partial<GameMetrics>): Promise<GameMetrics | null> {
+    const { data, error } = await supabase
+        .from('games')
+        .update(updates)
+        .eq('id', gameId)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating game details:', error);
+        toast.error('Falha ao atualizar detalhes do jogo.');
+        return null;
+    }
+
+    return data as GameMetrics;
+}
+
+/**
+ * Updates game details based on a best match from external data.
+ * This function is used after fetching data from the web search function.
+ * @param game The existing game metrics.
+ * @param bestMatch The best matching game option from the search.
+ * @returns The updated GameMetrics object.
+ */
+export async function updateGameWithBestMatch(game: GameMetrics, bestMatch: GameOption): Promise<GameMetrics | null> {
+    const updates: Partial<GameMetrics> = {
         launch_date: bestMatch.launchDate || game.launch_date,
         suggested_price: bestMatch.suggestedPrice || game.suggested_price,
         category: bestMatch.category || game.category,
-        // We don't update developer/publisher/priceUSD here as they are not stored in the main Game table, 
-        // but they are useful for the WebSearchGameForm.
+        // We don't update developer/publisher/priceUSD here as they are not stored in the main Game table,
+        // but we keep the structure flexible for future changes.
     };
 
-    // Only update if there is at least one new piece of information
-    if (Object.values(updates).some(v => v !== null && v !== undefined)) {
-        // Ensure we only pass non-null values if they are meant to be updated
-        const cleanUpdates: Partial<Game> = {};
-        for (const key in updates) {
-            const k = key as keyof Partial<Game>;
-            if (updates[k] !== undefined) {
-                cleanUpdates[k] = updates[k];
-            }
+    // Clean up updates object to remove undefined values
+    const cleanUpdates: Partial<GameMetrics> = {};
+    for (const k in updates) {
+        const key = k as keyof Partial<GameMetrics>;
+        if (updates[key] !== undefined) {
+            // We must ensure the value is assignable to the property type.
+            cleanUpdates[key] = updates[key] as any; 
         }
-        
-        return updateGame(game.id, cleanUpdates);
     }
 
-    return null;
-};
+    if (Object.keys(cleanUpdates).length === 0) {
+        toast.info('Nenhuma informação nova para atualizar.');
+        return game;
+    }
+
+    return updateGameDetails(game.id, cleanUpdates);
+}
+
+/**
+ * Adds a new game to the database.
+ * @param name The name of the new game.
+ * @param studioId The ID of the studio owning the game.
+ * @returns A promise that resolves to the new GameMetrics or null on error.
+ */
+export async function addGame(name: string, studioId: string): Promise<GameMetrics | null> {
+    const { data, error } = await supabase
+        .from('games')
+        .insert({ name, studio_id: studioId })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error adding game:', error);
+        toast.error('Falha ao adicionar novo jogo.');
+        return null;
+    }
+
+    return data as GameMetrics;
+}
+
+/**
+ * Deletes a game from the database.
+ * @param gameId The ID of the game to delete.
+ * @returns A promise that resolves to true on success or false on error.
+ */
+export async function deleteGame(gameId: string): Promise<boolean> {
+    const { error } = await supabase
+        .from('games')
+        .delete()
+        .eq('id', gameId);
+
+    if (error) {
+        console.error('Error deleting game:', error);
+        toast.error('Falha ao deletar jogo.');
+        return false;
+    }
+
+    return true;
+}

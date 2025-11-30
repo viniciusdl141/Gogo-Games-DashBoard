@@ -1,55 +1,37 @@
-"use client";
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WLSalesPlatformEntry, SaleType, EntryFrequency, Platform } from '@/data/trackingData';
 import { toast } from 'sonner';
 
-// Definindo o tipo de venda
-const SaleTypeEnum = z.enum(['Padrão', 'Bundle', 'DLC']);
-const FrequencyEnum = z.enum(['Diário', 'Semanal', 'Mensal']);
-// Definindo o tipo de plataforma (Atualizado)
-const PlatformEnum = z.enum(['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra']);
+// --- Schema ---
 
-// Schema de validação
-const formSchema = z.object({
-    game: z.string().min(1, "O jogo é obrigatório."),
-    platform: PlatformEnum.default('Steam'), // Novo campo
-    date: z.string().min(1, "A data é obrigatória (formato YYYY-MM-DD)."),
-    wishlists: z.number().min(0, "Wishlists deve ser um número positivo.").default(0),
-    sales: z.number().min(0, "Vendas deve ser um número positivo.").default(0),
-    saleType: SaleTypeEnum.default('Padrão'),
-    frequency: FrequencyEnum.default('Diário'),
+const AddWLSalesFormSchema = z.object({
+    date: z.string().min(1, "Data é obrigatória."),
+    wishlists: z.coerce.number().min(0, "Wishlists devem ser >= 0."),
+    sales: z.coerce.number().min(0, "Vendas devem ser >= 0."),
+    saleType: z.enum(['Padrão', 'Bundle', 'DLC']).default('Padrão'),
+    frequency: z.enum(['Diário', 'Semanal', 'Mensal']).default('Diário'),
 });
 
-type WLSalesFormValues = z.infer<typeof formSchema>;
+// --- Component ---
 
 interface AddWLSalesFormProps {
-    games: string[];
-    onSave: (data: Omit<WLSalesPlatformEntry, 'date' | 'variation' | 'id'> & { date: string, saleType: z.infer<typeof SaleTypeEnum>, frequency: z.infer<typeof FrequencyEnum>, platform: z.infer<typeof PlatformEnum> }) => void;
+    wlSalesData: WLSalesPlatformEntry[];
+    onSave: (data: Omit<WLSalesPlatformEntry, 'id' | 'date' | 'variation'> & { date: string, saleType: SaleType, frequency: EntryFrequency, platform: Platform }) => void;
     onClose: () => void;
 }
 
-const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ games, onSave, onClose }) => {
-    const form = useForm<WLSalesFormValues>({
-        resolver: zodResolver(formSchema),
+const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ wlSalesData, onSave, onClose }) => {
+    const form = useForm<z.infer<typeof AddWLSalesFormSchema>>({
+        resolver: zodResolver(AddWLSalesFormSchema),
         defaultValues: {
-            game: games[0] || '',
-            platform: 'Steam',
-            date: new Date().toISOString().split('T')[0],
+            date: new Date().toISOString().substring(0, 10),
             wishlists: 0,
             sales: 0,
             saleType: 'Padrão',
@@ -57,77 +39,58 @@ const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ games, onSave, onClose 
         },
     });
 
-    const onSubmit = (values: WLSalesFormValues) => {
-        onSave(values as any); 
-        toast.success("Entrada de Wishlist/Vendas adicionada.");
+    const onSubmit = (values: z.infer<typeof AddWLSalesFormSchema>) => {
+        // The platform is handled by the parent component (WLSalesPanelThemed)
+        onSave(values as any); // Casting to any because platform is added by parent
         onClose();
+        toast.success("Entrada de WL/Vendas adicionada.");
     };
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                     control={form.control}
-                    name="game"
+                    name="date"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Jogo</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione o jogo" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {games.map(game => (
-                                        <SelectItem key={game} value={game}>{game}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <FormLabel>Data</FormLabel>
+                            <FormControl>
+                                <Input type="date" {...field} />
+                            </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
-                        name="platform"
+                        name="wishlists"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Plataforma</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione a Plataforma" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {PlatformEnum.options.map(p => (
-                                            <SelectItem key={p} value={p}>{p}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <FormLabel>Wishlists</FormLabel>
+                                <FormControl>
+                                    <Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                                </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                     <FormField
                         control={form.control}
-                        name="date"
+                        name="sales"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Data (YYYY-MM-DD)</FormLabel>
+                                <FormLabel>Vendas</FormLabel>
                                 <FormControl>
-                                    <Input type="date" {...field} />
+                                    <Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name="saleType"
@@ -137,11 +100,11 @@ const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ games, onSave, onClose 
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Tipo de Venda" />
-                                    </SelectTrigger>
+                                            <SelectValue placeholder="Selecione o tipo" />
+                                        </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {SaleTypeEnum.options.map(type => (
+                                        {['Padrão', 'Bundle', 'DLC'].map(type => (
                                             <SelectItem key={type} value={type}>{type}</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -155,15 +118,15 @@ const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ games, onSave, onClose 
                         name="frequency"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Frequência da Entrada</FormLabel>
+                                <FormLabel>Frequência</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Frequência" />
+                                            <SelectValue placeholder="Selecione a frequência" />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {FrequencyEnum.options.map(freq => (
+                                        {['Diário', 'Semanal', 'Mensal'].map(freq => (
                                             <SelectItem key={freq} value={freq}>{freq}</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -173,53 +136,9 @@ const AddWLSalesForm: React.FC<AddWLSalesFormProps> = ({ games, onSave, onClose 
                         )}
                     />
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="wishlists"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Wishlists Totais na Data</FormLabel>
-                                <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        placeholder="0" 
-                                        {...field} 
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="sales"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Vendas Diárias (Unidades)</FormLabel>
-                                <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        placeholder="0" 
-                                        {...field} 
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
-                <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="button" variant="outline" onClick={onClose}>
-                        Cancelar
-                    </Button>
-                    <Button type="submit">
-                        Salvar Entrada
-                    </Button>
+                <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+                    <Button type="submit">Adicionar Entrada</Button>
                 </div>
             </form>
         </Form>

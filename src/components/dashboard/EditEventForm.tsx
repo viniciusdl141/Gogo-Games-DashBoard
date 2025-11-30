@@ -1,101 +1,116 @@
-"use client";
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { EventTrackingEntry } from '@/data/trackingData';
+import { EventTrackingEntry, Platform, GameMetrics } from '@/data/trackingData';
 import { toast } from 'sonner';
+import { formatCurrency, formatNumber } from '@/lib/utils';
 
-// Schema de validação
-const formSchema = z.object({
-    id: z.string(),
-    game: z.string().min(1, "O jogo é obrigatório."),
-    event: z.string().min(1, "O nome do evento é obrigatório."),
-    startDate: z.string().min(1, "A data de início é obrigatória (YYYY-MM-DD)."),
-    endDate: z.string().min(1, "A data final é obrigatória (YYYY-MM-DD)."),
-    action: z.string().min(1, "A ação é obrigatória."),
-    views: z.number().min(0).default(0),
-    cost: z.number().min(0, "Custo deve ser um número positivo.").default(0),
-    wlGenerated: z.number().min(0).default(0),
+// --- Schema ---
+
+const EditEventFormSchema = z.object({
+    game: z.string().min(1, "Jogo é obrigatório."),
+    event: z.string().min(1, "Nome do Evento é obrigatório."),
+    platform: z.string().min(1, "Plataforma é obrigatória."),
+    date: z.string().min(1, "Data é obrigatória."),
+    wishlists: z.coerce.number().min(0, "Wishlists devem ser >= 0."),
+    sales: z.coerce.number().min(0, "Vendas devem ser >= 0."),
+    cost: z.coerce.number().min(0, "Custo deve ser >= 0."),
+    
+    // New fields for detailed event tracking
+    startDate: z.string().min(1, "Data de Início é obrigatória."),
+    endDate: z.string().min(1, "Data de Fim é obrigatória."),
+    action: z.string().optional(),
+    views: z.coerce.number().min(0, "Views devem ser >= 0."),
+    wlGenerated: z.coerce.number().min(0, "WLs Gerados devem ser >= 0."),
 });
 
-type EventFormValues = z.infer<typeof formSchema>;
+// --- Component ---
 
 interface EditEventFormProps {
-    games: string[];
+    games: GameMetrics[];
     entry: EventTrackingEntry;
-    onSave: (data: EventTrackingEntry) => void;
+    onSave: (updatedEntry: EventTrackingEntry) => void;
     onClose: () => void;
 }
-
-const actions = ['KeyMailer', 'Participação presencial', 'Virtual', 'Outro'];
 
 const EditEventForm: React.FC<EditEventFormProps> = ({ games, entry, onSave, onClose }) => {
     const defaultStartDate = entry.startDate ? entry.startDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
     const defaultEndDate = entry.endDate ? entry.endDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
-    const form = useForm<EventFormValues>({
-        resolver: zodResolver(formSchema),
+    const form = useForm<z.infer<typeof EditEventFormSchema>>({
+        resolver: zodResolver(EditEventFormSchema),
         defaultValues: {
-            id: entry.id,
             game: entry.game,
             event: entry.event,
+            platform: entry.platform,
+            date: entry.date.toISOString().substring(0, 10),
+            wishlists: entry.wishlists,
+            sales: entry.sales,
+            cost: entry.cost,
+            // Default values for new fields
             startDate: defaultStartDate,
             endDate: defaultEndDate,
-            action: entry.action,
-            views: entry.views,
-            cost: entry.cost,
-            wlGenerated: entry.wlGenerated,
+            action: entry.action || '',
+            views: entry.views || 0,
+            wlGenerated: entry.wlGenerated || 0,
         },
     });
 
-    const onSubmit = (values: EventFormValues) => {
-        const startDateObject = new Date(values.startDate);
-        const endDateObject = new Date(values.endDate);
-        const roiValue = values.wlGenerated > 0 ? values.cost / values.wlGenerated : '-';
-        const costPerViewValue = values.views > 0 ? values.cost / values.views : '-';
+    const onSubmit = (values: z.infer<typeof EditEventFormSchema>) => {
+        const updatedEntry: EventTrackingEntry = {
+            ...entry,
+            game: values.game,
+            event: values.event,
+            platform: values.platform as Platform,
+            date: new Date(values.date),
+            wishlists: values.wishlists,
+            sales: values.sales,
+            cost: values.cost,
+            // Updated detailed fields
+            startDate: new Date(values.startDate),
+            endDate: new Date(values.endDate),
+            action: values.action || '',
+            views: values.views,
+            wlGenerated: values.wlGenerated,
+        };
 
-        onSave({
-            ...values,
-            startDate: startDateObject,
-            endDate: endDateObject,
-            roi: roiValue,
-            costPerView: costPerViewValue,
-        } as EventTrackingEntry);
-        toast.success("Entrada de evento atualizada.");
+        onSave(updatedEntry);
         onClose();
+        toast.success("Entrada de Evento atualizada.");
     };
+
+    // ... (rest of the form rendering logic)
+    // Calculating derived metrics for display (ROI, Cost per View)
+    const views = form.watch('views') || 0;
+    const cost = form.watch('cost') || 0;
+    const sales = form.watch('sales') || 0;
+
+    const roi = sales > 0 && cost > 0 ? ((sales * 10) - cost) / cost : 0; // Assuming $10 revenue per sale for ROI calculation
+    const costPerView = views > 0 ? cost / views : 0;
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                     control={form.control}
                     name="game"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Jogo</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione o jogo" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {games.map(game => (
-                                        <SelectItem key={game} value={game}>{game}</SelectItem>
+                                    {games.map(g => (
+                                        <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -103,7 +118,6 @@ const EditEventForm: React.FC<EditEventFormProps> = ({ games, entry, onSave, onC
                         </FormItem>
                     )}
                 />
-
                 <FormField
                     control={form.control}
                     name="event"
@@ -111,20 +125,41 @@ const EditEventForm: React.FC<EditEventFormProps> = ({ games, entry, onSave, onC
                         <FormItem>
                             <FormLabel>Nome do Evento</FormLabel>
                             <FormControl>
-                                <Input placeholder="Ex: Steam Next Fest" {...field} />
+                                <Input {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="platform"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Plataforma</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione a plataforma" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Epic Games', 'Outra'].map(p => (
+                                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <div className="grid grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name="startDate"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Data de Início (YYYY-MM-DD)</FormLabel>
+                                <FormLabel>Data de Início</FormLabel>
                                 <FormControl>
                                     <Input type="date" {...field} />
                                 </FormControl>
@@ -137,7 +172,7 @@ const EditEventForm: React.FC<EditEventFormProps> = ({ games, entry, onSave, onC
                         name="endDate"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Data Final (YYYY-MM-DD)</FormLabel>
+                                <FormLabel>Data de Fim</FormLabel>
                                 <FormControl>
                                     <Input type="date" {...field} />
                                 </FormControl>
@@ -146,45 +181,42 @@ const EditEventForm: React.FC<EditEventFormProps> = ({ games, entry, onSave, onC
                         )}
                     />
                 </div>
-
                 <FormField
                     control={form.control}
-                    name="action"
+                    name="date"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Ação Realizada</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Ação" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {actions.map(a => (
-                                        <SelectItem key={a} value={a}>{a}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <FormLabel>Data de Registro (Para Dashboard)</FormLabel>
+                            <FormControl>
+                                <Input type="date" {...field} />
+                            </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Separator />
+                <div className="grid grid-cols-3 gap-4">
                     <FormField
                         control={form.control}
-                        name="cost"
+                        name="views"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Custo Participação (R$)</FormLabel>
+                                <FormLabel>Visualizações</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        step="0.01" 
-                                        placeholder="0.00" 
-                                        {...field} 
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                    />
+                                    <Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="wishlists"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Wishlists</FormLabel>
+                                <FormControl>
+                                    <Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -195,14 +227,24 @@ const EditEventForm: React.FC<EditEventFormProps> = ({ games, entry, onSave, onC
                         name="wlGenerated"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>WL Geradas</FormLabel>
+                                <FormLabel>WLs Gerados (Estimativa)</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        placeholder="0" 
-                                        {...field} 
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                    />
+                                    <Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="sales"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Vendas</FormLabel>
+                                <FormControl>
+                                    <Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -210,31 +252,45 @@ const EditEventForm: React.FC<EditEventFormProps> = ({ games, entry, onSave, onC
                     />
                     <FormField
                         control={form.control}
-                        name="views"
+                        name="cost"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Visualizações Alcançadas</FormLabel>
+                                <FormLabel>Custo (R$)</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        placeholder="0" 
-                                        {...field} 
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                    />
+                                    <Input type="number" step="0.01" {...field} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                 </div>
-
-                <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="button" variant="outline" onClick={onClose}>
-                        Cancelar
-                    </Button>
-                    <Button type="submit" className="bg-gogo-cyan hover:bg-gogo-cyan/90">
-                        Salvar Alterações
-                    </Button>
+                <FormField
+                    control={form.control}
+                    name="action"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Ação/Observação</FormLabel>
+                            <FormControl>
+                                <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <Separator />
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-gray-50 rounded-md">
+                        <p className="text-sm font-medium">ROI Estimado:</p>
+                        <p className="text-lg font-bold text-gogo-green">{roi.toFixed(2)}x</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-md">
+                        <p className="text-sm font-medium">Custo por View:</p>
+                        <p className="text-lg font-bold">{formatCurrency(costPerView, 'BRL')}</p>
+                    </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+                    <Button type="submit">Salvar Alterações</Button>
                 </div>
             </form>
         </Form>

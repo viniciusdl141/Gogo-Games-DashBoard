@@ -1,117 +1,155 @@
-"use client";
-
-import React, { useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getGames, Game as SupabaseGame } from '@/integrations/supabase/games';
-import { useSession } from '@/components/SessionContextProvider';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { fetchGamesByStudio } from '@/integrations/supabase/games';
+import { useSession } from '@/hooks/useSession';
 import { Button } from '@/components/ui/button';
-import { Home, ArrowLeft, ArrowRight, Loader2, Presentation } from 'lucide-react';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChevronLeft, ChevronRight, RefreshCw, Settings, Presentation, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
-import { TrackingData, getTrackingData } from '@/data/trackingData';
+import { RawTrackingData } from '@/data/trackingData';
+import { fetchTrackingData } from '@/integrations/supabase/tracking';
 import PresentationSlide from '@/components/presentation/PresentationSlide';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { useGameMetrics } from '@/hooks/useGameMetrics'; // NEW IMPORT
-import { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; // Import TimeFrame
+
+// Placeholder for TimeFrame if needed, otherwise remove the import
+// import { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; 
+
+const SLIDE_TYPES = ['summary', 'wl_kpis', 'influencers', 'events', 'paid_traffic', 'demo_reviews'] as const;
+type SlideType = typeof SLIDE_TYPES[number];
 
 const PresentationMode: React.FC = () => {
-    const { gameId } = useParams<{ gameId: string }>();
     const navigate = useNavigate();
     const { isAdmin, studioId, isLoading: isSessionLoading } = useSession();
+    const { gameId: urlGameId } = useParams<{ gameId: string }>();
 
-    // 1. Fetch Games (to get game metadata)
-    const { data: supabaseGames, isLoading: isGamesLoading } = useQuery<SupabaseGame[], Error>({
-        queryKey: ['supabaseGamesPresentation'],
-        queryFn: () => getGames(isAdmin ? undefined : studioId),
-        initialData: [],
-        enabled: !isSessionLoading,
+    const [selectedGameId, setSelectedGameId] = useState<string | null>(urlGameId || null);
+    const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+    // Fetch games
+    const { data: games = [], isLoading: isLoadingGames } = useQuery({
+        queryKey: ['studioGames', studioId],
+        queryFn: () => fetchGamesByStudio(studioId!),
+        enabled: !!studioId,
     });
 
-    // 2. Load Local Tracking Data (for metrics)
-    const { data: localTrackingData, isLoading: isTrackingLoading } = useQuery<TrackingData, Error>({
-        queryKey: ['localTrackingDataPresentation'],
-        queryFn: getTrackingData,
-        initialData: getTrackingData(),
+    // Fetch tracking data
+    const { data: rawData = {} as RawTrackingData, isLoading: isLoadingTracking } = useQuery({
+        queryKey: ['trackingData', studioId],
+        queryFn: () => fetchTrackingData(studioId!),
+        enabled: !!studioId,
+        initialData: {} as RawTrackingData,
     });
 
-    const selectedGame = useMemo(() => {
-        return supabaseGames.find(game => game.id === gameId);
-    }, [supabaseGames, gameId]);
+    useEffect(() => {
+        if (urlGameId && games.length > 0 && !games.some(g => g.id === urlGameId)) {
+            // If URL gameId is invalid, reset selection
+            setSelectedGameId(null);
+        } else if (!selectedGameId && games.length > 0) {
+            setSelectedGameId(games[0].id);
+        }
+    }, [games, urlGameId, selectedGameId]);
 
-    const gameName = selectedGame?.name || 'Jogo Desconhecido';
+    const selectedGame = useMemo(() => games.find(g => g.id === selectedGameId) || null, [games, selectedGameId]);
+    const selectedGameName = selectedGame?.name.trim() || '';
 
-    // 3. Use the centralized metrics hook (using 'All' platform and 'total' timeframe for presentation)
-    const filteredData = useGameMetrics({
-        selectedGameName: gameName,
-        selectedGame: selectedGame,
-        trackingData: localTrackingData,
-        selectedPlatform: 'All',
-        selectedTimeFrame: 'total' as TimeFrame,
-    });
+    const isLoading = isSessionLoading || isLoadingGames || isLoadingTracking;
 
-    if (isSessionLoading || isGamesLoading || isTrackingLoading) {
-        return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gogo-cyan" /> Carregando dados...</div>;
+    const handleNextSlide = () => {
+        setCurrentSlideIndex(prev => (prev + 1) % SLIDE_TYPES.length);
+    };
+
+    const handlePrevSlide = () => {
+        setCurrentSlideIndex(prev => (prev - 1 + SLIDE_TYPES.length) % SLIDE_TYPES.length);
+    };
+
+    const currentSlideType = SLIDE_TYPES[currentSlideIndex];
+
+    if (isLoading) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
+                <RefreshCw className="h-8 w-8 animate-spin text-gogo-cyan mx-auto" />
+                <p className="mt-4 text-lg">Preparando apresentação...</p>
+            </div>
+        );
     }
 
-    if (!selectedGame || !filteredData) {
+    if (!studioId || games.length === 0 || !selectedGame) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-8 gaming-background">
-                <Card className="p-6 text-center">
-                    <h1 className="text-2xl font-bold text-destructive">Jogo Não Encontrado</h1>
-                    <p className="text-muted-foreground mt-2">O jogo com ID {gameId} não foi encontrado ou você não tem acesso.</p>
-                    <Button onClick={() => navigate('/')} className="mt-4">
-                        <Home className="h-4 w-4 mr-2" /> Voltar ao Dashboard
+            <div className="p-8 max-w-4xl mx-auto">
+                <Card className="p-6 mt-8 shadow-lg">
+                    <h2 className="text-2xl font-bold text-gogo-orange mb-4">Dados Insuficientes</h2>
+                    <p className="text-gray-600 mb-6">
+                        Selecione um jogo no Dashboard para iniciar o modo de apresentação.
+                    </p>
+                    <Button onClick={() => navigate('/dashboard')} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
+                        <BarChart3 className="h-4 w-4 mr-2" /> Ir para Dashboard
                     </Button>
                 </Card>
             </div>
         );
     }
 
-    // Define the slides content
-    const slides = [
-        { id: 'intro', title: 'Visão Geral do Jogo', component: 'Intro' },
-        { id: 'wl-sales', title: 'Evolução WL & Vendas', component: 'WLSales' },
-        { id: 'marketing-summary', title: 'Resumo de Marketing', component: 'MarketingSummary' },
-        { id: 'influencers', title: 'Performance de Influencers', component: 'Influencers' },
-        { id: 'paid-traffic', title: 'Performance de Tráfego Pago', component: 'PaidTraffic' },
-        { id: 'demo-reviews', title: 'Demo & Reviews', component: 'DemoReviews' },
-    ];
-
     return (
-        <div className="min-h-screen w-full flex flex-col gaming-background">
-            <header className="p-4 bg-card border-b border-border flex justify-between items-center shadow-md">
+        <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+            {/* Header/Controls */}
+            <header className="p-4 bg-gray-800 shadow-md flex justify-between items-center">
                 <div className="flex items-center space-x-4">
-                    <Button onClick={() => navigate('/')} variant="outline" size="sm">
-                        <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao Dashboard
-                    </Button>
-                    <h1 className="text-xl font-bold text-gogo-orange flex items-center">
-                        <Presentation className="h-5 w-5 mr-2 text-gogo-cyan" /> Modo Apresentação: {gameName}
+                    <h1 className="text-xl font-bold text-gogo-cyan flex items-center">
+                        <Presentation className="h-6 w-6 mr-2" /> Modo Apresentação
                     </h1>
+                    <Select
+                        value={selectedGameId || ''}
+                        onValueChange={(id) => {
+                            setSelectedGameId(id);
+                            navigate(`/presentation/${id}`);
+                        }}
+                    >
+                        <SelectTrigger className="w-[200px] bg-gray-700 border-gray-600 text-white">
+                            <SelectValue placeholder="Mudar Jogo" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-700 text-white">
+                            {games.map(game => (
+                                <SelectItem key={game.id} value={game.id}>
+                                    {game.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex items-center space-x-4">
+                    <Button variant="ghost" onClick={handlePrevSlide} disabled={currentSlideIndex === 0}>
+                        <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                        {currentSlideIndex + 1} / {SLIDE_TYPES.length}
+                    </span>
+                    <Button variant="ghost" onClick={handleNextSlide} disabled={currentSlideIndex === SLIDE_TYPES.length - 1}>
+                        <ChevronRight className="h-5 w-5" />
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate('/dashboard')} className="text-gray-300 border-gray-600 hover:bg-gray-700">
+                        Sair
+                    </Button>
                 </div>
             </header>
 
-            <main className="flex-grow p-4 md:p-8 flex items-center justify-center">
-                <Carousel className="w-full max-w-6xl h-[80vh]">
-                    <CarouselContent className="h-full">
-                        {slides.map((slide, index) => (
-                            <CarouselItem key={slide.id} className="h-full">
-                                <PresentationSlide 
-                                    slideId={slide.id}
-                                    slideTitle={slide.title}
-                                    gameData={filteredData} // Pass the centralized metrics
-                                    allGames={supabaseGames}
-                                    trackingData={localTrackingData}
-                                />
-                            </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-gogo-cyan hover:bg-gogo-cyan/90 text-white" />
-                    <CarouselNext className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-gogo-cyan hover:bg-gogo-cyan/90 text-white" />
-                </Carousel>
+            {/* Slide Content */}
+            <main className="flex-grow flex items-center justify-center p-4">
+                <div className="w-full max-w-6xl h-[80vh] bg-white text-gray-900 rounded-lg shadow-2xl overflow-hidden">
+                    <PresentationSlide
+                        trackingData={rawData}
+                        gameName={selectedGameName}
+                        slideType={currentSlideType}
+                    />
+                </div>
             </main>
-            <MadeWithDyad />
+
+            {/* Footer */}
+            <footer className="p-2 bg-gray-800 text-center text-xs text-gray-500">
+                <MadeWithDyad />
+            </footer>
         </div>
     );
 };

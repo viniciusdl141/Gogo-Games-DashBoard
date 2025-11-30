@@ -1,102 +1,121 @@
-"use client";
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PaidTrafficEntry } from '@/data/trackingData';
+import { Separator } from '@/components/ui/separator';
+import { PaidTrafficEntry, Platform, GameMetrics } from '@/data/trackingData';
 import { toast } from 'sonner';
+import { formatCurrency, formatNumber } from '@/lib/utils';
 
-// Schema de validação
-const formSchema = z.object({
-    id: z.string(),
-    game: z.string().min(1, "O jogo é obrigatório."),
-    network: z.string().min(1, "A rede é obrigatória."),
-    startDate: z.string().min(1, "A data de início é obrigatória (YYYY-MM-DD)."),
-    endDate: z.string().min(1, "A data final é obrigatória (YYYY-MM-DD)."),
-    impressions: z.number().min(0).default(0),
-    clicks: z.number().min(0).default(0),
-    investedValue: z.number().min(0, "Valor investido deve ser positivo.").default(0),
-    estimatedWishlists: z.number().min(0).default(0),
+// --- Schema ---
+
+const EditPaidTrafficFormSchema = z.object({
+    game: z.string().min(1, "Jogo é obrigatório."),
+    network: z.string().min(1, "Rede é obrigatória."),
+    platform: z.string().min(1, "Plataforma é obrigatória."),
+    date: z.string().min(1, "Data é obrigatória."),
+    impressions: z.coerce.number().min(0, "Impressões devem ser >= 0."),
+    clicks: z.coerce.number().min(0, "Cliques devem ser >= 0."),
+    wishlists: z.coerce.number().min(0, "Wishlists devem ser >= 0."),
+    sales: z.coerce.number().min(0, "Vendas devem ser >= 0."),
+    cost: z.coerce.number().min(0, "Custo deve ser >= 0."),
+
+    // New fields for detailed paid traffic tracking
+    startDate: z.string().min(1, "Data de Início é obrigatória."),
+    endDate: z.string().min(1, "Data de Fim é obrigatória."),
+    investedValue: z.coerce.number().min(0, "Valor Investido deve ser >= 0."),
+    estimatedWishlists: z.coerce.number().min(0, "WLs Estimados devem ser >= 0."),
 });
 
-type PaidTrafficFormValues = z.infer<typeof formSchema>;
+// --- Component ---
 
 interface EditPaidTrafficFormProps {
-    games: string[];
+    games: GameMetrics[];
     entry: PaidTrafficEntry;
-    onSave: (data: PaidTrafficEntry) => void;
+    onSave: (updatedEntry: PaidTrafficEntry) => void;
     onClose: () => void;
 }
-
-const networks = ['Meta', 'Reddit', 'Youtube', 'Tiktok', 'Google Ads', 'Outro'];
 
 const EditPaidTrafficForm: React.FC<EditPaidTrafficFormProps> = ({ games, entry, onSave, onClose }) => {
     const defaultStartDate = entry.startDate ? entry.startDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
     const defaultEndDate = entry.endDate ? entry.endDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
-    const form = useForm<PaidTrafficFormValues>({
-        resolver: zodResolver(formSchema),
+    const form = useForm<z.infer<typeof EditPaidTrafficFormSchema>>({
+        resolver: zodResolver(EditPaidTrafficFormSchema),
         defaultValues: {
-            id: entry.id,
             game: entry.game,
             network: entry.network,
-            startDate: defaultStartDate,
-            endDate: defaultEndDate,
+            platform: entry.platform,
+            date: entry.date.toISOString().substring(0, 10),
             impressions: entry.impressions,
             clicks: entry.clicks,
-            investedValue: entry.investedValue,
-            estimatedWishlists: entry.estimatedWishlists,
+            wishlists: entry.wishlists,
+            sales: entry.sales,
+            cost: entry.cost,
+            // Default values for new fields
+            startDate: defaultStartDate,
+            endDate: defaultEndDate,
+            investedValue: entry.investedValue || 0,
+            estimatedWishlists: entry.estimatedWishlists || 0,
         },
     });
 
-    const onSubmit = (values: PaidTrafficFormValues) => {
-        const startDateObject = new Date(values.startDate);
-        const endDateObject = new Date(values.endDate);
-        const networkConversion = values.impressions > 0 ? values.clicks / values.impressions : 0;
-        const estimatedCostPerWL = values.estimatedWishlists > 0 ? values.investedValue / values.estimatedWishlists : '-';
+    const onSubmit = (values: z.infer<typeof EditPaidTrafficFormSchema>) => {
+        const updatedEntry: PaidTrafficEntry = {
+            ...entry,
+            game: values.game,
+            network: values.network,
+            platform: values.platform as Platform,
+            date: new Date(values.date),
+            impressions: values.impressions,
+            clicks: values.clicks,
+            wishlists: values.wishlists,
+            sales: values.sales,
+            cost: values.cost,
+            // Updated detailed fields
+            startDate: new Date(values.startDate),
+            endDate: new Date(values.endDate),
+            investedValue: values.investedValue,
+            estimatedWishlists: values.estimatedWishlists,
+        };
 
-        onSave({
-            ...values,
-            startDate: startDateObject,
-            endDate: endDateObject,
-            networkConversion: networkConversion,
-            estimatedCostPerWL: estimatedCostPerWL,
-            validatedCostPerWL: '-', // Mantemos como '-' após edição manual, a menos que seja validado
-        } as PaidTrafficEntry);
-        toast.success("Entrada de tráfego pago atualizada.");
+        onSave(updatedEntry);
         onClose();
+        toast.success("Entrada de Tráfego Pago atualizada.");
     };
+
+    // Calculating derived metrics for display
+    const clicks = form.watch('clicks') || 0;
+    const impressions = form.watch('impressions') || 0;
+    const investedValue = form.watch('investedValue') || 0;
+    const wishlists = form.watch('wishlists') || 0;
+
+    const networkConversion = impressions > 0 ? (clicks / impressions) : 0;
+    const estimatedCostPerWL = wishlists > 0 ? investedValue / wishlists : 0;
+    const validatedCostPerWL = entry.wishlists > 0 ? entry.cost / entry.wishlists : 0;
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                     control={form.control}
                     name="game"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Jogo</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione o jogo" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {games.map(game => (
-                                        <SelectItem key={game} value={game}>{game}</SelectItem>
+                                    {games.map(g => (
+                                        <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -104,22 +123,34 @@ const EditPaidTrafficForm: React.FC<EditPaidTrafficFormProps> = ({ games, entry,
                         </FormItem>
                     )}
                 />
-
                 <FormField
                     control={form.control}
                     name="network"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Rede Social/Plataforma</FormLabel>
+                            <FormLabel>Rede de Tráfego</FormLabel>
+                            <FormControl>
+                                <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="platform"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Plataforma</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Selecione a Rede" />
+                                        <SelectValue placeholder="Selecione a plataforma" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {networks.map(n => (
-                                        <SelectItem key={n} value={n}>{n}</SelectItem>
+                                    {['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Epic Games', 'Outra'].map(p => (
+                                        <SelectItem key={p} value={p}>{p}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -127,14 +158,13 @@ const EditPaidTrafficForm: React.FC<EditPaidTrafficFormProps> = ({ games, entry,
                         </FormItem>
                     )}
                 />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                     <FormField
                         control={form.control}
                         name="startDate"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Data de Início (YYYY-MM-DD)</FormLabel>
+                                <FormLabel>Data de Início</FormLabel>
                                 <FormControl>
                                     <Input type="date" {...field} />
                                 </FormControl>
@@ -147,7 +177,20 @@ const EditPaidTrafficForm: React.FC<EditPaidTrafficFormProps> = ({ games, entry,
                         name="endDate"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Data Final (YYYY-MM-DD)</FormLabel>
+                                <FormLabel>Data de Fim</FormLabel>
+                                <FormControl>
+                                    <Input type="date" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="date"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Data de Registro</FormLabel>
                                 <FormControl>
                                     <Input type="date" {...field} />
                                 </FormControl>
@@ -156,8 +199,8 @@ const EditPaidTrafficForm: React.FC<EditPaidTrafficFormProps> = ({ games, entry,
                         )}
                     />
                 </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Separator />
+                <div className="grid grid-cols-3 gap-4">
                     <FormField
                         control={form.control}
                         name="impressions"
@@ -165,12 +208,7 @@ const EditPaidTrafficForm: React.FC<EditPaidTrafficFormProps> = ({ games, entry,
                             <FormItem>
                                 <FormLabel>Impressões</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        placeholder="0" 
-                                        {...field} 
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                    />
+                                    <Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -183,12 +221,7 @@ const EditPaidTrafficForm: React.FC<EditPaidTrafficFormProps> = ({ games, entry,
                             <FormItem>
                                 <FormLabel>Cliques</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        placeholder="0" 
-                                        {...field} 
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                    />
+                                    <Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -199,15 +232,24 @@ const EditPaidTrafficForm: React.FC<EditPaidTrafficFormProps> = ({ games, entry,
                         name="investedValue"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Investido (R$)</FormLabel>
+                                <FormLabel>Valor Investido (R$)</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        step="0.01" 
-                                        placeholder="0.00" 
-                                        {...field} 
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                    />
+                                    <Input type="number" step="0.01" {...field} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="wishlists"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Wishlists</FormLabel>
+                                <FormControl>
+                                    <Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -218,28 +260,59 @@ const EditPaidTrafficForm: React.FC<EditPaidTrafficFormProps> = ({ games, entry,
                         name="estimatedWishlists"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>WL Est.</FormLabel>
+                                <FormLabel>WLs Estimados</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        placeholder="0" 
-                                        {...field} 
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                    />
+                                    <Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="sales"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Vendas</FormLabel>
+                                <FormControl>
+                                    <Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                 </div>
-
-                <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="button" variant="outline" onClick={onClose}>
-                        Cancelar
-                    </Button>
-                    <Button type="submit" className="bg-gogo-cyan hover:bg-gogo-cyan/90">
-                        Salvar Alterações
-                    </Button>
+                <FormField
+                    control={form.control}
+                    name="cost"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Custo (R$)</FormLabel>
+                            <FormControl>
+                                <Input type="number" step="0.01" {...field} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <Separator />
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="p-3 bg-gray-50 rounded-md">
+                        <p className="text-sm font-medium">Conversão Rede (Clicks/Impressions):</p>
+                        <p className="text-lg font-bold text-gogo-cyan">{(networkConversion * 100).toFixed(2)}%</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-md">
+                        <p className="text-sm font-medium">Custo Estimado por WL:</p>
+                        <p className="text-lg font-bold">{formatCurrency(estimatedCostPerWL, 'BRL')}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-md">
+                        <p className="text-sm font-medium">Custo Validado por WL:</p>
+                        <p className="text-lg font-bold">{formatCurrency(validatedCostPerWL, 'BRL')}</p>
+                    </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+                    <Button type="submit">Salvar Alterações</Button>
                 </div>
             </form>
         </Form>

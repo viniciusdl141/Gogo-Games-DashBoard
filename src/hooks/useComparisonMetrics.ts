@@ -1,164 +1,163 @@
 import { useMemo } from 'react';
-import { Game as SupabaseGame } from '@/integrations/supabase/games';
-import { TrackingData, ResultSummaryEntry } from '@/data/trackingData';
-import { EstimatedGame } from '@/components/strategic/GameEstimator';
-import { formatCurrency, formatNumber } from '@/lib/utils';
+import {
+    WLSalesEntry,
+    InfluencerTrackingEntry,
+    EventTrackingEntry,
+    PaidTrafficEntry,
+    DemoTrackingEntry,
+    GameMetrics,
+    EstimatedGame,
+    ComparisonGame,
+    ResultSummaryEntry,
+} from '@/data/trackingData';
+import { formatNumber, formatCurrency } from '@/lib/utils';
 
-// Definindo um tipo unificado para o jogo de comparação (pode ser SupabaseGame ou EstimatedGame)
-type ComparisonGame = SupabaseGame | EstimatedGame;
+// --- Helper Types ---
 
-interface ComparisonMetrics {
+interface TrackingDataSubset {
+    wlSales: WLSalesEntry[];
+    influencers: InfluencerTrackingEntry[];
+    events: EventTrackingEntry[];
+    paidTraffic: PaidTrafficEntry[];
+    demoTracking: DemoTrackingEntry[];
+}
+
+// Define a structure for review data if available
+interface LatestReview {
+    rating: number;
+    reviews: number;
+    percentage: number;
+}
+
+// Updated ComparisonMetrics interface
+export interface ComparisonMetrics {
     gameName: string;
-    capsuleImageUrl: string | null | undefined;
+    capsuleImageUrl: string | null;
     launchDate: Date | null;
     suggestedPrice: number | null;
     totalSales: number;
     totalWishlists: number;
-    totalInvestment: number;
-    wlToSalesConversionRate: number;
-    latestReview: { rating: string, reviews: number, percentage: number, date: Date } | null;
+    conversionRate: number;
+    wlToSalesRatio: number;
+    salesToWlRatio: number;
+    revenue: number;
     summaryTableData: ResultSummaryEntry[];
-    isEstimated: boolean;
+    
+    // Metrics used for comparison logic
+    totalInvestment: number; // Sum of costs from all tracking types
+    wlToSalesConversionRate: number; // Same as conversionRate, but explicitly named for comparison logic
     isLocalTracking: boolean;
-    timeframe: string | null; 
-    estimatedRevenue: number;
+    isEstimated: boolean;
+    timeframe: string | null;
+    estimatedRevenue: number | null;
+    latestReview: LatestReview | null;
 }
 
-// Helper function to format values based on key (copied from ResultSummaryPanel)
-const formatSummaryValue = (key: string, value: number | string | undefined): string => {
-    if (value === undefined || value === null || value === '' || value === '#DIV/0!' || (typeof value === 'number' && isNaN(value))) return '-';
-    
-    let cleanedValue: number | string = value;
-    if (typeof value === 'string') {
-        const temp = value.replace(/R\$/, '').replace(/\./g, '').replace(/,/g, '.').trim();
-        const num = parseFloat(temp);
-        if (!isNaN(num)) {
-            cleanedValue = num;
-        } else {
-            cleanedValue = value;
-        }
-    }
+// --- Core Logic ---
 
-    const numValue = Number(cleanedValue);
+/**
+ * Calculates conversion metrics for a specific tracking type (Influencers, Events, Paid Traffic).
+ */
+const calculateTypeMetrics = <T extends { wishlists: number; sales: number; cost?: number; game: string }>(
+    data: T[],
+    type: 'Influencers' | 'Eventos' | 'Trafego Pago',
+    gameName: string
+) => {
+    const totalWL = data.reduce((sum, entry) => sum + entry.wishlists, 0);
+    const totalSales = data.reduce((sum, entry) => sum + entry.sales, 0);
+    const totalCost = data.reduce((sum, entry) => sum + (entry.cost || 0), 0);
 
-    if (typeof cleanedValue === 'string' && cleanedValue.startsWith('R$')) return cleanedValue;
+    const wlToReal = totalWL > 0 ? totalSales / totalWL : 0;
+    const realToWl = totalSales > 0 ? totalWL / totalSales : 0;
+    const costPerSale = totalSales > 0 ? totalCost / totalSales : 0;
+    const conversionSalesWl = totalWL > 0 ? totalSales / totalWL : 0;
 
-    if (key.includes('Real') || key.includes('Custo')) {
-        return formatCurrency(numValue);
-    }
-    if (key.includes('Conversão') || key.includes('WL/Real')) {
-        if (key === 'Conversão vendas/wl') {
-             return `${(numValue * 100).toFixed(2)}%`;
-        }
-        return numValue.toFixed(2);
-    }
-    if (key.includes('Visualizações') || key.includes('Visitas')) {
-        return formatNumber(numValue);
-    }
-    return String(cleanedValue);
+    return {
+        game: gameName,
+        type,
+        'WL/Real': formatNumber(realToWl),
+        'Real/WL': formatNumber(wlToReal),
+        'Custo por venda': formatCurrency(costPerSale),
+        'Conversão vendas/wl': `${(conversionSalesWl * 100).toFixed(2)}%`,
+    };
 };
 
-
-export const useComparisonMetrics = (game: ComparisonGame | undefined, trackingData: TrackingData | undefined): ComparisonMetrics | null => {
+/**
+ * Hook to calculate comparison metrics for a game (either tracked or estimated).
+ */
+export const useComparisonMetrics = (game: ComparisonGame, localTrackingData: TrackingDataSubset): ComparisonMetrics => {
     return useMemo(() => {
-        if (!game || !trackingData) {
-            return null;
-        }
-
-        // FIX: Ensure game.name exists before trimming. If not, return null early.
-        if (!game.name) {
-            return null;
-        }
-        
         const gameName = game.name.trim();
-        
-        // Check if it's an estimated game
+
+        // 1. Calculate Total Sales and Wishlists from WLSalesEntry
+        const wlSalesForGame = localTrackingData.wlSales.filter(e => e.game.trim() === gameName);
+        const totalSales = wlSalesForGame.reduce((sum, entry) => sum + entry.sales, 0);
+        const totalWishlists = wlSalesForGame.reduce((sum, entry) => sum + entry.wishlists, 0);
+
+        // 2. Calculate Conversion Metrics
+        const conversionRate = totalWishlists > 0 ? totalSales / totalWishlists : 0;
+        const wlToSalesRatio = totalSales > 0 ? totalWishlists / totalSales : 0;
+        const salesToWlRatio = totalWishlists > 0 ? totalSales / totalWishlists : 0;
+
+        // 3. Calculate Revenue and Investment
+        const suggestedPrice = 'suggested_price' in game ? game.suggested_price : game.suggestedPrice;
+        const revenue = totalSales * (suggestedPrice || 0);
+
+        const totalInvestment = localTrackingData.influencers.filter(e => e.game.trim() === gameName).reduce((sum, e) => sum + e.cost, 0) +
+                                localTrackingData.events.filter(e => e.game.trim() === gameName).reduce((sum, e) => sum + e.cost, 0) +
+                                localTrackingData.paidTraffic.filter(e => e.game.trim() === gameName).reduce((sum, e) => sum + e.cost, 0);
+
+        // 4. Calculate Tracking Type Summaries
+        const influencerData = localTrackingData.influencers.filter(e => e.game.trim() === gameName);
+        const eventData = localTrackingData.events.filter(e => e.game.trim() === gameName);
+        const paidTrafficData = localTrackingData.paidTraffic.filter(e => e.game.trim() === gameName);
+
+        const resultSummary = [
+            calculateTypeMetrics(influencerData, 'Influencers', gameName),
+            calculateTypeMetrics(eventData, 'Eventos', gameName),
+            calculateTypeMetrics(paidTrafficData, 'Trafego Pago', gameName),
+        ];
+
+        // Result Summary Table Data
+        const summaryTableData: ResultSummaryEntry[] = resultSummary.map(r => ({
+            game: r.game,
+            type: r.type,
+            'WL/Real': r['WL/Real'],
+            'Real/WL': r['Real/WL'],
+            'Custo por venda': r['Custo por venda'],
+            'Conversão vendas/wl': r['Conversão vendas/wl'],
+        }));
+
+        // Determine properties based on type (GameMetrics or EstimatedGame)
         const isEstimated = 'estimatedSales' in game;
+        const isLocalTracking = 'studio_id' in game;
 
-        let totalSales = 0;
-        let totalWishlists = 0;
-        let totalInvestment = 0;
-        let wlToSalesConversionRate = 0;
-        let latestReview = null;
-        let summaryTableData: ResultSummaryEntry[] = [];
-        let isLocalTracking = false;
-        let timeframe: string | null = null; 
-        let estimatedRevenue = 0;
-
-        if (isEstimated) {
-            const estimatedGame = game as EstimatedGame;
-            totalSales = estimatedGame.estimatedSales;
-            totalWishlists = estimatedGame.reviewCount || 0; 
-            totalInvestment = 0; 
-            wlToSalesConversionRate = totalWishlists > 0 ? totalSales / totalWishlists : 0;
-            timeframe = estimatedGame.timeframe; 
-            estimatedRevenue = estimatedGame.estimatedRevenue;
-            
-            if (estimatedGame.reviewCount) {
-                latestReview = {
-                    id: 'est-review',
-                    reviews: estimatedGame.reviewCount,
-                    positive: estimatedGame.reviewCount, 
-                    negative: 0,
-                    percentage: 1,
-                    rating: estimatedGame.reviewSummary || 'Estimativa',
-                    date: new Date(),
-                };
-            }
-
-        } else {
-            // Data from Supabase/Local Tracking
-            isLocalTracking = true;
-            const supabaseGame = game as SupabaseGame;
-            const wlSales = trackingData.wlSales.filter(e => e.game.trim() === gameName && !e.isPlaceholder);
-            totalSales = wlSales.reduce((sum, item) => sum + item.sales, 0);
-            totalWishlists = wlSales.length > 0 ? wlSales[wlSales.length - 1].wishlists : 0;
-            
-            // Investment
-            const investmentSources = {
-                influencers: trackingData.influencerTracking.filter(d => d.game.trim() === gameName).reduce((sum, item) => sum + item.investment, 0),
-                events: trackingData.eventTracking.filter(d => d.game.trim() === gameName).reduce((sum, item) => sum + item.cost, 0),
-                paidTraffic: trackingData.paidTraffic.filter(d => d.game.trim() === gameName).reduce((sum, item) => sum + item.investedValue, 0),
-            };
-            totalInvestment = investmentSources.influencers + investmentSources.events + investmentSources.paidTraffic;
-
-            // Conversion Rates (from Result Summary)
-            const resultSummary = trackingData.resultSummary.filter(r => r.game.trim() === gameName);
-            const wlToSalesSummary = resultSummary.find(r => r['Conversão vendas/wl']);
-            wlToSalesConversionRate = Number(wlToSalesSummary?.['Conversão vendas/wl']) || 0;
-            
-            // Review Data (from WlDetails)
-            const wlDetails = trackingData.wlDetails.find(d => d.game.trim() === gameName);
-            latestReview = wlDetails?.reviews.sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0))[0] || null;
-            
-            // Result Summary Table Data
-            summaryTableData = resultSummary.map(r => ({
-                type: r.type,
-                'WL/Real': r['WL/Real'],
-                'Real/WL': r['Real/WL'],
-                'Custo por venda': r['Custo por venda'],
-                'Conversão vendas/wl': r['Conversão vendas/wl'],
-            }));
-        }
+        const capsuleImageUrl = 'capsule_image_url' in game ? game.capsule_image_url : game.capsuleImageUrl;
+        const launchDateRaw = 'launch_date' in game ? game.launch_date : game.launchDate;
+        const finalLaunchDate = launchDateRaw instanceof Date ? launchDateRaw : (launchDateRaw ? new Date(launchDateRaw) : null);
+        
+        // Placeholder for latest review data (assuming we don't have this data readily available for external games)
+        const latestReview: LatestReview | null = null;
 
         return {
             gameName,
-            capsuleImageUrl: game.capsule_image_url,
-            launchDate: game.launch_date ? new Date(game.launch_date) : null,
-            suggestedPrice: game.suggested_price || null,
+            capsuleImageUrl,
+            launchDate: finalLaunchDate,
+            suggestedPrice: suggestedPrice,
             totalSales,
             totalWishlists,
-            totalInvestment,
-            wlToSalesConversionRate,
-            latestReview,
+            conversionRate,
+            wlToSalesRatio,
+            salesToWlRatio,
+            revenue,
             summaryTableData,
-            isEstimated,
+            totalInvestment,
+            wlToSalesConversionRate: conversionRate,
             isLocalTracking,
-            timeframe, 
-            estimatedRevenue,
+            isEstimated,
+            timeframe: isEstimated ? (game as EstimatedGame).timeframe : null,
+            estimatedRevenue: isEstimated ? (game as EstimatedGame).estimatedRevenue : null,
+            latestReview,
         };
-    }, [game, trackingData]);
+    }, [game, localTrackingData]);
 };
-
-// Export the helper function for use in the panel component
-export { formatSummaryValue };

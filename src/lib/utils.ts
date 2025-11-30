@@ -96,3 +96,28 @@ export function formatDate(dateInput: Date | string | null | undefined): string 
     day: '2-digit',
   }).format(date);
 }
+
+/**
+ * Converts an array of objects to a CSV string.
+ * @param data Array of objects to convert.
+ * @returns CSV string.
+ */
+export function convertToCSV(data: any[]): string {
+  if (data.length === 0) {
+    return '';
+  }
+
+  const headers = Object.keys(data[0]);
+  const csvRows = [
+    headers.join(','),
+    ...data.map(row => headers.map(fieldName => {
+      const value = row[fieldName];
+      if (value === null || value === undefined) return '';
+      // Handle dates and ensure strings are quoted if they contain commas
+      const stringValue = (value instanceof Date) ? formatDate(value) : String(value);
+      return stringValue.includes(',') ? `"${stringValue}"` : stringValue;
+    }).join(','))
+  ];
+
+  return csvRows.join('\n');
+}

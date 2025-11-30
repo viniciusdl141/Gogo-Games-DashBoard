@@ -1,59 +1,102 @@
-"use client";
-
-import React, { useState, useEffect } from 'react';
-import { formatDistanceToNowStrict, differenceInDays, isPast, isFuture } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Rocket } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { differenceInDays, isFuture, isPast, format } from 'date-fns';
+import { Clock } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface LaunchTimerProps {
     launchDate: Date | null;
 }
 
 const LaunchTimer: React.FC<LaunchTimerProps> = ({ launchDate }) => {
-    const [timeStatus, setTimeStatus] = useState<string | null>(null);
-    const [isLaunched, setIsLaunched] = useState<boolean | null>(null);
+    const [isLaunched, setIsLaunched] = useState(false);
+    const [daysCount, setDaysCount] = useState<number | null>(null);
+    const [now, setNow] = useState(new Date());
+
+    useEffect(() => {
+        // Update 'now' every minute to keep the timer relatively accurate
+        const interval = setInterval(() => {
+            setNow(new Date());
+        }, 60000); 
+
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         if (!launchDate) {
-            setTimeStatus(null);
-            setIsLaunched(null);
+            setIsLaunched(false);
+            setDaysCount(null);
             return;
         }
 
-        const calculateTime = () => {
-            const now = new Date();
-            
-            if (isFuture(launchDate, { now })) {
-                const daysUntil = differenceInDays(launchDate, now);
-                setTimeStatus(`${daysUntil} dias para o lançamento`);
-                setIsLaunched(false);
-            } else if (isPast(launchDate, { now })) {
-                const daysSince = differenceInDays(now, launchDate);
-                setTimeStatus(`Lançado há ${daysSince} dias`);
-                setIsLaunched(true);
-            } else { // Today
-                setTimeStatus("Lançamento HOJE!");
-                setIsLaunched(true);
-            }
-        };
+        // Check if the launch date is in the future or past relative to 'now'
+        if (isFuture(launchDate, now)) {
+            const daysUntil = differenceInDays(launchDate, now);
+            setIsLaunched(false);
+            setDaysCount(daysUntil);
+        } else if (isPast(launchDate, now)) {
+            const daysSince = differenceInDays(now, launchDate);
+            setIsLaunched(true);
+            setDaysCount(daysSince);
+        } else {
+            // If it's today
+            setIsLaunched(true);
+            setDaysCount(0);
+        }
+    }, [launchDate, now]);
 
-        calculateTime(); // Initial calculation
+    const statusText = useMemo(() => {
+        if (!launchDate) {
+            return "Data de Lançamento Não Definida";
+        }
+        if (daysCount === null) {
+            return "Calculando...";
+        }
+        if (daysCount === 0) {
+            return "Lançamento Hoje!";
+        }
+        if (isLaunched) {
+            return `${daysCount} dias desde o lançamento`;
+        } else {
+            return `${daysCount} dias até o lançamento`;
+        }
+    }, [launchDate, daysCount, isLaunched]);
 
-        const interval = setInterval(calculateTime, 1000 * 60 * 60); // Update every hour
-        return () => clearInterval(interval);
-    }, [launchDate]);
-
-    if (timeStatus === null) {
-        return null; // Don't render if no launch date is provided
-    }
-
-    const textColorClass = isLaunched ? 'text-gogo-cyan' : 'text-gogo-orange'; // Laranja para contagem regressiva, Ciano para lançado
+    const themeClasses = useMemo(() => {
+        if (!launchDate) {
+            return "bg-gray-100 text-gray-600";
+        }
+        if (isLaunched) {
+            return "bg-gogo-green/10 text-gogo-green border-gogo-green";
+        }
+        if (daysCount !== null && daysCount <= 30) {
+            return "bg-gogo-orange/10 text-gogo-orange border-gogo-orange";
+        }
+        return "bg-gogo-cyan/10 text-gogo-cyan border-gogo-cyan";
+    }, [launchDate, isLaunched, daysCount]);
 
     return (
-        <div className={`flex items-center justify-center p-3 rounded-lg border border-current ${textColorClass} font-bold text-lg shadow-md`}>
-            <Rocket className="h-5 w-5 mr-2" />
-            <span>{timeStatus}</span>
-        </div>
+        <Card className={cn("border-2 transition-colors", themeClasses)}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                    {isLaunched ? "Status de Lançamento" : "Contagem Regressiva"}
+                </CardTitle>
+                <Clock className={cn("h-4 w-4", isLaunched ? "text-gogo-green" : "text-gogo-cyan")} />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">
+                    {daysCount !== null ? daysCount : '--'}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                    {statusText}
+                </p>
+                {launchDate && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Data: {format(launchDate, 'MMM dd, yyyy')}
+                    </p>
+                )}
+            </CardContent>
+        </Card>
     );
 };
 
