@@ -11,8 +11,10 @@ import { Home, ArrowLeft, ArrowRight, Loader2, Presentation } from 'lucide-react
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { toast } from 'sonner';
 import { TrackingData, getTrackingData } from '@/data/trackingData';
-import PresentationSlide from '@/components/presentation/PresentationSlide'; // Novo componente para o slide
+import PresentationSlide from '@/components/presentation/PresentationSlide';
 import { MadeWithDyad } from '@/components/made-with-dyad';
+import { useGameMetrics } from '@/hooks/useGameMetrics'; // NEW IMPORT
+import { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; // Import TimeFrame
 
 const PresentationMode: React.FC = () => {
     const { gameId } = useParams<{ gameId: string }>();
@@ -40,59 +42,20 @@ const PresentationMode: React.FC = () => {
 
     const gameName = selectedGame?.name || 'Jogo Desconhecido';
 
-    // Filtered data for the selected game (similar logic to Dashboard)
-    const filteredData = useMemo(() => {
-        if (!selectedGame || !localTrackingData) return null;
-        
-        const gameName = selectedGame.name.trim();
-        
-        // Filter all relevant data for the game
-        const influencerTracking = localTrackingData.influencerTracking.filter(d => d.game.trim() === gameName);
-        const eventTracking = localTrackingData.eventTracking.filter(d => d.game.trim() === gameName);
-        const paidTraffic = localTrackingData.paidTraffic.filter(d => d.game.trim() === gameName);
-        const wlSales = localTrackingData.wlSales.filter(d => d.game.trim() === gameName && !d.isPlaceholder);
-        const demoTracking = localTrackingData.demoTracking.filter(d => d.game.trim() === gameName);
-        const trafficTracking = localTrackingData.trafficTracking.filter(t => t.game.trim() === gameName);
-        const manualEventMarkers = localTrackingData.manualEventMarkers.filter(m => m.game.trim() === gameName);
-        const resultSummary = localTrackingData.resultSummary.filter(d => d.game.trim() === gameName);
-        const wlDetails = localTrackingData.wlDetails.find(d => d.game.trim() === gameName);
-
-        // Calculate KPIs needed for the presentation
-        const totalSales = wlSales.reduce((sum, item) => sum + item.sales, 0);
-        const totalWishlists = wlSales.length > 0 ? wlSales[wlSales.length - 1].wishlists : 0;
-        
-        const totalInvestment = 
-            influencerTracking.reduce((sum, item) => sum + item.investment, 0) +
-            eventTracking.reduce((sum, item) => sum + item.cost, 0) +
-            paidTraffic.reduce((sum, item) => sum + item.investedValue, 0);
-
-        return {
-            gameName,
-            totalSales,
-            totalWishlists,
-            totalInvestment,
-            launchDate: selectedGame.launch_date ? new Date(selectedGame.launch_date) : null,
-            capsuleImageUrl: selectedGame.capsule_image_url,
-            category: selectedGame.category,
-            wlSales,
-            influencerTracking,
-            eventTracking,
-            paidTraffic,
-            demoTracking,
-            trafficTracking,
-            manualEventMarkers,
-            resultSummary,
-            wlDetails,
-        };
-    }, [selectedGame, localTrackingData]);
+    // 3. Use the centralized metrics hook (using 'All' platform and 'total' timeframe for presentation)
+    const filteredData = useGameMetrics({
+        selectedGameName: gameName,
+        selectedGame: selectedGame,
+        trackingData: localTrackingData,
+        selectedPlatform: 'All',
+        selectedTimeFrame: 'total' as TimeFrame,
+    });
 
     if (isSessionLoading || isGamesLoading || isTrackingLoading) {
         return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gogo-cyan" /> Carregando dados...</div>;
     }
 
     if (!selectedGame || !filteredData) {
-        // Se o jogo não for encontrado, navegamos de volta para o dashboard
-        // Mas se o 404 estiver vindo do roteador, este código não será alcançado.
         return (
             <div className="min-h-screen flex items-center justify-center p-8 gaming-background">
                 <Card className="p-6 text-center">
@@ -137,7 +100,7 @@ const PresentationMode: React.FC = () => {
                                 <PresentationSlide 
                                     slideId={slide.id}
                                     slideTitle={slide.title}
-                                    gameData={filteredData}
+                                    gameData={filteredData} // Pass the centralized metrics
                                     allGames={supabaseGames}
                                     trackingData={localTrackingData}
                                 />

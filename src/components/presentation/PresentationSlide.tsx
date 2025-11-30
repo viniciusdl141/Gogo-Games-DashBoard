@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Game as SupabaseGame } from '@/integrations/supabase/games';
-import { TrackingData, WLSalesPlatformEntry, InfluencerTrackingEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, ResultSummaryEntry } from '@/data/trackingData';
+import { TrackingData } from '@/data/trackingData';
 import { formatCurrency, formatNumber, formatDate } from '@/lib/utils';
 import { DollarSign, List, TrendingUp, Calendar, MessageSquare, Eye, Megaphone, Clock, BarChart3, Info } from 'lucide-react';
 import KpiCard from '../dashboard/KpiCard';
@@ -23,30 +23,12 @@ import {
     LineChart,
     Line,
 } from 'recharts';
-
-interface FilteredGameData {
-    gameName: string;
-    totalSales: number;
-    totalWishlists: number;
-    totalInvestment: number;
-    launchDate: Date | null;
-    capsuleImageUrl: string | null;
-    category: string | null;
-    wlSales: WLSalesPlatformEntry[];
-    influencerTracking: InfluencerTrackingEntry[];
-    eventTracking: EventTrackingEntry[];
-    paidTraffic: PaidTrafficEntry[];
-    demoTracking: DemoTrackingEntry[];
-    trafficTracking: any[];
-    manualEventMarkers: any[];
-    resultSummary: ResultSummaryEntry[];
-    wlDetails: any;
-}
+import { GameMetrics } from '@/hooks/useGameMetrics'; // NEW IMPORT
 
 interface PresentationSlideProps {
     slideId: string;
     slideTitle: string;
-    gameData: FilteredGameData;
+    gameData: GameMetrics; // Use the centralized metrics type
     allGames: SupabaseGame[];
     trackingData: TrackingData;
 }
@@ -63,18 +45,12 @@ const formatValue = (key: string, value: number | string | undefined): string =>
 const PresentationSlide: React.FC<PresentationSlideProps> = ({ slideId, slideTitle, gameData, allGames, trackingData }) => {
     const { 
         gameName, totalSales, totalWishlists, totalInvestment, launchDate, capsuleImageUrl, category,
-        wlSales, influencerTracking, eventTracking, paidTraffic, demoTracking, resultSummary, wlDetails
+        wlSales, influencerTracking, eventTracking, paidTraffic, resultSummary, wlDetails, investmentSources, influencerSummary
     } = gameData;
 
     // --- Slide Content Renderers ---
 
     const renderIntroSlide = () => {
-        const investmentSources = {
-            influencers: influencerTracking.reduce((sum, item) => sum + item.investment, 0),
-            events: eventTracking.reduce((sum, item) => sum + item.cost, 0),
-            paidTraffic: paidTraffic.reduce((sum, item) => sum + item.investedValue, 0),
-        };
-
         return (
             <div className="space-y-8">
                 <div className="flex items-center space-x-6">
@@ -210,9 +186,7 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ slideId, slideTit
     };
 
     const renderInfluencersSlide = () => {
-        const summary = trackingData.influencerSummary.filter(d => d.game.trim() === gameName);
-        
-        const chartData = summary.map(item => ({
+        const chartData = influencerSummary.map(item => ({
             influencer: item.influencer,
             Investimento: item.totalInvestment,
             Wishlists: item.wishlistsGenerated,
@@ -253,7 +227,7 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ slideId, slideTit
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {summary.sort((a, b) => {
+                                    {influencerSummary.sort((a, b) => {
                                         const roiA = typeof a.avgROI === 'number' ? a.avgROI : Infinity;
                                         const roiB = typeof b.avgROI === 'number' ? b.avgROI : Infinity;
                                         return roiA - roiB;
@@ -279,7 +253,7 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ slideId, slideTit
         const totalClicks = paidTraffic.reduce((sum, item) => sum + item.clicks, 0);
         const totalInvested = paidTraffic.reduce((sum, item) => sum + item.investedValue, 0);
         const avgCTR = totalImpressions > 0 ? totalClicks / totalImpressions : 0;
-        const avgCostPerWL = paidTraffic.filter(p => typeof p.estimatedCostPerWL === 'number').reduce((sum, p) => sum + (p.estimatedCostPerWL as number), 0) / paidTraffic.length;
+        // const avgCostPerWL = paidTraffic.filter(p => typeof p.estimatedCostPerWL === 'number').reduce((sum, p) => sum + (p.estimatedCostPerWL as number), 0) / paidTraffic.length;
 
         const networkSummary = paidTraffic.reduce((acc, item) => {
             const network = item.network;

@@ -13,13 +13,15 @@ import { Home, BarChart3, Filter, ArrowRightLeft, Loader2, Search, Calculator } 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GameComparisonPanel from '@/components/strategic/GameComparisonPanel';
 import SimilarGamesSearch from '@/components/strategic/SimilarGamesSearch';
-import GameSalesAnalyzer from '@/components/strategic/GameSalesAnalyzer'; // NEW IMPORT
-import EstimationMethodReferences from '@/components/strategic/EstimationMethodReferences'; // NEW IMPORT
+import GameSalesAnalyzer from '@/components/strategic/GameSalesAnalyzer';
+import EstimationMethodReferences from '@/components/strategic/EstimationMethodReferences';
 import { TrackingData, getTrackingData } from '@/data/trackingData';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { GameOption } from '@/integrations/supabase/functions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimator'; // Importar Estimator
+import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimator';
+import { useGameMetrics } from '@/hooks/useGameMetrics'; // NEW IMPORT
+import { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; // Import TimeFrame
 
 // Mock data for categories (should eventually come from DB or configuration)
 const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação', 'Aventura', 'Visual Novel', 'Casual', 'Outro'];
@@ -28,7 +30,7 @@ const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação'
 type Game2Selection = SupabaseGame | GameOption | EstimatedGame | null;
 
 const StrategicView: React.FC = () => {
-    const { isAdmin, isLoading: isSessionLoading } = useSession();
+    const { isAdmin, studioId, isLoading: isSessionLoading } = useSession();
     const navigate = useNavigate();
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [game1Id, setGame1Id] = useState<string | null>(null);
@@ -38,7 +40,7 @@ const StrategicView: React.FC = () => {
     // Load all games (Admin view)
     const { data: allGames, isLoading: isGamesLoading } = useQuery<SupabaseGame[], Error>({
         queryKey: ['allGamesStrategic'],
-        queryFn: () => getGames(undefined),
+        queryFn: () => getGames(undefined), // Admin fetches all games (studioId undefined)
         enabled: isAdmin,
     });
 
@@ -48,6 +50,17 @@ const StrategicView: React.FC = () => {
         queryFn: getTrackingData,
         initialData: getTrackingData(),
     });
+    
+    // Use Game Metrics Hook for Game 1 (using 'All' platform and 'total' timeframe for comparison base)
+    const game1Supabase = allGames?.find(g => g.id === game1Id);
+    const game1Metrics = useGameMetrics({
+        selectedGameName: game1Supabase?.name || '',
+        selectedGame: game1Supabase,
+        trackingData: localTrackingData,
+        selectedPlatform: 'All',
+        selectedTimeFrame: 'total' as TimeFrame,
+    });
+
 
     const filteredGames = useMemo(() => {
         if (!allGames) return [];
@@ -74,18 +87,15 @@ const StrategicView: React.FC = () => {
     }
 
     const handleSelectGame = (gameId: string) => {
-        // Se o jogo 1 for selecionado, limpa o jogo 2 (que pode ser um jogo similar ou estimado)
         if (game1Id === gameId) {
             setGame1Id(null);
             setGame2Selection(null);
         } else if (game2Selection && 'id' in game2Selection && game2Selection.id === gameId) {
-            // Se for o jogo 2 (do Supabase)
             setGame2Selection(null);
         } else if (!game1Id) {
             setGame1Id(gameId);
-            setGame2Selection(null); // Limpa o jogo 2 ao selecionar o jogo 1
+            setGame2Selection(null);
         } else {
-            // Se o jogo 1 já estiver selecionado, define o jogo 2
             const selectedSupabaseGame = allGames?.find(g => g.id === gameId);
             if (selectedSupabaseGame) {
                 setGame2Selection(selectedSupabaseGame);
@@ -94,9 +104,8 @@ const StrategicView: React.FC = () => {
     };
     
     const handleSelectSimilarGame = (game: GameOption) => {
-        // Define o jogo 2 como o resultado da busca (GameOption)
         setGame2Selection({
-            id: `similar-${Date.now()}`, // Cria um ID temporário para GameOption
+            id: `similar-${Date.now()}`,
             name: game.name,
             launch_date: game.launchDate,
             suggested_price: game.suggestedPrice,
@@ -109,18 +118,16 @@ const StrategicView: React.FC = () => {
             reviewSummary: game.reviewSummary,
             developer: game.developer,
             publisher: game.publisher,
-        } as SupabaseGame); // Força o tipo para SupabaseGame para compatibilidade com GameComparisonPanel
+        } as SupabaseGame);
     };
 
     const handleSelectEstimatedGame = (game: EstimatedGame) => {
-        // Define o jogo 2 como o resultado da estimativa (EstimatedGame)
         setGame2Selection(game);
-        setIsEstimatorOpen(false); // Fecha o modal explicitamente aqui também, embora o GameEstimator já chame onClose
+        setIsEstimatorOpen(false);
     };
 
-    const game1 = allGames?.find(g => g.id === game1Id);
-    
-    // O Game 2 é o objeto armazenado em game2Selection
+    // Pass game1Metrics (which contains the Supabase game data + calculated metrics)
+    const game1 = game1Metrics;
     const game2 = game2Selection;
 
     return (
@@ -171,7 +178,7 @@ const StrategicView: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <AnimatedPanel delay={0.2}>
                         <SimilarGamesSearch 
-                            selectedGame={game1}
+                            selectedGame={game1Supabase}
                             onSelectGameForComparison={handleSelectSimilarGame}
                         />
                     </AnimatedPanel>
@@ -191,19 +198,19 @@ const StrategicView: React.FC = () => {
                                     <DialogTrigger asChild>
                                         <Button 
                                             className="w-full bg-gogo-orange hover:bg-gogo-orange/90"
-                                            disabled={!game1}
+                                            disabled={!game1Supabase}
                                         >
                                             <Calculator className="h-4 w-4 mr-2" /> 
-                                            {game1 ? `Estimar Jogo 2 (Baseado em ${game1.name})` : 'Selecione Jogo 1 Primeiro'}
+                                            {game1Supabase ? `Estimar Jogo 2 (Baseado em ${game1Supabase.name})` : 'Selecione Jogo 1 Primeiro'}
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                                         <GameEstimator 
-                                            gameName={game1?.name || 'Jogo Estimado'}
-                                            initialPrice={game1?.suggested_price || 30.00}
-                                            initialCategory={game1?.category || 'Ação'}
+                                            gameName={game1Supabase?.name || 'Jogo Estimado'}
+                                            initialPrice={game1Supabase?.suggested_price || 30.00}
+                                            initialCategory={game1Supabase?.category || 'Ação'}
                                             onEstimate={handleSelectEstimatedGame}
-                                            onClose={() => setIsEstimatorOpen(false)} // Passa a função de fechar
+                                            onClose={() => setIsEstimatorOpen(false)}
                                         />
                                     </DialogContent>
                                 </Dialog>
@@ -214,7 +221,7 @@ const StrategicView: React.FC = () => {
                 
                 {/* --- Nova Ferramenta de Análise de Vendas --- */}
                 <AnimatedPanel delay={0.3}>
-                    <GameSalesAnalyzer gameName={game1?.name || 'Selecione um Jogo'} />
+                    <GameSalesAnalyzer gameName={game1Supabase?.name || 'Selecione um Jogo'} />
                 </AnimatedPanel>
 
                 {/* --- Lista de Jogos Filtrados para Seleção --- */}
@@ -230,7 +237,6 @@ const StrategicView: React.FC = () => {
                                 const isSelected1 = game.id === game1Id;
                                 const isSelected2 = game2Selection && 'id' in game2Selection && game2Selection.id === game.id;
                                 
-                                // Desabilita se Jogo 1 e Jogo 2 (Supabase) já estiverem selecionados
                                 const isDisabled = !isSelected1 && !isSelected2 && game1Id && game2Selection && 'id' in game2Selection && !game2Selection.id.startsWith('similar-'); 
 
                                 return (
