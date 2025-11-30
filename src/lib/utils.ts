@@ -35,3 +35,22 @@ export function excelSerialDateToJSDate(serial: number): Date {
 
   return date;
 }
+
+/**
+ * Formats a number as currency (USD by default).
+ * @param amount The number to format.
+ * @param currency The currency code (default: 'USD').
+ * @returns The formatted currency string.
+ */
+export function formatCurrency(amount: number | null | undefined, currency: string = 'USD'): string {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return `$0.00`;
+  }
+
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
