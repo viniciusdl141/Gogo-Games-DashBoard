@@ -65,6 +65,11 @@ export const useComparisonMetrics = (game: ComparisonGame | undefined, trackingD
             return null;
         }
 
+        // FIX: Ensure game.name exists before trimming. If not, return null early.
+        if (!game.name) {
+            return null;
+        }
+        
         const gameName = game.name.trim();
         
         // Check if it's an estimated game
