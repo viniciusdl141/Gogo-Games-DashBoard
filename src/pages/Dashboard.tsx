@@ -152,6 +152,13 @@ const Dashboard = () => {
   });
   // --- END NEW ---
 
+  // Determine if a manual marker already exists for the selected date
+  const existingMarkerForClickedEntry = useMemo(() => {
+    if (!clickedWLSalesEntry || !clickedWLSalesEntry.date || !filteredData) return undefined;
+    const dateTimestamp = startOfDay(clickedWLSalesEntry.date).getTime();
+    return filteredData.manualEventMarkers.find(m => startOfDay(m.date).getTime() === dateTimestamp);
+  }, [clickedWLSalesEntry, filteredData]);
+
   // --- Game Management Handlers ---
   const handleAddGame = useCallback(async (gameName: string, launchDate: string | null, suggestedPrice: number, capsuleImageUrl: string | null) => {
     const normalizedGameName = gameName.trim();
@@ -705,13 +712,6 @@ const Dashboard = () => {
   }, [trackingData.games]);
 
 
-  // Determine if a manual marker already exists for the selected date
-  const existingMarkerForClickedEntry = useMemo(() => {
-    if (!clickedWLSalesEntry || !clickedWLSalesEntry.date || !filteredData) return undefined;
-    const dateTimestamp = startOfDay(clickedWLSalesEntry.date).getTime();
-    return filteredData.manualEventMarkers.find(m => startOfDay(m.date).getTime() === dateTimestamp);
-  }, [clickedWLSalesEntry, filteredData]);
-  
   // Componente de Configuração de Cores
   const ColorConfigForm = () => (
     <div className="space-y-4 p-4">
@@ -902,32 +902,32 @@ const Dashboard = () => {
                                     <TabsContent value="overview" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/50 backdrop-blur-sm p-4 rounded-lg shadow-lg ps-card-glow")}>
                                         <AnimatedPanel delay={0}>
                                             <GameSummaryPanel 
-                                                gameId={filteredData.kpis.gameId}
+                                                gameId={filteredData.gameId}
                                                 gameName={filteredData.gameName}
-                                                totalSales={filteredData.kpis.totalSales}
-                                                totalWishlists={filteredData.kpis.totalWishlists}
-                                                totalInvestment={filteredData.kpis.totalInvestment}
-                                                totalInfluencerViews={filteredData.kpis.totalInfluencerViews}
-                                                totalEventViews={filteredData.kpis.totalEventViews}
-                                                totalImpressions={filteredData.kpis.totalImpressions}
-                                                launchDate={filteredData.kpis.launchDate}
-                                                investmentSources={filteredData.kpis.investmentSources}
+                                                totalSales={filteredData.totalSales}
+                                                totalWishlists={filteredData.totalWishlists}
+                                                totalInvestment={filteredData.totalInvestment}
+                                                totalInfluencerViews={filteredData.totalInfluencerViews}
+                                                totalEventViews={filteredData.totalEventViews}
+                                                totalImpressions={filteredData.totalImpressions}
+                                                launchDate={filteredData.launchDate}
+                                                investmentSources={filteredData.investmentSources}
                                                 onUpdateLaunchDate={handleUpdateLaunchDate}
                                                 onMetadataUpdate={refetchSupabaseGames}
-                                                suggestedPrice={filteredData.kpis.suggestedPrice} 
-                                                capsuleImageUrl={filteredData.kpis.capsuleImageUrl}
-                                                category={filteredData.kpis.category}
+                                                suggestedPrice={filteredData.suggestedPrice} 
+                                                capsuleImageUrl={filteredData.capsuleImageUrl}
+                                                category={filteredData.category}
                                             />
                                         </AnimatedPanel>
                                         
                                         <AnimatedPanel delay={0.1}>
                                             <WlConversionKpisPanel 
-                                                avgDailyGrowth={filteredData.kpis.avgDailyGrowth}
-                                                totalGrowth={filteredData.kpis.totalGrowth}
+                                                avgDailyGrowth={filteredData.avgDailyGrowth}
+                                                totalGrowth={filteredData.totalGrowth}
                                                 timeFrame={selectedTimeFrame}
                                                 onTimeFrameChange={setSelectedTimeFrame}
-                                                visitorToWlConversionRate={filteredData.kpis.visitorToWlConversionRate}
-                                                wlToSalesConversionRate={filteredData.kpis.wlToSalesConversionRate}
+                                                visitorToWlConversionRate={filteredData.visitorToWlConversionRate}
+                                                wlToSalesConversionRate={filteredData.wlToSalesConversionRate}
                                                 onCardClick={(tab: 'wl-sales' | 'traffic') => setSelectedTab(tab)} 
                                             />
                                         </AnimatedPanel>
