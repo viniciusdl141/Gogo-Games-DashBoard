@@ -18,42 +18,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { Calculator, TrendingUp, DollarSign, MessageSquare, Gauge, List, Info, Checkbox, Clock, BookOpen } from 'lucide-react';
+import { Calculator, TrendingUp, DollarSign, List, Info, Checkbox, Clock, BookOpen, Gauge } from 'lucide-react';
 import KpiCard from '../dashboard/KpiCard';
 import { GameOption } from '@/integrations/supabase/functions';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import MethodDetailsModal from './MethodDetailsModal'; // Importar o novo modal
-
-// --- Constantes e Multiplicadores ---
-
-const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação', 'Aventura', 'Visual Novel', 'Casual', 'Outro'];
-
-// Multiplicadores Simon Carless (NB)
-const NB_MULTIPLIERS = [
-    { label: 'Antes de 2017 (65)', value: 65 },
-    { label: '2019 - 2022 (35)', value: 35 },
-    { label: '2023 - 2025 (32)', value: 32 },
-    { label: 'Viral (22)', value: 22 },
-];
-
-// Multiplicadores CCU (SteamDB)
-const CCU_MULTIPLIERS = [
-    { label: 'Multiplayer/Coop (40)', value: 40, genre: 'Multiplayer' },
-    { label: 'Singleplayer (100)', value: 100, genre: 'Singleplayer' },
-];
-
-// Multiplicadores VG Insights (Gênero)
-const VG_INSIGHTS_MULTIPLIERS: Record<string, number> = {
-    'Terror': 30,
-    'RPG': 30,
-    'Estratégia': 30,
-    'Simulação': 55,
-    'Casual': 55,
-    'Visual Novel': 40,
-    'Ação': 35, // Defaulting Action to NB 2023-2025 standard
-    'Aventura': 35,
-    'Outro': 35,
-};
+import MethodDetailsModal from './MethodDetailsModal';
+import { 
+    MOCK_CATEGORIES, 
+    NB_MULTIPLIERS, 
+    CCU_MULTIPLIERS, 
+    METHOD_DETAILS, 
+    MethodDetails as MethodDetailsType 
+} from '@/lib/constants';
+import { 
+    calculateMethod, 
+    calculateHybridAverage, 
+    EstimationMethod, 
+    EstimatorFormValues as EstimatorFormValuesBase, 
+    MethodResult 
+} from '@/lib/estimation-logic';
 
 // --- Interfaces e Tipos ---
 
@@ -61,12 +44,10 @@ export interface EstimatedGame extends GameOption {
     estimatedSales: number;
     estimatedRevenue: number;
     estimationMethod: string;
-    timeframe: string; // NEW: Período estimado para atingir o resultado
+    timeframe: string; 
 }
 
-type EstimationMethod = 'boxleiter' | 'carless' | 'gamalytic' | 'vginsights' | 'ccu' | 'revenue';
-
-// Schema de validação
+// Schema de validação (usando o tipo base da lógica)
 const formSchema = z.object({
     reviews: z.number().min(0, "Reviews deve ser um número positivo.").default(0),
     priceBRL: z.number().min(0.01, "Preço deve ser maior que zero.").default(30.00),
@@ -88,104 +69,9 @@ interface GameEstimatorProps {
     onClose: () => void;
 }
 
-interface MethodResult {
-    sales: number;
-    revenue: number;
-    method: string;
-    timeframe: string;
-}
-
-const calculateMethod = (method: EstimationMethod, reviews: number, priceBRL: number, discountFactor: number, ccuPeak: number, nbMultiplier: number, category: string, values: EstimatorFormValues): MethodResult | null => {
-    const priceUSD = priceBRL / 5; // Simplificação da conversão BRL -> USD
-
-    switch (method) {
-        case 'boxleiter': {
-            const sales = reviews * 30;
-            const revenue = sales * priceBRL * discountFactor;
-            return { method: 'Boxleiter Ajustado (M=30)', sales, revenue, timeframe: 'Ciclo de Vida Total (3-5 anos)' };
-        }
-        case 'carless': {
-            const sales = reviews * nbMultiplier;
-            const revenue = sales * priceBRL * discountFactor;
-            return { method: `Simon Carless (NB=${nbMultiplier})`, sales, revenue, timeframe: 'Ciclo de Vida Total (3-5 anos)' };
-        }
-        case 'gamalytic': {
-            let multiplier = 35; // Default
-            if (priceBRL < 25) {
-                multiplier = 20;
-            } else if (priceBRL > 100) {
-                multiplier = 50;
-            } else {
-                multiplier = 35;
-            }
-            const sales = reviews * multiplier;
-            const revenue = sales * priceBRL * discountFactor;
-            return { method: `Gamalytic (M=${multiplier})`, sales, revenue, timeframe: 'Ciclo de Vida Total (3-5 anos)' };
-        }
-        case 'vginsights': {
-            const multiplier = VG_INSIGHTS_MULTIPLIERS[category] || 35;
-            const sales = reviews * multiplier;
-            const revenue = sales * priceBRL * discountFactor;
-            return { method: `VG Insights (M=${multiplier})`, sales, revenue, timeframe: 'Ciclo de Vida Total (3-5 anos)' };
-        }
-        case 'ccu': {
-            if (ccuPeak === 0) return null;
-            const multiplier = values.ccuMultiplier;
-            const sales = ccuPeak * multiplier;
-            const revenue = sales * priceBRL * discountFactor;
-            return { method: `SteamDB CCU (M=${multiplier})`, sales, revenue, timeframe: 'Primeiro Ano (12 meses)' };
-        }
-        case 'revenue': {
-            const sales = reviews * 30; 
-            const revenue = sales * priceBRL * 0.65; 
-            return { method: 'Receita Simplificada (Fator 0.65)', sales, revenue, timeframe: 'Ciclo de Vida Total (3-5 anos)' };
-        }
-        default:
-            return null;
-    }
-};
-
-const METHOD_DETAILS: Record<string, { label: string, description: string, source: string }> = {
-    'Boxleiter Ajustado (M=30)': {
-        label: 'Boxleiter Ajustado (M=30)',
-        description: 'Esta é a fórmula clássica de estimativa de vendas, baseada na premissa de que cada review na Steam corresponde a um número fixo de vendas. O multiplicador de 30x é um ajuste moderno para jogos lançados entre 2014 e 2017. É uma estimativa de ciclo de vida total, mas pode ser imprecisa para jogos muito recentes ou nichados. **É a base teórica para a maioria dos outros métodos.**',
-        source: 'Referência Original: Artigo de Jake Birkett (Grey Alien Games) que estabeleceu a lógica "1 review ≈ X vendas".'
-    },
-    'Simon Carless (NB)': {
-        label: 'Simon Carless (NB)',
-        description: 'O método Simon Carless (NB Number) ajusta o multiplicador de reviews com base no ano de lançamento do jogo. Isso é crucial porque a Valve mudou a forma como solicita reviews, afetando a taxa de conversão. O multiplicador de 32x (para 2023-2025) é mais conservador e reflete a saturação do mercado e a mudança de comportamento dos usuários. **É ideal para jogos recém-lançados.**',
-        source: 'Referência: Simon Carless (GameDiscoverCo) explica a mudança do multiplicador (30x-60x) para jogos pós-2022 no Game World Observer.'
-    },
-    'Gamalytic (M)': {
-        label: 'Gamalytic (Preço Ponderado)',
-        description: 'A Gamalytic utiliza um multiplicador que é ajustado pelo preço do jogo. Jogos muito baratos (<R$25) tendem a ter menos reviews por venda (M=20), enquanto jogos caros (>R$100) tendem a ter mais reviews por venda (M=50). Este método tenta corrigir o viés de que jogos mais caros têm um público mais engajado que deixa reviews. **Foca em como o preço afeta a taxa de conversão de reviews.**',
-        source: 'Referência: Documentação oficial da Gamalytic, detalhando o uso de probabilidade condicional para corrigir vieses de preço.'
-    },
-    'VG Insights (M)': {
-        label: 'VG Insights (Gênero Ponderado)',
-        description: 'Este método ajusta o multiplicador de reviews com base no gênero do jogo. Gêneros de nicho e alto engajamento (RPG, Horror, Estratégia) têm multiplicadores mais baixos (M=30), pois seus fãs são mais propensos a deixar reviews. Gêneros casuais (Simulação, Puzzle) têm multiplicadores mais altos (M=55). **É essencial para entender o engajamento do público-alvo.**',
-        source: 'Referência: Estudo da VG Insights sobre a relação Reviews/Vendas por Gênero. Publicam relatórios anuais cruciais.'
-    },
-    'SteamDB CCU (M)': {
-        label: 'SteamDB CCU',
-        description: 'Estima as vendas totais com base no Pico de Jogadores Simultâneos (CCU All-Time Peak). O multiplicador é 40x para jogos Multiplayer/Co-op e 100x para Singleplayer. Este método é mais preciso para estimar o desempenho no **primeiro ano de lançamento** e é menos afetado por promoções tardias. **Requer o dado de CCU Peak.**',
-        source: 'Referência: Dados públicos do SteamDB. A regra de 20x-50x o CCU da primeira semana é baseada em post-mortems de desenvolvedores (Ars Technica/Gamasutra).'
-    },
-    'Receita Simplificada (Fator 0.65)': {
-        label: 'Receita Simplificada',
-        description: 'Uma estimativa direta da Receita Líquida, assumindo um multiplicador base de 30x e aplicando um fator de 0.65 (65%) para remover a taxa da Steam (30%) e impostos/custos operacionais. **Foca no retorno financeiro líquido.**',
-        source: 'Referência: Fórmulas de cálculo de receita líquida pós-Steam (30% fee).'
-    },
-    'Média Híbrida': {
-        label: 'Média Híbrida',
-        description: 'A Média Híbrida combina os resultados de todos os métodos selecionados (ou calculáveis) para mitigar vieses de um único modelo. Ao usar múltiplos pontos de vista (preço, gênero, CCU, histórico), ela fornece uma estimativa mais robusta e confiável do ciclo de vida total do jogo.',
-        source: 'Metodologia interna GoGo Games, baseada na consolidação de múltiplas fontes de dados de mercado.'
-    }
-};
-
 // Array de opções de métodos para o checkbox de combinação
 const methodOptions: { method: EstimationMethod, label: string }[] = [
-    { method: 'boxleiter', label: 'Boxleiter Ajustado (M=30)' },
+    { method: 'boxleiter', label: 'Boxleiter Ajustado' },
     { method: 'carless', label: 'Simon Carless (NB)' },
     { method: 'gamalytic', label: 'Gamalytic (Preço Ponderado)' },
     { method: 'vginsights', label: 'VG Insights (Gênero Ponderado)' },
@@ -197,7 +83,7 @@ const methodOptions: { method: EstimationMethod, label: string }[] = [
 const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 30.00, initialCategory = 'Ação', onEstimate, onClose }) => {
     const [detailsModalOpen, setDetailsModalOpen] = useState(false);
     const [selectedMethodResult, setSelectedMethodResult] = useState<MethodResult | null>(null);
-    const [selectedMethodDetails, setSelectedMethodDetails] = useState<{ label: string, description: string, source: string } | null>(null);
+    const [selectedMethodDetails, setSelectedMethodDetails] = useState<MethodDetailsType | null>(null);
     
     const form = useForm<EstimatorFormValues>({
         resolver: zodResolver(formSchema),
@@ -218,31 +104,13 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
     const calculations = useMemo(() => {
         const { reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, methodsToCombine } = values;
         
-        const allMethods: { method: EstimationMethod, result: MethodResult | null }[] = [
-            { method: 'boxleiter', result: calculateMethod('boxleiter', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
-            { method: 'carless', result: calculateMethod('carless', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
-            { method: 'gamalytic', result: calculateMethod('gamalytic', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
-            { method: 'vginsights', result: calculateMethod('vginsights', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
-            { method: 'ccu', result: calculateMethod('ccu', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
-            { method: 'revenue', result: calculateMethod('revenue', reviews, priceBRL, discountFactor, ccuPeak, nbMultiplier, category, values) },
-        ];
+        const allMethods: EstimationMethod[] = ['boxleiter', 'carless', 'gamalytic', 'vginsights', 'ccu', 'revenue'];
 
-        const results = allMethods.map(m => m.result).filter((r): r is NonNullable<typeof r> => r !== null);
+        const results = allMethods
+            .map(method => calculateMethod(method, values))
+            .filter((r): r is NonNullable<typeof r> => r !== null);
 
-        // Calcula a média combinada apenas dos métodos selecionados
-        const combinedResults = results.filter(r => {
-            // Encontra o método base (ex: 'Boxleiter Ajustado (M=30)' -> 'boxleiter')
-            const methodEntry = allMethods.find(m => m.result === r);
-            if (!methodEntry) return false;
-            return methodsToCombine.includes(methodEntry.method.split('(')[0].trim().toLowerCase().replace(/\s/g, '') as EstimationMethod);
-        });
-
-        const totalSales = combinedResults.reduce((sum, r) => sum + r.sales, 0);
-        const totalRevenue = combinedResults.reduce((sum, r) => sum + r.revenue, 0);
-        const count = combinedResults.length;
-
-        const avgSales = count > 0 ? totalSales / count : 0;
-        const avgRevenue = count > 0 ? totalRevenue / count : 0;
+        const { avgSales, avgRevenue, count } = calculateHybridAverage(results, methodsToCombine);
 
         return {
             allMethods: results,
@@ -253,15 +121,13 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
     }, [values]);
 
     const handleOpenDetails = (result: MethodResult) => {
-        const baseMethodName = result.method.split('(')[0].trim();
-        const detailsKey = Object.keys(METHOD_DETAILS).find(key => key.startsWith(baseMethodName));
+        const detailsKey = Object.keys(METHOD_DETAILS).find(key => result.method.includes(key.split('(')[0].trim()));
         
         setSelectedMethodResult(result);
         setSelectedMethodDetails(METHOD_DETAILS[detailsKey || 'Média Híbrida']);
         setDetailsModalOpen(true);
     };
     
-    // Função que cria o objeto EstimatedGame e fecha o modal principal
     const finalizeSelection = (result: MethodResult) => {
         const isAverage = result.method === 'Média Híbrida';
         
@@ -285,11 +151,10 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
         };
         
         onEstimate(finalGame);
-        onClose(); // Fecha o modal principal
+        onClose(); 
     };
 
     const handleSelectAverage = () => {
-        // Prepara o resultado da média para o modal de detalhes
         const avgResult: MethodResult = {
             sales: calculations.avgSales,
             revenue: calculations.avgRevenue,
@@ -302,7 +167,6 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
         setDetailsModalOpen(true);
     };
     
-    // Helper para renderizar o Label com Tooltip
     const renderLabelWithTooltip = (label: string, tooltipContent: React.ReactNode) => (
         <div className="flex items-center space-x-1">
             <FormLabel>{label}</FormLabel>
@@ -463,14 +327,13 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                         
                         <Separator />
 
-                        {/* Resultados da Estimativa (fora da tag <form>, mas dentro de <Form>) */}
+                        {/* Resultados da Estimativa */}
                         <h4 className="text-lg font-semibold text-gogo-cyan flex items-center">
                             <TrendingUp className="h-4 w-4 mr-2" /> Resultados por Método
                         </h4>
                         <div className="space-y-3">
                             {calculations.allMethods.map((res, index) => {
-                                const baseMethodName = res.method.split('(')[0].trim();
-                                const detailsKey = Object.keys(METHOD_DETAILS).find(key => key.startsWith(baseMethodName));
+                                const detailsKey = Object.keys(METHOD_DETAILS).find(key => res.method.includes(key.split('(')[0].trim()));
                                 const methodDetails = METHOD_DETAILS[detailsKey || 'Média Híbrida'];
                                 
                                 return (
@@ -539,7 +402,6 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                                             const methodKey = option.method;
                                             const isChecked = field.value.includes(methodKey);
                                             
-                                            // Verifica se o método CCU pode ser calculado
                                             const isDisabled = methodKey === 'ccu' && values.ccuPeak === 0;
 
                                             return (
@@ -619,9 +481,8 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ gameName, initialPrice = 
                     methodResult={selectedMethodResult}
                     methodDetails={selectedMethodDetails}
                     onConfirmSelection={() => {
-                        // Chama a função de seleção final, que é responsável por fechar o modal principal
                         finalizeSelection(selectedMethodResult);
-                        setDetailsModalOpen(false); // Fecha o modal de detalhes
+                        setDetailsModalOpen(false); 
                     }}
                 />
             )}

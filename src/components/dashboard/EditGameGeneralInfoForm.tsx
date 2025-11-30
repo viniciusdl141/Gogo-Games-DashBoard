@@ -18,9 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Image, Loader2, Search } from 'lucide-react';
 import { fetchAndSetGameMetadata, Game as SupabaseGame } from '@/integrations/supabase/games';
-
-// Mock data for categories (must match StrategicView)
-const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação', 'Aventura', 'Outro'];
+import { MOCK_CATEGORIES } from '@/lib/constants'; // Importando MOCK_CATEGORIES
 
 const formSchema = z.object({
     launchDate: z.string().nullable().optional(), // YYYY-MM-DD format

@@ -20,11 +20,9 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { GameOption } from '@/integrations/supabase/functions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimator';
-import { useGameMetrics } from '@/hooks/useGameMetrics'; // NEW IMPORT
-import { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; // Import TimeFrame
-
-// Mock data for categories (should eventually come from DB or configuration)
-const MOCK_CATEGORIES = ['Ação', 'Terror', 'RPG', 'Estratégia', 'Simulação', 'Aventura', 'Visual Novel', 'Casual', 'Outro'];
+import { useGameMetrics } from '@/hooks/useGameMetrics'; 
+import { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; 
+import { MOCK_CATEGORIES } from '@/lib/constants'; // Importando MOCK_CATEGORIES
 
 // Interface combinada para o Jogo 2 (pode ser SupabaseGame ou EstimatedGame)
 type Game2Selection = SupabaseGame | GameOption | EstimatedGame | null;
@@ -41,6 +39,7 @@ const StrategicView: React.FC = () => {
     const { data: allGames, isLoading: isGamesLoading } = useQuery<SupabaseGame[], Error>({
         queryKey: ['allGamesStrategic'],
         queryFn: () => getGames(undefined), // Admin fetches all games (studioId undefined)
+        initialData: [],
         enabled: isAdmin,
     });
 
