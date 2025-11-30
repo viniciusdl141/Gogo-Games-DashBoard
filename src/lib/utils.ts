@@ -54,3 +54,16 @@ export function formatCurrency(amount: number | null | undefined, currency: stri
     maximumFractionDigits: 2,
   }).format(amount);
 }
+
+/**
+ * Formats a number with locale-specific separators.
+ * @param amount The number to format.
+ * @returns The formatted number string.
+ */
+export function formatNumber(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return '0';
+  }
+
+  return new Intl.NumberFormat('en-US').format(amount);
+}
