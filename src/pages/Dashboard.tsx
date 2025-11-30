@@ -21,8 +21,6 @@ import { rawData } from '@/data/rawTrackingData'; // Import rawData
 import { useSession } from '@/components/SessionContextProvider'; // Import useSession
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
-import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
-import WLSalesTablePanel from '@/components/dashboard/WLSalesTablePanel';
 import SalesByTypeChart from '@/components/dashboard/SalesByTypeChart';
 import InfluencerPanel from '@/components/dashboard/InfluencerPanel';
 import EventPanel from '@/components/dashboard/EventPanel';
@@ -33,19 +31,14 @@ import WlDetailsManager from '@/components/dashboard/WlDetailsManager';
 import AddInfluencerForm from '@/components/dashboard/AddInfluencerForm';
 import AddEventForm from '@/components/dashboard/AddEventForm';
 import AddPaidTrafficForm from '@/components/dashboard/AddPaidTrafficForm';
-import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm';
-import EditWLSalesForm from '@/components/dashboard/EditWLSalesForm';
 import GameSummaryPanel from '@/components/dashboard/GameSummaryPanel';
 import ExportDataButton from '@/components/dashboard/ExportDataButton';
 import { formatCurrency, formatNumber, convertToCSV, cn } from '@/lib/utils'; // Import cn
-import AddGameForm from '@/components/dashboard/AddGameForm';
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
 import AddDemoForm from '@/components/dashboard/AddDemoForm';
 import EditDemoForm from '@/components/dashboard/EditDemoForm';
-import ManualEventMarkerForm from '@/components/dashboard/ManualEventMarkerForm'; 
 import WLSalesActionMenu from '@/components/dashboard/WLSalesActionMenu'; 
 import WlConversionKpisPanel, { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; // Import TimeFrame
-import AddTrafficForm from '@/components/dashboard/AddTrafficForm'; 
 import AIDataProcessor from '@/components/dashboard/AIDataProcessor'; // NEW IMPORT
 import AddGameModal from '@/components/dashboard/AddGameModal'; // NEW IMPORT
 import DeleteGameButton from '@/components/dashboard/DeleteGameButton'; // NEW IMPORT
@@ -54,8 +47,6 @@ import AnimatedPanel from '@/components/AnimatedPanel'; // NEW IMPORT
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import EditGameGeneralInfoForm from '@/components/dashboard/EditGameGeneralInfoForm'; // NOVO IMPORT
-import AddDailyWLSalesForm from '@/components/dashboard/AddDailyWLSalesForm'; // NOVO IMPORT
 import WLSalesPanelThemed from '@/components/dashboard/WLSalesPanelThemed'; // NEW IMPORT
 
 // Initialize data once
@@ -98,8 +89,6 @@ const Dashboard = () => {
   const [isAddInfluencerFormOpen, setIsAddInfluencerFormOpen] = useState(false);
   const [isAddEventFormOpen, setIsAddEventFormOpen] = useState(false);
   const [isAddPaidTrafficFormOpen, setIsAddPaidTrafficFormOpen] = useState(false);
-  const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
-  const [isAddDailyWLSalesFormOpen, setIsAddDailyWLSalesFormOpen] = useState(false); // NOVO STATE
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
   const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false);
   const [isColorConfigOpen, setIsColorConfigOpen] = useState(false); 
@@ -365,7 +354,7 @@ const Dashboard = () => {
         };
     });
     
-    setIsAddWLSalesFormOpen(false);
+    // Removed setIsAddWLSalesFormOpen(false); as it's managed in WLSalesPanelThemed
   }, []);
   
   // NOVO HANDLER: Adição Diária Simplificada
@@ -395,7 +384,7 @@ const Dashboard = () => {
         };
     });
     
-    setIsAddDailyWLSalesFormOpen(false);
+    // Removed setIsAddDailyWLSalesFormOpen(false); as it's managed in WLSalesPanelThemed
     toast.success(`Entrada diária de WL/Vendas para ${newEntry.platform} adicionada.`);
   }, [selectedGameName]);
 
