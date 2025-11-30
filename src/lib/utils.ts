@@ -67,3 +67,32 @@ export function formatNumber(amount: number | null | undefined): string {
 
   return new Intl.NumberFormat('en-US').format(amount);
 }
+
+/**
+ * Formats a Date object or date string into a readable date format (e.g., 'MMM DD, YYYY').
+ * @param dateInput The Date object, date string, or null/undefined.
+ * @returns The formatted date string or an empty string if invalid.
+ */
+export function formatDate(dateInput: Date | string | null | undefined): string {
+  if (!dateInput) {
+    return '';
+  }
+
+  let date: Date;
+
+  if (typeof dateInput === 'string') {
+    date = new Date(dateInput);
+  } else {
+    date = dateInput;
+  }
+
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  }).format(date);
+}
