@@ -1,123 +1,113 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+import { format, isValid } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-/**
- * Converts an Excel serial date number to a JavaScript Date object.
- * Excel serial dates start from January 1, 1900 (day 1).
- * @param serial The Excel serial date number.
- * @returns A JavaScript Date object.
- */
-export function excelSerialDateToJSDate(serial: number): Date {
-  // Excel serial date 1 is Jan 1, 1900. JS Date epoch is Jan 1, 1970.
-  // The difference in days between 1900-01-01 and 1970-01-01 is 25569 days.
-  // Excel also incorrectly treats 1900 as a leap year, so we subtract 1 day for the 1900 leap year error.
+// Utility to convert Excel serial date (number of days since 1899-12-30) to JS Date
+export function excelSerialDateToJSDate(serial: number): Date | null {
+  if (typeof serial !== 'number' || serial <= 0) return null;
+  // 25569 is the number of days between 1899-12-30 and 1970-01-01.
   const MS_PER_DAY = 24 * 60 * 60 * 1000;
-  const EXCEL_EPOCH_OFFSET = 25569; // Days between 1900-01-01 and 1970-01-01
-  const LEAP_YEAR_ADJUSTMENT = 1; // Adjustment for Excel's 1900 leap year bug
-
-  if (serial <= 0) {
-    return new Date(NaN); // Invalid date
-  }
-
-  // Adjust for the epoch and the 1900 leap year bug
-  const days = serial - EXCEL_EPOCH_OFFSET - LEAP_YEAR_ADJUSTMENT;
-  
-  // Convert days to milliseconds
-  const milliseconds = days * MS_PER_DAY;
-
-  // Create the date object. The Date constructor handles time zones based on the local environment,
-  // but the calculation is based on UTC days since epoch.
-  const date = new Date(milliseconds);
-
+  // Subtract 1 day because Excel counts 1900-02-29 which didn't exist.
+  const date = new Date(Math.round((serial - 25569) * MS_PER_DAY));
   return date;
 }
 
-/**
- * Formats a number as currency (USD by default).
- * @param amount The number to format.
- * @param currency The currency code (default: 'USD').
- * @returns The formatted currency string.
- */
-export function formatCurrency(amount: number | null | undefined, currency: string = 'USD'): string {
-  if (amount === null || amount === undefined || isNaN(amount)) {
-    return `$0.00`;
-  }
+export function formatDate(date: Date | number | null): string {
+    if (!date) return '-';
+    
+    let dateToFormat: Date;
 
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+    if (typeof date === 'number') {
+        const jsDate = excelSerialDateToJSDate(date);
+        if (!jsDate) return '-';
+        dateToFormat = jsDate;
+    } else {
+        dateToFormat = date;
+    }
+    
+    // Check validity before formatting to prevent 'Invalid time value' errors
+    if (!isValid(dateToFormat)) {
+        return '-';
+    }
+
+    return format(dateToFormat, 'dd/MM/yyyy', { locale: ptBR });
 }
 
-/**
- * Formats a number with locale-specific separators.
- * @param amount The number to format.
- * @returns The formatted number string.
- */
-export function formatNumber(amount: number | null | undefined): string {
-  if (amount === null || amount === undefined || isNaN(amount)) {
-    return '0';
-  }
-
-  return new Intl.NumberFormat('en-US').format(amount);
+export function formatCurrency(value: number | string | undefined): string {
+    if (value === undefined || value === null || value === '' || isNaN(Number(value))) return '-';
+    return `R$ ${Number(value).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
 }
 
-/**
- * Formats a Date object or date string into a readable date format (e.g., 'MMM DD, YYYY').
- * @param dateInput The Date object, date string, or null/undefined.
- * @returns The formatted date string or an empty string if invalid.
- */
-export function formatDate(dateInput: Date | string | null | undefined): string {
-  if (!dateInput) {
-    return '';
-  }
-
-  let date: Date;
-
-  if (typeof dateInput === 'string') {
-    date = new Date(dateInput);
-  } else {
-    date = dateInput;
-  }
-
-  if (isNaN(date.getTime())) {
-    return '';
-  }
-
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  }).format(date);
+export function formatNumber(value: number | string | undefined): string {
+    if (value === undefined || value === null || value === '' || isNaN(Number(value))) return '-';
+    return Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
 }
 
-/**
- * Converts an array of objects to a CSV string.
- * @param data Array of objects to convert.
- * @returns CSV string.
- */
-export function convertToCSV(data: any[]): string {
-  if (data.length === 0) {
-    return '';
-  }
+// New function to convert data array to CSV string and trigger download
+export function convertToCSV<T extends Record<string, any>>(data: T[], filename: string): void {
+    if (data.length === 0) {
+        console.warn("No data to export.");
+        return;
+    }
 
-  const headers = Object.keys(data[0]);
-  const csvRows = [
-    headers.join(','),
-    ...data.map(row => headers.map(fieldName => {
-      const value = row[fieldName];
-      if (value === null || value === undefined) return '';
-      // Handle dates and ensure strings are quoted if they contain commas
-      const stringValue = (value instanceof Date) ? formatDate(value) : String(value);
-      return stringValue.includes(',') ? `"${stringValue}"` : stringValue;
-    }).join(','))
-  ];
+    // Use keys from the first object as headers
+    const headers = Object.keys(data[0]);
+    const csvRows = [];
 
-  return csvRows.join('\n');
+    // Add header row
+    csvRows.push(headers.join(','));
+
+    // Add data rows
+    for (const row of data) {
+        const values = headers.map(header => {
+            let value = row[header];
+            
+            // Handle Date objects
+            if (value instanceof Date) {
+                value = format(value, 'yyyy-MM-dd', { locale: ptBR });
+            } 
+            
+            // Handle numbers (ensure proper formatting for CSV)
+            else if (typeof value === 'number') {
+                value = String(value);
+            }
+            
+            // Handle strings that might contain commas or quotes
+            else if (typeof value === 'string') {
+                // Escape double quotes and wrap in double quotes if it contains comma or double quotes
+                value = value.replace(/"/g, '""');
+                if (value.includes(',') || value.includes('\n')) {
+                    value = `"${value}"`;
+                }
+            }
+            
+            // Handle null/undefined/non-numeric values
+            else if (value === null || value === undefined || value === '-') {
+                value = '';
+            }
+
+            return value;
+        });
+        csvRows.push(values.join(','));
+    }
+
+    const csvString = csvRows.join('\n');
+    
+    // Trigger download
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 }

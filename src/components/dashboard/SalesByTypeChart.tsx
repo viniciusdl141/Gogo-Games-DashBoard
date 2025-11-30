@@ -1,73 +1,73 @@
+"use client";
+
 import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { WLSalesPlatformEntry } from '@/data/trackingData';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { WLSalesPlatformEntry } from '@/data/trackingData'; // Changed from WLSalesEntry to WLSalesPlatformEntry
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+    Cell, // Importar Cell para aplicar cores dinâmicas
+} from 'recharts';
 import { formatNumber } from '@/lib/utils';
-import { DollarSign } from 'lucide-react';
 
 interface SalesByTypeChartProps {
-    data: WLSalesPlatformEntry[];
+    data: WLSalesPlatformEntry[]; // Changed from WLSalesEntry to WLSalesPlatformEntry
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
 const SalesByTypeChart: React.FC<SalesByTypeChartProps> = ({ data }) => {
-    const chartData = useMemo(() => {
+    const salesSummary = useMemo(() => {
         const summary = data.reduce((acc, entry) => {
             const type = entry.saleType || 'Padrão';
             acc[type] = (acc[type] || 0) + entry.sales;
             return acc;
         }, {} as Record<string, number>);
 
-        return Object.entries(summary).map(([name, value], index) => ({
-            name,
-            value,
-            color: COLORS[index % COLORS.length],
+        // Convert to array format for Recharts
+        return Object.keys(summary).map(key => ({
+            name: key,
+            Vendas: summary[key],
         }));
     }, [data]);
 
-    if (chartData.length === 0 || chartData.every(d => d.value === 0)) {
-        return (
-            <Card className="shadow-md h-full">
-                <CardHeader>
-                    <CardTitle className="text-lg font-semibold flex items-center">
-                        <DollarSign className="h-5 w-5 mr-2 text-gogo-green" /> Vendas por Tipo
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-center justify-center h-48 text-gray-500">
-                    Nenhum dado de vendas disponível.
-                </CardContent>
-            </Card>
-        );
+    if (salesSummary.length === 0 || salesSummary.every(s => s.Vendas === 0)) {
+        return null;
     }
 
+    // Cores Gogo Games: Cyan, Orange, e um terceiro para DLC
+    const COLORS: Record<string, string> = {
+        'Padrão': '#00BFFF', // gogo-cyan
+        'Bundle': '#FF6600', // gogo-orange
+        'DLC': '#8b5cf6', // Violet (complementar)
+    };
+
     return (
-        <Card className="shadow-md h-full">
+        <Card>
             <CardHeader>
-                <CardTitle className="text-lg font-semibold flex items-center">
-                    <DollarSign className="h-5 w-5 mr-2 text-gogo-green" /> Vendas por Tipo
-                </CardTitle>
+                <CardTitle>Vendas Totais por Tipo (Unidades)</CardTitle>
             </CardHeader>
-            <CardContent className="h-64 p-0">
+            <CardContent className="h-[300px] p-4">
                 <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                        <Pie
-                            data={chartData}
-                            dataKey="value"
-                            nameKey="name"
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={80}
-                            fill="#8884d8"
-                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                        >
-                            {chartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                        </Pie>
+                    <BarChart
+                        data={salesSummary}
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        layout="vertical"
+                    >
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis type="number" tickFormatter={(value) => formatNumber(value)} />
+                        <YAxis dataKey="name" type="category" width={80} />
                         <Tooltip formatter={(value) => formatNumber(value as number)} />
-                        <Legend layout="horizontal" verticalAlign="bottom" align="center" />
-                    </PieChart>
+                        <Bar dataKey="Vendas" name="Vendas" >
+                            {salesSummary.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#6b7280'} />
+                            ))}
+                        </Bar>
+                    </BarChart>
                 </ResponsiveContainer>
             </CardContent>
         </Card>

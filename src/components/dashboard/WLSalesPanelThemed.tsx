@@ -1,110 +1,237 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+"use client";
+
+import React, { useState, useMemo } from 'react';
+import { WLSalesPlatformEntry, EventTrackingEntry, ManualEventMarker, Platform } from '@/data/trackingData';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select imports
-import { Plus, BarChart3, List, RefreshCw } from 'lucide-react';
-import { WLSalesEntry, Platform } from '@/data/trackingData';
+import { cn, formatNumber } from '@/lib/utils';
+import { Plus, EyeOff, Eye, CalendarPlus, Palette, History, ArrowRight, ArrowLeft, Gamepad2 } from 'lucide-react';
 import WLSalesChartPanel from './WLSalesChartPanel';
 import WLSalesTablePanel from './WLSalesTablePanel';
-import AddWLSalesForm from './AddWLSalesForm';
-import { toast } from 'sonner';
+import ExportDataButton from './ExportDataButton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import AddDailyWLSalesForm from './AddDailyWLSalesForm';
+import AddWLSalesForm from './AddWLSalesForm'; // <-- Adicionando a importação
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Cores do gráfico ajustadas para o tema PlayStation
+const PS_CHART_COLORS = {
+    daily: 'hsl(var(--ps-blue))',
+    weekly: 'hsl(24 100% 60%)', // Orange for contrast
+    monthly: 'hsl(220 10% 90%)', // Light gray for contrast
+    event: 'hsl(24 100% 60%)', // Orange
+    sales: 'hsl(220 80% 70%)', // Lighter PS Blue
+};
+
+// Opções de filtro simplificadas: Apenas plataformas principais
+const filterOptions: (Platform | 'All')[] = [
+    'All', 
+    'Steam', 
+    'Xbox', 
+    'Playstation', 
+    'Nintendo', 
+    'Android', 
+    'iOS', 
+    'Epic Games', 
+    'Outra'
+];
+
+// Função para obter o nome de exibição
+const getDisplayPlatformName = (platform: Platform | 'All') => {
+    switch (platform) {
+        case 'All': return 'Todas as Plataformas';
+        default: return platform;
+    }
+};
 
 interface WLSalesPanelThemedProps {
-    wlSalesData: WLSalesEntry[];
     gameName: string;
-    allPlatforms: Platform[];
-    onAddDailyWLSalesEntry: (entry: { date: Date; platform: Platform; wishlists: number; sales: number }) => void;
-    onDeleteEntry: (id: string) => void;
+    wlSales: WLSalesPlatformEntry[]; 
+    eventTracking: EventTrackingEntry[];
+    manualEventMarkers: ManualEventMarker[];
+    wlSalesDataForRecalculation: WLSalesPlatformEntry[];
+    allGames: string[];
+    selectedPlatform: Platform | 'All';
+    onPlatformChange: (platform: Platform | 'All') => void;
+    onPointClick: (entry: WLSalesPlatformEntry) => void;
+    onDeleteWLSalesEntry: (id: string) => void;
+    onEditWLSalesEntry: (entry: WLSalesPlatformEntry) => void;
+    onAddDailyWLSalesEntry: (newEntry: { date: string, platform: Platform, wishlists: number, sales: number }) => void;
+    onAddWLSalesEntry: (newEntry: any) => void; // Adicionado para o formulário detalhado
+    isColorConfigOpen: boolean;
+    onColorConfigOpenChange: (open: boolean) => void;
+    ColorConfigForm: React.FC;
+    isHistoryVisible: boolean;
+    onHistoryVisibleChange: (visible: boolean) => void;
 }
 
 const WLSalesPanelThemed: React.FC<WLSalesPanelThemedProps> = ({
-    wlSalesData,
     gameName,
-    allPlatforms,
+    wlSales,
+    eventTracking,
+    manualEventMarkers,
+    wlSalesDataForRecalculation,
+    allGames,
+    selectedPlatform,
+    onPlatformChange,
+    onPointClick,
+    onDeleteWLSalesEntry,
+    onEditWLSalesEntry,
     onAddDailyWLSalesEntry,
-    onDeleteEntry,
+    onAddWLSalesEntry,
+    isColorConfigOpen,
+    onColorConfigOpenChange,
+    ColorConfigForm,
+    isHistoryVisible,
+    onHistoryVisibleChange,
 }) => {
     const [isAddDailyWLSalesFormOpen, setIsAddDailyWLSalesFormOpen] = useState(false);
-    const [platformForDailyAdd, setPlatformForDailyAdd] = useState<Platform>('Steam');
+    const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
 
-    const handleAddDailyEntry = useCallback((data: { date: string; wishlists: number; sales: number; platform: Platform }) => {
-        if (!data.date || data.wishlists === undefined || data.sales === undefined) {
-            toast.error("Data, Wishlists e Vendas são obrigatórios.");
-            return;
-        }
-        
-        onAddDailyWLSalesEntry({
-            date: new Date(data.date),
-            platform: data.platform,
-            wishlists: data.wishlists,
-            sales: data.sales,
-        });
-        setIsAddDailyWLSalesFormOpen(false);
-    }, [onAddDailyWLSalesEntry]);
-
-    const platformsWithData = useMemo(() => {
-        const platforms = new Set(wlSalesData.map(e => e.platform));
-        return allPlatforms.filter(p => platforms.has(p) || p === platformForDailyAdd);
-    }, [wlSalesData, allPlatforms, platformForDailyAdd]);
+    // O tema PlayStation é aplicado globalmente, então usamos as classes PS
+    const cardClasses = "ps-card-glow bg-card/50 backdrop-blur-sm border-ps-blue/50";
+    
+    // Determine the platform to pass to the AddDailyWLSalesForm
+    const platformForDailyAdd: Platform = selectedPlatform === 'All' ? 'Steam' : (selectedPlatform as Platform);
 
     return (
-        <Card className="shadow-lg border-t-4 border-gogo-cyan">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xl text-gogo-cyan">
-                    <List className="h-5 w-5 mr-2 inline" /> Wishlists & Vendas ({gameName})
-                </CardTitle>
-                <div className="flex space-x-2">
-                    <Dialog open={isAddDailyWLSalesFormOpen} onOpenChange={setIsAddDailyWLSalesFormOpen}>
-                        <DialogTrigger asChild>
-                            <Button size="sm" className="bg-gogo-cyan hover:bg-gogo-cyan/90">
-                                <Plus className="h-4 w-4 mr-2" /> Adicionar Entrada
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                                <DialogTitle>Adicionar Entrada Diária de WL/Vendas</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                                <div className="flex items-center space-x-2">
-                                    <label className="text-sm font-medium">Plataforma:</label>
-                                    <Select value={platformForDailyAdd} onValueChange={(p) => setPlatformForDailyAdd(p as Platform)}>
-                                        <SelectTrigger className="w-[180px]">
-                                            <SelectValue placeholder="Selecione a Plataforma" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {allPlatforms.map(p => (
-                                                <SelectItem key={p} value={p}>{p}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <AddWLSalesForm
-                                    wlSalesData={wlSalesData.filter(e => e.platform === platformForDailyAdd)}
-                                    onSave={(data) => handleAddDailyEntry({ ...data, platform: platformForDailyAdd })}
-                                    onClose={() => setIsAddDailyWLSalesFormOpen(false)}
+        <div className="space-y-6">
+            
+            {/* --- Filtro de Plataforma (Mantido para filtrar os dados) --- */}
+            <Card className={cn("bg-card/50 border-none shadow-none", cardClasses)}>
+                <CardContent className="flex flex-col md:flex-row items-center gap-4 p-4">
+                    <Label htmlFor="platform-select" className="font-semibold text-ps-light min-w-[150px]">Filtrar por Plataforma:</Label>
+                    <Select onValueChange={onPlatformChange} defaultValue={selectedPlatform}>
+                        <SelectTrigger id="platform-select" className="w-full md:w-[200px] bg-card border-border text-ps-light">
+                            <SelectValue placeholder="Todas as Plataformas" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {filterOptions.map(platform => (
+                                <SelectItem key={platform} value={platform}>{getDisplayPlatformName(platform)}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </CardContent>
+            </Card>
+
+            {/* --- Conteúdo Principal (Gráfico e Ações) --- */}
+            <Card className={cardClasses}>
+                <CardHeader className="flex flex-row items-center justify-between border-b border-border p-4">
+                    <CardTitle className="text-2xl font-bold text-ps-blue flex items-center">
+                        <Gamepad2 className="h-6 w-6 mr-2" /> {gameName} - Evolução WL/Vendas
+                    </CardTitle>
+                    
+                    <div className="flex flex-wrap justify-end gap-2">
+                        
+                        {/* Cores do Gráfico */}
+                        <Dialog open={isColorConfigOpen} onOpenChange={onColorConfigOpenChange}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="text-ps-light border-ps-blue hover:bg-ps-blue/20">
+                                    <Palette className="h-4 w-4 mr-2" /> Cores do Gráfico
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[450px] bg-card text-card-foreground border-ps-blue">
+                                <DialogHeader>
+                                    <DialogTitle className="text-ps-blue">Configurar Cores</DialogTitle>
+                                </DialogHeader>
+                                <ColorConfigForm />
+                            </DialogContent>
+                        </Dialog>
+                        
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                                // Simula o clique no ponto do gráfico para abrir o menu de ação manual
+                                onPointClick({
+                                    id: 'temp-today',
+                                    date: new Date(),
+                                    game: gameName,
+                                    platform: platformForDailyAdd,
+                                    wishlists: 0, sales: 0, variation: 0, saleType: 'Padrão', frequency: 'Diário', isPlaceholder: true,
+                                });
+                            }} 
+                            className="text-ps-light border-ps-blue hover:bg-ps-blue/20"
+                        >
+                            <CalendarPlus className="h-4 w-4 mr-2" /> Marcar Evento Manual
+                        </Button>
+                        
+                        <Button variant="outline" size="sm" onClick={() => onHistoryVisibleChange(!isHistoryVisible)} className="text-ps-light border-ps-blue hover:bg-ps-blue/20">
+                            {isHistoryVisible ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                            {isHistoryVisible ? 'Ocultar Histórico' : 'Mostrar Histórico'}
+                        </Button>
+                        
+                        <ExportDataButton 
+                            data={wlSales.filter(e => !e.isPlaceholder)}
+                            filename={`${gameName}_${selectedPlatform}_WL_Vendas.csv`} 
+                            label="WL/Vendas"
+                        />
+                        
+                        {/* Adição Diária Rápida */}
+                        <Dialog open={isAddDailyWLSalesFormOpen} onOpenChange={setIsAddDailyWLSalesFormOpen}>
+                            <DialogTrigger asChild>
+                                <Button onClick={() => setIsAddDailyWLSalesFormOpen(true)} className="bg-gogo-orange hover:bg-gogo-orange/90 text-white">
+                                    <Plus className="h-4 w-4 mr-2" /> Adição Diária Rápida
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[450px] bg-card text-card-foreground border-ps-blue">
+                                <DialogHeader>
+                                    <DialogTitle className="text-ps-blue">Adição Diária Rápida de Wishlist/Vendas</DialogTitle>
+                                </DialogHeader>
+                                <AddDailyWLSalesForm 
+                                    gameName={gameName}
+                                    wlSalesData={wlSalesDataForRecalculation.filter(e => e.platform === platformForDailyAdd)}
+                                    onSave={(data) => onAddDailyWLSalesEntry({ ...data, platform: platformForDailyAdd })} 
+                                    onClose={() => setIsAddDailyWLSalesFormOpen(false)} 
                                 />
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <Tabs defaultValue="chart">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="chart" className="flex items-center"><BarChart3 className="h-4 w-4 mr-2" /> Gráfico</TabsTrigger>
-                        <TabsTrigger value="table" className="flex items-center"><List className="h-4 w-4 mr-2" /> Tabela</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="chart" className="mt-4">
-                        <WLSalesChartPanel wlSalesData={wlSalesData} gameName={gameName} />
-                    </TabsContent>
-                    <TabsContent value="table" className="mt-4">
-                        <WLSalesTablePanel wlSalesData={wlSalesData} onDeleteEntry={onDeleteEntry} />
-                    </TabsContent>
-                </Tabs>
-            </CardContent>
-        </Card>
+                            </DialogContent>
+                        </Dialog>
+                        
+                        {/* Adição Detalhada */}
+                        <Dialog open={isAddWLSalesFormOpen} onOpenChange={setIsAddWLSalesFormOpen}>
+                            <DialogTrigger asChild>
+                                <Button onClick={() => setIsAddWLSalesFormOpen(true)} className="bg-ps-blue hover:bg-ps-blue/90 text-white">
+                                    <Plus className="h-4 w-4 mr-2" /> Adicionar WL/Venda (Detalhado)
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[600px] bg-card text-card-foreground border-ps-blue">
+                                <DialogHeader>
+                                    <DialogTitle className="text-ps-blue">Adicionar Entrada Detalhada de Wishlist/Vendas</DialogTitle>
+                                </DialogHeader>
+                                {/* Reutilizando AddWLSalesForm, que espera a lista de jogos e a função onSave */}
+                                <AddWLSalesForm 
+                                    games={allGames} 
+                                    onSave={onAddWLSalesEntry} 
+                                    onClose={() => setIsAddWLSalesFormOpen(false)} 
+                                />
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                </CardHeader>
+                
+                <CardContent className="p-4 space-y-6">
+                    <WLSalesChartPanel 
+                        data={wlSales} 
+                        onPointClick={onPointClick} 
+                        eventTracking={eventTracking}
+                        manualEventMarkers={manualEventMarkers}
+                        chartColors={PS_CHART_COLORS}
+                        selectedPlatform={selectedPlatform}
+                    />
+                    
+                    {isHistoryVisible && (
+                        <WLSalesTablePanel 
+                            data={wlSales.filter(e => !e.isPlaceholder)}
+                            onDelete={onDeleteWLSalesEntry} 
+                            onEdit={onEditWLSalesEntry}
+                            games={allGames}
+                            selectedPlatform={selectedPlatform}
+                        />
+                    )}
+                </CardContent>
+            </Card>
+        </div>
     );
 };
 

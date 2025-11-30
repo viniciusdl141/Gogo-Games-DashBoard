@@ -16,22 +16,129 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { EstimatedGame } from './GameEstimator'; 
-import { useComparisonMetrics, formatSummaryValue } from '@/hooks/useComparisonMetrics'; // Importando o novo hook e helper
+import { EstimatedGame } from './GameEstimator'; // Import EstimatedGame
 
 // Definindo um tipo unificado para o jogo de comparação (pode ser SupabaseGame ou EstimatedGame)
 type ComparisonGame = SupabaseGame | EstimatedGame;
 
 interface GameComparisonPanelProps {
-    game1: ComparisonGame | undefined;
+    game1: SupabaseGame | undefined;
     game2: ComparisonGame | undefined;
     localTrackingData: TrackingData | undefined;
 }
 
+// Helper para extrair e calcular métricas de um jogo
+const extractGameMetrics = (game: ComparisonGame, trackingData: TrackingData | undefined) => {
+    if (!game || !trackingData) {
+        return null;
+    }
+
+    const gameName = game.name.trim();
+    
+    // Check if it's an estimated game
+    const isEstimated = 'estimatedSales' in game;
+
+    // 1. Sales & WL (Use estimated data if available)
+    let totalSales = 0;
+    let totalWishlists = 0;
+    let totalInvestment = 0;
+    let wlToSalesConversionRate = 0;
+    let latestReview = null;
+    let summaryTableData: ResultSummaryEntry[] = [];
+    let isLocalTracking = false;
+    let timeframe = null; 
+    let estimatedRevenue = 0; // NEW: Initialize estimated revenue
+
+    if (isEstimated) {
+        totalSales = game.estimatedSales;
+        totalWishlists = game.reviewCount || 0; 
+        totalInvestment = 0; 
+        wlToSalesConversionRate = totalWishlists > 0 ? totalSales / totalWishlists : 0;
+        timeframe = game.timeframe; 
+        estimatedRevenue = game.estimatedRevenue; // NEW: Extract estimated revenue
+        
+        if (game.reviewCount) {
+            latestReview = {
+                id: 'est-review',
+                reviews: game.reviewCount,
+                positive: game.reviewCount, 
+                negative: 0,
+                percentage: 1,
+                rating: game.reviewSummary || 'Estimativa',
+                date: new Date(),
+            };
+        }
+
+    } else {
+        // Data from Supabase/Local Tracking
+        isLocalTracking = true;
+        const wlSales = trackingData.wlSales.filter(e => e.game.trim() === gameName && !e.isPlaceholder);
+        totalSales = wlSales.reduce((sum, item) => sum + item.sales, 0);
+        totalWishlists = wlSales.length > 0 ? wlSales[wlSales.length - 1].wishlists : 0;
+        
+        // Investment
+        const investmentSources = {
+            influencers: trackingData.influencerTracking.filter(d => d.game.trim() === gameName).reduce((sum, item) => sum + item.investment, 0),
+            events: trackingData.eventTracking.filter(d => d.game.trim() === gameName).reduce((sum, item) => sum + item.cost, 0),
+            paidTraffic: trackingData.paidTraffic.filter(d => d.game.trim() === gameName).reduce((sum, item) => sum + item.investedValue, 0),
+        };
+        totalInvestment = investmentSources.influencers + investmentSources.events + investmentSources.paidTraffic;
+
+        // Conversion Rates (from Result Summary)
+        const resultSummary = trackingData.resultSummary.filter(r => r.game.trim() === gameName);
+        const wlToSalesSummary = resultSummary.find(r => r['Conversão vendas/wl']);
+        wlToSalesConversionRate = Number(wlToSalesSummary?.['Conversão vendas/wl']) || 0;
+        
+        // Review Data (from WlDetails)
+        const wlDetails = trackingData.wlDetails.find(d => d.game.trim() === gameName);
+        latestReview = wlDetails?.reviews.sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0))[0];
+        
+        // Result Summary Table Data
+        summaryTableData = resultSummary.map(r => ({
+            type: r.type,
+            'WL/Real': r['WL/Real'],
+            'Real/WL': r['Real/WL'],
+            'Custo por venda': r['Custo por venda'],
+            'Conversão vendas/wl': r['Conversão vendas/wl'],
+        }));
+    }
+
+
+    return {
+        gameName,
+        capsuleImageUrl: game.capsule_image_url,
+        launchDate: game.launch_date ? new Date(game.launch_date) : null,
+        suggestedPrice: game.suggested_price,
+        totalSales,
+        totalWishlists,
+        totalInvestment,
+        wlToSalesConversionRate,
+        latestReview,
+        summaryTableData,
+        isEstimated,
+        isLocalTracking,
+        timeframe, 
+        estimatedRevenue, // NEW: Return estimated revenue
+    };
+};
+
+const formatValue = (key: string, value: number | string | undefined): string => {
+    if (value === undefined || value === null || value === '' || value === '#DIV/0!' || (typeof value === 'number' && isNaN(value))) return '-';
+    
+    const numValue = Number(value);
+
+    if (key.includes('Real') || key.includes('Custo')) {
+        return formatCurrency(numValue);
+    }
+    if (key.includes('Conversão')) {
+         return `${(numValue * 100).toFixed(2)}%`;
+    }
+    return String(value);
+};
+
 const GameComparisonPanel: React.FC<GameComparisonPanelProps> = ({ game1, game2, localTrackingData }) => {
-    // Use o novo hook para extrair as métricas
-    const metrics1 = useComparisonMetrics(game1, localTrackingData);
-    const metrics2 = useComparisonMetrics(game2, localTrackingData);
+    const metrics1 = extractGameMetrics(game1!, localTrackingData);
+    const metrics2 = extractGameMetrics(game2!, localTrackingData);
 
     const isComparing = metrics1 || metrics2;
 
@@ -46,28 +153,26 @@ const GameComparisonPanel: React.FC<GameComparisonPanelProps> = ({ game1, game2,
         );
     }
 
-    const renderMetricRow = (title: string, key: keyof typeof metrics1, icon: React.ReactNode, formatFn: (value: any) => string) => {
-        const val1 = metrics1 ? formatFn(metrics1[key]) : '-';
-        const val2 = metrics2 ? formatFn(metrics2[key]) : '-';
+    const renderMetricRow = (title: string, key: string, icon: React.ReactNode, formatFn: (value: any) => string) => {
+        const val1 = metrics1 ? formatFn(metrics1[key as keyof typeof metrics1]) : '-';
+        const val2 = metrics2 ? formatFn(metrics2[key as keyof typeof metrics2]) : '-';
         
         // Simple comparison logic for visual feedback
         let color1 = '';
         let color2 = '';
         
-        // Note: We must ensure the values are numbers for comparison
-        const num1 = Number(metrics1?.[key]) || 0;
-        const num2 = Number(metrics2?.[key]) || 0;
-
         if (key === 'totalInvestment') {
             // Lower investment is generally better
-            if (num1 > 0 && num2 > 0) {
-                if (num1 < num2) color1 = 'text-green-500 font-bold';
-                if (num2 < num1) color2 = 'text-green-500 font-bold';
-            }
-        } else if (key === 'wlToSalesConversionRate' || key === 'totalWishlists' || key === 'totalSales') {
+            if (metrics1 && metrics2 && metrics1.totalInvestment < metrics2.totalInvestment) color1 = 'text-green-500 font-bold';
+            if (metrics1 && metrics2 && metrics2.totalInvestment < metrics1.totalInvestment) color2 = 'text-green-500 font-bold';
+        } else if (key === 'wlToSalesConversionRate') {
+            // Higher conversion is better
+            if (metrics1 && metrics2 && metrics1.wlToSalesConversionRate > metrics2.wlToSalesConversionRate) color1 = 'text-green-500 font-bold';
+            if (metrics1 && metrics2 && metrics2.wlToSalesConversionRate > metrics1.wlToSalesConversionRate) color2 = 'text-green-500 font-bold';
+        } else if (key === 'totalWishlists' || key === 'totalSales') {
             // Higher numbers are better
-            if (num1 > num2) color1 = 'text-green-500 font-bold';
-            if (num2 > num1) color2 = 'text-green-500 font-bold';
+            if (metrics1 && metrics2 && metrics1[key as keyof typeof metrics1] > metrics2[key as keyof typeof metrics1]) color1 = 'text-green-500 font-bold';
+            if (metrics1 && metrics2 && metrics2[key as keyof typeof metrics1] > metrics1[key as keyof typeof metrics1]) color2 = 'text-green-500 font-bold';
         }
 
         return (
@@ -113,8 +218,8 @@ const GameComparisonPanel: React.FC<GameComparisonPanelProps> = ({ game1, game2,
         const val1 = metrics1?.summaryTableData.find(r => r.type === 'Trafego Pago')?.[key];
         const val2 = metrics2?.summaryTableData.find(r => r.type === 'Trafego Pago')?.[key];
         
-        const str1 = formatSummaryValue(key, val1);
-        const str2 = formatSummaryValue(key, val2);
+        const str1 = formatValue(key, val1);
+        const str2 = formatValue(key, val2);
 
         let color1 = '';
         let color2 = '';
@@ -122,16 +227,10 @@ const GameComparisonPanel: React.FC<GameComparisonPanelProps> = ({ game1, game2,
         // Higher is better for WL/Real, lower is better for Real/WL and Custo por venda
         const isHigherBetter = key.includes('WL/Real') || key.includes('Conversão');
         
-        // Clean and parse numbers for comparison
-        const cleanAndParse = (str: string) => {
-            const cleaned = str.replace(/[^0-9.,]/g, '').replace(',', '.');
-            return parseFloat(cleaned) || 0;
-        };
+        const num1 = Number(formatValue(key, val1).replace(/[^0-9.,]/g, '').replace(',', '.'));
+        const num2 = Number(formatValue(key, val2).replace(/[^0-9.,]/g, '').replace(',', '.'));
 
-        const num1 = cleanAndParse(str1);
-        const num2 = cleanAndParse(str2);
-
-        if (num1 !== 0 && num2 !== 0) {
+        if (!isNaN(num1) && !isNaN(num2) && num1 !== 0 && num2 !== 0) {
             if (isHigherBetter) {
                 if (num1 > num2) color1 = 'text-green-500 font-bold';
                 if (num2 > num1) color2 = 'text-green-500 font-bold';

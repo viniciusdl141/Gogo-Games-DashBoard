@@ -1,107 +1,108 @@
+"use client";
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { ManualEventMarker } from '@/data/trackingData';
+import { Input } from '@/components/ui/input';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
 import { toast } from 'sonner';
+import { ManualEventMarker } from '@/data/trackingData';
+import { Trash2 } from 'lucide-react';
 
-// --- Schema ---
-
-const EventMarkerFormSchema = z.object({
-    date: z.string().min(1, "Data é obrigatória."),
-    type: z.enum(['Launch', 'Major Update', 'Sale', 'Event', 'Other']),
-    description: z.string().min(1, "Descrição é obrigatória."),
+const formSchema = z.object({
+    date: z.string().min(1, "A data é obrigatória (YYYY-MM-DD)."),
+    name: z.string().min(1, "O nome do evento é obrigatório."),
 });
 
-// --- Component ---
+type MarkerFormValues = z.infer<typeof formSchema>;
 
 interface ManualEventMarkerFormProps {
+    gameName: string;
     existingMarker?: ManualEventMarker;
-    onSave: (marker: Omit<ManualEventMarker, 'id' | 'game'>) => void;
+    onSave: (data: MarkerFormValues) => void;
+    onDelete: (id: string) => void;
     onClose: () => void;
 }
 
-const ManualEventMarkerForm: React.FC<ManualEventMarkerFormProps> = ({ existingMarker, onSave, onClose }) => {
-    const defaultDate = existingMarker?.date.toISOString().substring(0, 10) || new Date().toISOString().substring(0, 10);
+const ManualEventMarkerForm: React.FC<ManualEventMarkerFormProps> = ({ gameName, existingMarker, onSave, onDelete, onClose }) => {
+    const defaultDate = existingMarker?.date ? existingMarker.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
-    const form = useForm<z.infer<typeof EventMarkerFormSchema>>({
-        resolver: zodResolver(EventMarkerFormSchema),
+    const form = useForm<MarkerFormValues>({
+        resolver: zodResolver(formSchema),
         defaultValues: {
             date: defaultDate,
-            type: existingMarker?.type || 'Event',
-            description: existingMarker?.description || '',
+            name: existingMarker?.name || '',
         },
     });
 
-    const onSubmit = (values: z.infer<typeof EventMarkerFormSchema>) => {
-        onSave({
-            date: new Date(values.date),
-            type: values.type,
-            description: values.description,
-        });
+    const onSubmit = (values: MarkerFormValues) => {
+        onSave(values);
+        toast.success(`Marcador de evento para ${gameName} salvo.`);
         onClose();
-        toast.success(`Marcador de evento ${existingMarker ? 'atualizado' : 'adicionado'}.`);
+    };
+
+    const handleDelete = () => {
+        if (existingMarker) {
+            onDelete(existingMarker.id);
+            toast.success(`Marcador de evento removido.`);
+            onClose();
+        }
     };
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
+                <h3 className="text-lg font-semibold">{existingMarker ? 'Editar Marcador' : 'Adicionar Marcador Manual de Evento'}</h3>
+                
                 <FormField
                     control={form.control}
                     name="date"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Data</FormLabel>
+                            <FormLabel>Data (YYYY-MM-DD)</FormLabel>
                             <FormControl>
-                                <Input type="date" {...field} />
+                                <Input type="date" {...field} disabled={!!existingMarker} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
+
                 <FormField
                     control={form.control}
-                    name="type"
+                    name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Tipo de Evento</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione o tipo" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {['Launch', 'Major Update', 'Sale', 'Event', 'Other'].map(type => (
-                                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Descrição</FormLabel>
+                            <FormLabel>Nome do Evento/Ação</FormLabel>
                             <FormControl>
-                                <Textarea {...field} />
+                                <Input placeholder="Ex: Grande Promoção" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
-                <div className="flex justify-end space-x-2">
-                    <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-                    <Button type="submit">{existingMarker ? 'Salvar Alterações' : 'Adicionar Marcador'}</Button>
+
+                <div className="flex justify-between pt-4">
+                    {existingMarker ? (
+                        <Button type="button" variant="destructive" onClick={handleDelete} className="flex items-center">
+                            <Trash2 className="h-4 w-4 mr-2" /> Remover
+                        </Button>
+                    ) : (
+                        <div />
+                    )}
+                    <div className="flex space-x-2">
+                        <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+                        <Button type="submit" className="bg-gogo-cyan hover:bg-gogo-cyan/90">Salvar Marcador</Button>
+                    </div>
                 </div>
             </form>
         </Form>

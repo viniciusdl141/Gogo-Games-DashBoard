@@ -1,4 +1,8 @@
-import React, { useState, useMemo, useCallback } from 'react';
+"use client";
+
+import React, { useState } from 'react';
+import { EventTrackingEntry } from '@/data/trackingData';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Table,
     TableBody,
@@ -7,19 +11,137 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDate, formatCurrency, formatNumber } from '@/lib/utils';
 import { Trash2, Edit } from 'lucide-react';
-import { EventTrackingEntry, Platform } from '@/data/trackingData';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { toast } from 'sonner';
-import ExportDataButton from './ExportDataButton';
+import { Button } from '@/components/ui/button';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import EditEventForm from './EditEventForm'; // Importar o novo formulário
 
-// ... rest of the file
+interface EventPanelProps {
+    data: EventTrackingEntry[];
+    onDeleteTracking: (id: string) => void;
+    onEditTracking: (entry: EventTrackingEntry) => void; // Novo prop para edição
+    games: string[]; // Necessário para o formulário de edição
+}
+
+const formatROI = (value: number | string): string => {
+    if (value === '-' || value === '#DIV/0!') return '-';
+    return formatCurrency(Number(value));
+};
+
+const formatCostPerView = (value: number | string): string => {
+    if (value === '-' || value === '#DIV/0!') return '-';
+    return formatCurrency(Number(value));
+};
+
+const EventPanel: React.FC<EventPanelProps> = ({ data, onDeleteTracking, onEditTracking, games }) => {
+    const [openDialogId, setOpenDialogId] = useState<string | null>(null);
+
+    if (data.length === 0) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Tracking de Eventos</CardTitle></CardHeader>
+                <CardContent><p className="text-muted-foreground">Nenhum dado de tracking de eventos disponível para este jogo.</p></CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Tracking de Eventos</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Evento</TableHead>
+                                <TableHead>Período</TableHead>
+                                <TableHead>Ação</TableHead>
+                                <TableHead className="text-right">Custo (R$)</TableHead>
+                                <TableHead className="text-center">WL Geradas</TableHead>
+                                <TableHead className="text-right">ROI (R$/WL)</TableHead>
+                                <TableHead className="text-right">Custo/View</TableHead>
+                                <TableHead className="w-[100px] text-center">Ações</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {data.map((item, index) => (
+                                <TableRow key={item.id || index}>
+                                    <TableCell className="font-medium">{item.event}</TableCell>
+                                    <TableCell>
+                                        {formatDate(item.startDate)} - {formatDate(item.endDate)}
+                                    </TableCell>
+                                    <TableCell>{item.action}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(item.cost)}</TableCell>
+                                    <TableCell className="text-center">{formatNumber(item.wlGenerated)}</TableCell>
+                                    <TableCell className="text-right">{formatROI(item.roi)}</TableCell>
+                                    <TableCell className="text-right">{formatCostPerView(item.costPerView)}</TableCell>
+                                    <TableCell className="text-center flex items-center justify-center space-x-1">
+                                        
+                                        {/* Botão de Edição */}
+                                        <Dialog open={openDialogId === item.id} onOpenChange={(open) => setOpenDialogId(open ? item.id : null)}>
+                                            <DialogTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gogo-cyan hover:bg-gogo-cyan/10">
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-[600px]">
+                                                <DialogHeader>
+                                                    <DialogTitle>Editar Tracking de Evento</DialogTitle>
+                                                </DialogHeader>
+                                                <EditEventForm 
+                                                    games={games}
+                                                    entry={item}
+                                                    onSave={onEditTracking}
+                                                    onClose={() => setOpenDialogId(null)}
+                                                />
+                                            </DialogContent>
+                                        </Dialog>
+
+                                        {/* Botão de Exclusão */}
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Esta ação removerá permanentemente o registro do evento "{item.event}" ({item.game}).
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => onDeleteTracking(item.id)} className="bg-destructive hover:bg-destructive/90">
+                                                        Remover
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+export default EventPanel;

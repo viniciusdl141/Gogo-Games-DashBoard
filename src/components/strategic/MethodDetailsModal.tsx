@@ -1,13 +1,24 @@
 "use client";
 
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { BookOpen, Calculator, Check } from 'lucide-react';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { BookOpen, List, DollarSign, Clock, CheckCircle } from 'lucide-react';
-import { MethodDetails } from '@/lib/constants';
-import { MethodResult } from '@/lib/estimation-logic';
+import { Separator } from '@/components/ui/separator';
+
+interface MethodResult {
+    sales: number;
+    revenue: number;
+    method: string;
+    timeframe: string;
+}
+
+interface MethodDetails {
+    label: string;
+    description: string;
+    source: string;
+}
 
 interface MethodDetailsModalProps {
     isOpen: boolean;
@@ -17,77 +28,56 @@ interface MethodDetailsModalProps {
     onConfirmSelection: () => void;
 }
 
-const MethodDetailsModal: React.FC<MethodDetailsModalProps> = ({ 
-    isOpen, 
-    onClose, 
-    methodResult, 
-    methodDetails, 
-    onConfirmSelection 
-}) => {
-    if (!methodResult || !methodDetails) return null;
-
+const MethodDetailsModal: React.FC<MethodDetailsModalProps> = ({ isOpen, onClose, methodResult, methodDetails, onConfirmSelection }) => {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[450px]">
+            <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="text-xl flex items-center text-gogo-orange">
-                        <BookOpen className="h-5 w-5 mr-2" /> Detalhes do Método: {methodResult.method}
+                    <DialogTitle className="flex items-center text-gogo-orange">
+                        <BookOpen className="h-5 w-5 mr-2" /> Detalhes do Método: {methodDetails.label}
                     </DialogTitle>
-                    <DialogDescription className="mt-2">
-                        {methodDetails.description}
-                    </DialogDescription>
                 </DialogHeader>
                 
-                <Separator className="my-4" />
-
-                <div className="space-y-3">
-                    <h4 className="text-lg font-semibold text-gogo-cyan">Resultados Calculados</h4>
-                    
-                    <div className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
-                        <span className="flex items-center text-sm font-medium text-muted-foreground">
-                            <List className="h-4 w-4 mr-2 text-gogo-cyan" /> Vendas Estimadas:
-                        </span>
-                        <span className="text-lg font-bold text-gogo-cyan">
-                            {formatNumber(methodResult.sales)}
-                        </span>
+                <div className="space-y-4 p-4">
+                    <h3 className="text-lg font-bold text-gogo-cyan">Resultado da Estimativa</h3>
+                    <div className="grid grid-cols-2 gap-4 p-3 border rounded-lg bg-muted/50">
+                        <div>
+                            <p className="text-sm text-muted-foreground">Vendas Estimadas:</p>
+                            <p className="text-xl font-bold text-gogo-cyan">{formatNumber(methodResult.sales)} un.</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Receita Líquida Estimada:</p>
+                            <p className="text-xl font-bold text-gogo-orange">{formatCurrency(methodResult.revenue)}</p>
+                        </div>
+                        <div className="col-span-2">
+                            <p className="text-sm text-muted-foreground">Ciclo de Vida Estimado:</p>
+                            <p className="font-medium">{methodResult.timeframe}</p>
+                        </div>
                     </div>
-                    
-                    <div className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
-                        <span className="flex items-center text-sm font-medium text-muted-foreground">
-                            <DollarSign className="h-4 w-4 mr-2 text-gogo-orange" /> Receita Líquida Estimada:
-                        </span>
-                        <span className="text-lg font-bold text-gogo-orange">
-                            {formatCurrency(methodResult.revenue)}
-                        </span>
+
+                    <Separator />
+
+                    <h3 className="text-lg font-bold text-gogo-cyan">Análise e Referências</h3>
+                    <p className="text-sm leading-relaxed">
+                        {methodDetails.description.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}
+                    </p>
+                    <p className="text-sm italic text-muted-foreground mt-2">
+                        {methodDetails.source}
+                    </p>
+
+                    <Separator />
+
+                    <div className="flex justify-end space-x-2 pt-4">
+                        <Button type="button" variant="outline" onClick={onClose}>
+                            Voltar à Calculadora
+                        </Button>
+                        <Button 
+                            onClick={onConfirmSelection} 
+                            className="bg-gogo-orange hover:bg-gogo-orange/90"
+                        >
+                            <Check className="h-4 w-4 mr-2" /> Confirmar Seleção (Jogo 2)
+                        </Button>
                     </div>
-                    
-                    <div className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
-                        <span className="flex items-center text-sm font-medium text-muted-foreground">
-                            <Clock className="h-4 w-4 mr-2" /> Período Estimado:
-                        </span>
-                        <span className="text-sm font-medium text-foreground">
-                            {methodResult.timeframe}
-                        </span>
-                    </div>
-                </div>
-
-                <Separator className="my-4" />
-
-                <div className="space-y-2">
-                    <h4 className="text-sm font-semibold">Fonte:</h4>
-                    <p className="text-sm text-muted-foreground italic">{methodDetails.source}</p>
-                </div>
-
-                <div className="flex justify-end space-x-2 mt-4">
-                    <Button variant="outline" onClick={onClose}>
-                        Fechar
-                    </Button>
-                    <Button 
-                        onClick={onConfirmSelection} 
-                        className="bg-gogo-cyan hover:bg-gogo-cyan/90"
-                    >
-                        <CheckCircle className="h-4 w-4 mr-2" /> Selecionar Esta Estimativa
-                    </Button>
                 </div>
             </DialogContent>
         </Dialog>
