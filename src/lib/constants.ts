@@ -73,3 +73,41 @@ export const METHOD_DETAILS: Record<string, MethodDetails> = {
         source: 'Metodologia interna GoGo Games, baseada na consolidação de múltiplas fontes de dados de mercado.'
     }
 };
+
+export interface Reference {
+    title: string;
+    source: string;
+    description: string;
+    url: string;
+}
+
+export const REFERENCES: Record<string, Reference[]> = {
+    'Metodologias de Reviews': [
+        {
+            title: 'The Boxleiter Method: Estimating Steam Sales',
+            source: 'Jake Birkett (Grey Alien Games)',
+            description: 'A fórmula original que estabeleceu a relação entre o número de reviews e as vendas totais (1 review ≈ 30 vendas).',
+            url: 'https://www.gamasutra.com/blogs/JakeBirkett/20140407/214892/The_Boxleiter_Method_Estimating_Steam_Sales.php',
+        },
+        {
+            title: 'GameDiscoverCo: The NB Number',
+            source: 'Simon Carless (GameDiscoverCo)',
+            description: 'Análise moderna sobre a taxa de conversão de reviews, introduzindo o "NB Number" (32x-35x) para jogos recentes.',
+            url: 'https://gamediscover.co/p/the-nb-number-and-steam-sales-estimates',
+        },
+    ],
+    'Análise de Mercado e CCU': [
+        {
+            title: 'VG Insights: Sales Multipliers by Genre',
+            source: 'VG Insights',
+            description: 'Estudos detalhados sobre como o gênero e o preço afetam o multiplicador de reviews.',
+            url: 'https://vginsights.com/blog/steam-sales-multipliers',
+        },
+        {
+            title: 'SteamDB CCU Multiplier Logic',
+            source: 'SteamDB / Developer Post-mortems',
+            description: 'Regra empírica que estima vendas totais com base no pico de jogadores simultâneos (CCU Peak).',
+            url: 'https://steamdb.info/',
+        },
+    ],
+};
