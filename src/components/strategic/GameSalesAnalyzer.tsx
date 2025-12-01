@@ -1,211 +1,120 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Search, Gamepad, Calendar, DollarSign, MessageSquare, Clock, BarChart3, Info, Check } from 'lucide-react';
-import { invokeSalesAnalyzer, SalesAnalysisReport } from '@/integrations/supabase/functions';
+import React, { useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { GameOption } from '@/integrations/supabase/games';
+import { WLSalesPlatformEntry } from '@/data/trackingData';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { DollarSign, List, TrendingUp, Clock, Gauge, Info } from 'lucide-react'; 
+import { differenceInMonths, differenceInDays, isPast, startOfDay } from 'date-fns';
+import KpiCard from '../dashboard/KpiCard'; 
 
 interface GameSalesAnalyzerProps {
-    gameName: string;
+    game: GameOption;
+    wlSalesData: WLSalesPlatformEntry[];
 }
 
-// Hardcoded API Key (as provided by the user)
-const GEMINI_API_KEY = 'AIzaSyCao7UHpJgeYGExguqjvecUwdeztYhnxWU';
+const GameSalesAnalyzer: React.FC<GameSalesAnalyzerProps> = ({ game, wlSalesData }) => {
+    const temporalAnalysis = useMemo(() => {
+        const launchDate = game.launch_date ? new Date(game.launch_date) : null;
+        const salesData = wlSalesData.filter(e => e.game === game.name && e.sales > 0);
 
-const GameSalesAnalyzer: React.FC<GameSalesAnalyzerProps> = ({ gameName }) => {
-    const [isLoading, setIsLoading] = useState(false);
-    const [report, setReport] = useState<SalesAnalysisReport | null>(null);
-    const [aiApiKey, setAiApiKey] = useState(GEMINI_API_KEY);
-
-    const handleAnalyze = async () => {
-        if (!gameName) {
-            toast.error("Selecione um jogo para analisar.");
-            return;
-        }
-        if (!aiApiKey) {
-            toast.error("A chave da API Gemini é obrigatória.");
-            return;
+        if (!launchDate || salesData.length === 0) {
+            return {
+                timeframe: 'N/A',
+                totalSales: 0,
+                totalRevenue: 0,
+                averageSpeed: 'N/A',
+                verdict: 'Aguardando dados de vendas pós-lançamento.',
+            };
         }
 
-        setIsLoading(true);
-        setReport(null);
-        toast.loading(`Analisando vendas e performance de "${gameName}"...`, { id: 'sales-analysis' });
+        const today = startOfDay(new Date());
+        const isLaunched = isPast(launchDate);
 
-        try {
-            const result = await invokeSalesAnalyzer(gameName, aiApiKey);
-            setReport(result);
-            toast.success("Análise de vendas concluída!");
-        } catch (error) {
-            console.error("Sales Analysis Error:", error);
-            toast.error(`Falha na análise: ${error.message}.`);
-        } finally {
-            setIsLoading(false);
-            toast.dismiss('sales-analysis');
+        if (!isLaunched) {
+            return {
+                timeframe: 'Pré-lançamento',
+                totalSales: 0,
+                totalRevenue: 0,
+                averageSpeed: 'N/A',
+                verdict: 'Aguardando lançamento.',
+            };
         }
-    };
 
-    const renderReport = () => {
-        if (!report) return null;
+        const totalSales = salesData.reduce((sum, entry) => sum + entry.sales, 0);
+        const totalRevenue = totalSales * (game.suggested_price || 19.99);
+        
+        const monthsSinceLaunch = differenceInMonths(today, launchDate);
+        const effectiveMonths = Math.max(1, monthsSinceLaunch); // Garante pelo menos 1 mês para divisão
 
-        const { 
-            gameName, launchDate, timeSinceLaunch, tags, 
-            reviews, priceBRL, priceUSD, ccuPeak, ccuPeakDate, ccuCurrent,
-            estimationResults, averageSales, temporalAnalysis, analystNotes 
-        } = report;
+        const averageSpeed = totalSales / effectiveMonths;
 
-        return (
-            <div className="space-y-6 mt-6">
-                <Card className="p-4 bg-muted/50">
-                    <h2 className="text-xl font-bold text-gogo-cyan mb-2">JOGO: {gameName}</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <p className="flex items-center"><Calendar className="h-4 w-4 mr-2 text-muted-foreground" /> **LANÇAMENTO:** {launchDate} ({timeSinceLaunch})</p>
-                        <p className="flex items-center"><MessageSquare className="h-4 w-4 mr-2 text-muted-foreground" /> **REVIEWS:** {formatNumber(reviews)}</p>
-                        <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-muted-foreground" /> **PREÇO BRL:** {formatCurrency(priceBRL)}</p>
-                        <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-muted-foreground" /> **PREÇO USD:** {formatCurrency(priceUSD).replace('R$', 'USD')}</p>
-                        <p className="flex items-center"><BarChart3 className="h-4 w-4 mr-2 text-muted-foreground" /> **PICO CCU:** {formatNumber(ccuPeak)} ({ccuPeakDate})</p>
-                        <p className="flex items-center"><BarChart3 className="h-4 w-4 mr-2 text-muted-foreground" /> **CCU ATUAL:** {formatNumber(ccuCurrent)}</p>
-                    </div>
-                    <p className="mt-3 text-sm text-muted-foreground">**TAGS DETECTADAS:** {tags.join(', ')}</p>
-                </Card>
+        let verdict = 'Análise em andamento.';
+        if (averageSpeed > 1000) {
+            verdict = 'Vendas fortes! Acima da média.';
+        } else if (averageSpeed > 300) {
+            verdict = 'Vendas estáveis. Mantendo o ritmo.';
+        } else {
+            verdict = 'Vendas lentas. Necessita de impulso de marketing.';
+        }
 
-                {/* 1. Estimativa de Volume */}
-                <Card>
-                    <CardHeader><CardTitle className="text-lg">1. Estimativa de Volume</CardTitle></CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[20%]">Método</TableHead>
-                                    <TableHead className="w-[30%]">Lógica/Conflito</TableHead>
-                                    <TableHead className="text-center w-[15%]">Multiplicador</TableHead>
-                                    <TableHead className="text-right w-[25%]">Vendas Totais Est.</TableHead>
-                                    <TableHead className="w-[10%]">ℹ️</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {estimationResults.map((res, index) => (
-                                    <TableRow key={index} className={res.method.includes('MÉDIA') ? 'bg-gogo-orange/10 font-bold' : ''}>
-                                        <TableCell className="font-medium">{res.method.replace(' Sim.', '')}</TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">{res.logic}</TableCell>
-                                        <TableCell className="text-center">{res.multiplier}x</TableCell>
-                                        <TableCell className="text-right text-lg font-bold text-gogo-cyan">{formatNumber(res.estimatedSales)} un.</TableCell>
-                                        <TableCell className="text-center">
-                                            {res.method.includes('VG Insights') && (
-                                                <Tooltip>
-                                                    <TooltipTrigger><Info className="h-4 w-4 text-muted-foreground cursor-help" /></TooltipTrigger>
-                                                    <TooltipContent className="max-w-xs">
-                                                        <p>{analystNotes.conflictExplanation}</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                <TableRow className="bg-gogo-orange/20 font-bold">
-                                    <TableCell colSpan={3} className="text-right">MÉDIA GERAL</TableCell>
-                                    <TableCell className="text-right text-xl text-gogo-orange">{formatNumber(averageSales)} un.</TableCell>
-                                    <TableCell></TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-
-                {/* 2. Performance e Tempo */}
-                <Card>
-                    <CardHeader><CardTitle className="text-lg">2. Performance e Tempo (Timeline)</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <KpiCard 
-                                title="Tempo de Mercado" 
-                                value={`${temporalAnalysis.averageSpeed.split(' ')[0]} meses`} 
-                                icon={<Clock className="h-4 w-4 text-gogo-cyan" />}
-                                description={timeSinceLaunch}
-                            />
-                            <KpiCard 
-                                title="Velocidade Média de Vendas" 
-                                value={temporalAnalysis.averageSpeed} 
-                                icon={<TrendingUp className="h-4 w-4 text-gogo-orange" />}
-                                description="Cópia vendidas por mês (Média Geral / Meses)"
-                            />
-                            <KpiCard 
-                                title="Veredito Temporal" 
-                                value={temporalAnalysis.verdict} 
-                                icon={<Check className="h-4 w-4 text-green-500" />}
-                                description="Sprinter (Hype inicial) ou Marathoner (Vendas consistentes)"
-                            />
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-4">
-                            **Momento do Pico:** {temporalAnalysis.peakMomentInterpretation}
-                        </p>
-                    </CardContent>
-                </Card>
-
-                {/* 3. Conclusão Final */}
-                <Card>
-                    <CardHeader><CardTitle className="text-lg">3. Conclusão Final</CardTitle></CardHeader>
-                    <CardContent>
-                        <p className="font-semibold mb-2">Resumo Executivo:</p>
-                        <p className="text-sm">{analystNotes.conclusion}</p>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    };
+        return {
+            timeframe: `${effectiveMonths} meses`,
+            totalSales,
+            totalRevenue,
+            averageSpeed: formatNumber(averageSpeed), // Corrigido o erro 17
+            verdict,
+        };
+    }, [game, wlSalesData]);
 
     return (
-        <Card className="shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-xl flex items-center">
-                    <BarChart3 className="h-5 w-5 mr-2 text-gogo-orange" /> Análise de Vendas (Steam Expert)
+        <Card className="shadow-lg transition-all duration-300 hover:shadow-xl border-border bg-card/80 backdrop-blur-sm">
+            <CardHeader>
+                <CardTitle className="text-xl flex items-center text-gogo-cyan">
+                    <Clock className="h-5 w-5 mr-2" /> Análise Temporal de Vendas
                 </CardTitle>
-                <Button 
-                    onClick={handleAnalyze} 
-                    disabled={isLoading || !gameName}
-                    className="bg-gogo-cyan hover:bg-gogo-cyan/90"
-                >
-                    {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                        <Search className="h-4 w-4 mr-2" />
-                    )}
-                    {report ? 'Refazer Análise' : `Analisar ${gameName}`}
-                </Button>
             </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="ai-api-key">Chave da API Gemini</Label>
-                    <Input
-                        id="ai-api-key"
-                        type="password"
-                        placeholder="AIzaSy..."
-                        value={aiApiKey}
-                        onChange={(e) => setAiApiKey(e.target.value)}
-                        disabled={isLoading}
+            <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <KpiCard 
+                        title="Tempo de Mercado"
+                        value={temporalAnalysis.timeframe}
+                        description="Período desde o lançamento (ou pré-lançamento)"
+                        icon={<Clock className="h-4 w-4 text-gogo-cyan" />}
                     />
-                    <p className="text-xs text-red-500">
-                        ⚠️ **AVISO DE SEGURANÇA:** A chave da API é enviada diretamente do seu navegador para a Edge Function.
-                    </p>
+                    <KpiCard 
+                        title="Velocidade Média de Vendas"
+                        value={temporalAnalysis.averageSpeed} 
+                        icon={<TrendingUp className="h-4 w-4 text-gogo-orange" />} 
+                        description="Cópia vendidas por mês (Média Geral / Meses)"
+                    />
+                    <KpiCard 
+                        title="Veredito Temporal"
+                        value={temporalAnalysis.verdict}
+                        description="Avaliação da performance de vendas ao longo do tempo"
+                        icon={<Info className="h-4 w-4 text-green-500" />}
+                        className={temporalAnalysis.verdict.includes('lenta') ? 'border-red-500/50' : temporalAnalysis.verdict.includes('forte') ? 'border-green-500/50' : ''}
+                    />
                 </div>
-                
-                {isLoading && <p className="text-center text-muted-foreground">Aguarde, a IA está buscando dados e realizando cálculos complexos...</p>}
-                
-                {report && renderReport()}
+
+                <Separator />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <KpiCard
+                        title="Vendas Totais (Pós-Lançamento)"
+                        value={formatNumber(temporalAnalysis.totalSales)}
+                        description="Unidades vendidas desde o lançamento"
+                        icon={<List className="h-4 w-4 text-gogo-cyan" />}
+                    />
+                    <KpiCard
+                        title="Receita Total Estimada"
+                        value={formatCurrency(temporalAnalysis.totalRevenue)}
+                        description={`Baseado no preço sugerido de ${formatCurrency(game.suggested_price || 19.99)}`}
+                        icon={<DollarSign className="h-4 w-4 text-gogo-orange" />}
+                    />
+                </div>
             </CardContent>
         </Card>
     );

@@ -16,69 +16,70 @@ import {
 } from '@/components/ui/form';
 import { toast } from 'sonner';
 
-// Schema de validação
-const formSchema = z.object({
-    name: z.string().min(1, "O nome é obrigatório."),
-    bundleUnits: z.number().min(0).default(0),
-    packageUnits: z.number().min(0).default(0),
-    salesUSD: z.number().min(0).default(0),
-    xsolla: z.number().min(0).default(0).optional(),
+// Exportando o schema Zod para uso em WlDetailsManager
+export const AddBundleFormSchema = z.object({
+    name: z.string().min(1, "O nome do bundle é obrigatório."),
+    bundleUnits: z.number().min(0, "Unidades do bundle devem ser positivas.").default(0),
+    packageUnits: z.number().min(0, "Unidades do pacote devem ser positivas.").default(0),
+    salesUSD: z.number().min(0, "Vendas em USD devem ser positivas.").default(0),
+    xsolla: z.string().optional(),
 });
 
-type BundleFormValues = z.infer<typeof formSchema>;
+type AddBundleFormValues = z.infer<typeof AddBundleFormSchema>;
 
 interface AddBundleFormProps {
-    gameName: string;
-    onSave: (data: BundleFormValues) => void;
+    onSave: (values: AddBundleFormValues) => void;
     onClose: () => void;
 }
 
-const AddBundleForm: React.FC<AddBundleFormProps> = ({ gameName, onSave, onClose }) => {
-    const form = useForm<BundleFormValues>({
-        resolver: zodResolver(formSchema),
+const AddBundleForm: React.FC<AddBundleFormProps> = ({ onSave, onClose }) => {
+    const form = useForm<AddBundleFormValues>({
+        resolver: zodResolver(AddBundleFormSchema),
         defaultValues: {
             name: '',
             bundleUnits: 0,
             packageUnits: 0,
             salesUSD: 0,
-            xsolla: 0,
+            xsolla: '',
         },
     });
 
-    const onSubmit = (values: BundleFormValues) => {
+    const onSubmit = (values: AddBundleFormValues) => {
         onSave(values);
-        toast.success(`Nova entrada de Bundle/DLC adicionada para ${gameName}.`);
+        toast.success("Bundle adicionado com sucesso.");
         onClose();
     };
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
-                <h3 className="text-lg font-semibold">Adicionar Venda de Bundle/DLC</h3>
-                
                 <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Nome do Bundle/DLC</FormLabel>
+                            <FormLabel>Nome do Bundle</FormLabel>
                             <FormControl>
-                                <Input placeholder="Ex: Deluxe Edition Bundle" {...field} />
+                                <Input placeholder="Nome do Bundle" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
-
                 <div className="grid grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name="bundleUnits"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Unidades Bundle</FormLabel>
+                                <FormLabel>Unidades do Bundle</FormLabel>
                                 <FormControl>
-                                    <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                                    <Input 
+                                        type="number" 
+                                        placeholder="0" 
+                                        {...field} 
+                                        onChange={e => field.onChange(Number(e.target.value))}
+                                    />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -89,16 +90,20 @@ const AddBundleForm: React.FC<AddBundleFormProps> = ({ gameName, onSave, onClose
                         name="packageUnits"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Unidades Package</FormLabel>
+                                <FormLabel>Unidades do Pacote</FormLabel>
                                 <FormControl>
-                                    <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                                    <Input 
+                                        type="number" 
+                                        placeholder="0" 
+                                        {...field} 
+                                        onChange={e => field.onChange(Number(e.target.value))}
+                                    />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
@@ -107,7 +112,13 @@ const AddBundleForm: React.FC<AddBundleFormProps> = ({ gameName, onSave, onClose
                             <FormItem>
                                 <FormLabel>Vendas (USD)</FormLabel>
                                 <FormControl>
-                                    <Input type="number" step="0.01" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                                    <Input 
+                                        type="number" 
+                                        placeholder="0.00" 
+                                        step="0.01"
+                                        {...field} 
+                                        onChange={e => field.onChange(Number(e.target.value))}
+                                    />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -118,19 +129,22 @@ const AddBundleForm: React.FC<AddBundleFormProps> = ({ gameName, onSave, onClose
                         name="xsolla"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Total Xsolla (Opcional)</FormLabel>
+                                <FormLabel>Xsolla (Opcional)</FormLabel>
                                 <FormControl>
-                                    <Input type="number" step="0.01" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                                    <Input placeholder="Valor Xsolla" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                 </div>
-
                 <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-                    <Button type="submit" className="bg-gogo-cyan hover:bg-gogo-cyan/90">Salvar Bundle</Button>
+                    <Button type="button" variant="outline" onClick={onClose}>
+                        Cancelar
+                    </Button>
+                    <Button type="submit">
+                        Salvar Bundle
+                    </Button>
                 </div>
             </form>
         </Form>

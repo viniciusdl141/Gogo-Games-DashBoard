@@ -26,14 +26,14 @@ import { toast } from 'sonner';
 const PlatformEnum = z.enum(['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra']);
 
 // Schema de validação: Agora aceita a WL Total
-const formSchema = z.object({
+export const DailyWLSalesFormSchema = z.object({ // Exportando o schema
     platform: PlatformEnum.default('Steam'),
     date: z.string().min(1, "A data é obrigatória (formato YYYY-MM-DD)."),
     wishlists: z.number().min(0, "Wishlists deve ser um número positivo."), // WL Total na Data
     sales: z.number().min(0, "Vendas deve ser um número positivo.").default(0),
 });
 
-type DailyWLSalesFormValues = z.infer<typeof formSchema>;
+type DailyWLSalesFormValues = z.infer<typeof DailyWLSalesFormSchema>;
 
 interface AddDailyWLSalesFormProps {
     gameName: string;
@@ -79,7 +79,7 @@ const AddDailyWLSalesForm: React.FC<AddDailyWLSalesFormProps> = ({ gameName, wlS
     const { nextDate, lastWL, lastEntryDate } = useMemo(() => getLatestData(currentPlatform), [currentPlatform, wlSalesData]);
 
     const form = useForm<DailyWLSalesFormValues>({
-        resolver: zodResolver(formSchema),
+        resolver: zodResolver(DailyWLSalesFormSchema),
         defaultValues: {
             platform: currentPlatform,
             date: nextDate,

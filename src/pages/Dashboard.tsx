@@ -16,7 +16,8 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { useQuery } from '@tanstack/react-query';
-import { getGames, addGame as addGameToSupabase, updateGame as updateGameInSupabase, deleteGame as deleteGameFromSupabase, Game as SupabaseGame } from '@/integrations/supabase/games';
+import { getGames, addGame as addGameToSupabase, updateGame as updateGameInSupabase, deleteGame as deleteGameFromSupabase } from '@/integrations/supabase/games';
+import { Game as SupabaseGame } from '@/integrations/supabase/schema'; // Corrigido o import
 import { rawData } from '@/data/rawTrackingData'; // Import rawData
 import { useSession } from '@/components/SessionContextProvider'; // Import useSession
 
@@ -65,10 +66,8 @@ const initialRawData = getTrackingData();
 let localIdCounter = initialRawData.influencerTracking.length + initialRawData.eventTracking.length + initialRawData.paidTraffic.length + initialRawData.wlSales.length + initialRawData.demoTracking.length + initialRawData.manualEventMarkers.length + initialRawData.trafficTracking.length;
 const generateLocalUniqueId = (prefix: string = 'track') => `${prefix}-${localIdCounter++}`;
 
-// Updated ALL_PLATFORMS to include PS categories
-const ALL_PLATFORMS: Platform[] = ['All', 'Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra'];
-// Removendo PS_CATEGORIES, pois o filtro agora só mostra plataformas principais
-// const PS_CATEGORIES: Platform[] = ['PS Plus', 'Add-Ons', 'Free to Play', 'VR'];
+// Corrigido o erro 16: Incluindo 'All' na união de tipos
+const ALL_PLATFORMS: (Platform | 'All')[] = ['All', 'Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra'];
 
 // Tipos para as configurações de cor
 interface WLSalesChartColors {
@@ -1392,7 +1391,11 @@ const Dashboard = () => {
                                     {/* Ajuste TabsContent para transparência */}
                                     <TabsContent value="comparisons" className={cn("space-y-6 mt-4", isPlaystationTheme && "bg-card/50 backdrop-blur-sm p-4 rounded-lg shadow-lg ps-card-glow")}>
                                         <AnimatedPanel delay={0}>
-                                            <WlComparisonsPanel data={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName)} allPlatforms={ALL_PLATFORMS.filter(p => p !== 'All')} />
+                                            {/* Corrigido o erro 17: Filtrando e garantindo que o tipo seja Platform[] */}
+                                            <WlComparisonsPanel 
+                                                data={trackingData.wlSales.filter(e => e.game.trim() === selectedGameName)} 
+                                                allPlatforms={ALL_PLATFORMS.filter(p => p !== 'All') as Platform[]} 
+                                            />
                                         </AnimatedPanel>
                                     </TabsContent>
 

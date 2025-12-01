@@ -1,18 +1,17 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { useSession } from '@/components/SessionContextProvider';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getStudios, addStudio, updateStudio, deleteStudio } from '@/integrations/supabase/studios';
+import { getGames, deleteGame as deleteGameFromSupabase } from '@/integrations/supabase/games';
+import { Game as SupabaseGame, Studio as StudioSchema } from '@/integrations/supabase/schema'; // Importando Studio do schema
+import StudioForm from '@/components/admin/StudioForm';
+import EditStudioForm from '@/components/admin/EditStudioForm'; // Corrigido o erro 2
+import DeleteGameButton from '@/components/dashboard/DeleteGameButton'; // Importando DeleteGameButton
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Home, Edit, Trash2, Users, Gamepad2, Loader2, Settings, BarChart3 } from 'lucide-react';
+import { Plus, Trash2, Edit, Users, Gamepad2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useQuery } from '@tanstack/react-query';
-import { getStudios, addStudio, updateStudio, deleteStudio, Studio } from '@/integrations/supabase/studios';
-import { getGames, deleteGame as deleteGameFromSupabase, Game as SupabaseGame } from '@/integrations/supabase/games';
-import StudioForm from '@/components/admin/StudioForm';
-import UserForm from '@/components/admin/UserForm';
-import { toast } from 'sonner';
 import {
     Table,
     TableBody,
@@ -21,318 +20,210 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { formatDate } from '@/lib/utils';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import AnimatedPanel from '@/components/AnimatedPanel'; // Import AnimatedPanel
+import { toast } from 'sonner';
+import { formatDate, formatNumber } from '@/lib/utils';
+import { useSession } from '@/components/SessionContextProvider';
+import { GameOption } from '@/integrations/supabase/games'; // Importando GameOption para tipagem
 
 const AdminPanel: React.FC = () => {
     const { isAdmin, isLoading: isSessionLoading } = useSession();
-    const navigate = useNavigate();
     const [isStudioFormOpen, setIsStudioFormOpen] = useState(false);
-    const [isUserFormOpen, setIsUserFormOpen] = useState(false);
-    const [editingStudio, setEditingStudio] = useState<Studio | null>(null);
+    const [editingStudio, setEditingStudio] = useState<StudioSchema | null>(null);
 
     // Fetch Studios
-    const { data: studios, isLoading: isStudiosLoading, refetch: refetchStudios } = useQuery<Studio[], Error>({
+    const { data: studios, refetch: refetchStudios, isLoading: isStudiosLoading } = useQuery<StudioSchema[], Error>({
         queryKey: ['studios'],
         queryFn: getStudios,
-        enabled: isAdmin,
+        initialData: [],
+        enabled: isAdmin && !isSessionLoading,
     });
 
-    // Fetch All Games (Admin view)
-    const { data: allGames, isLoading: isGamesLoading, refetch: refetchGames } = useQuery<SupabaseGame[], Error>({
+    // Fetch Games (All games for admin view)
+    const { data: games, refetch: refetchGames, isLoading: isGamesLoading } = useQuery<SupabaseGame[], Error>({
         queryKey: ['allGamesAdmin'],
-        queryFn: () => getGames(undefined), // Admin fetches all games (studioId undefined)
-        enabled: isAdmin,
+        queryFn: () => getGames(undefined), // Fetch all games
+        initialData: [],
+        enabled: isAdmin && !isSessionLoading,
     });
 
-    // Group games by studio ID for display
-    const gamesByStudio = useMemo(() => {
-        if (!allGames) return new Map<string, SupabaseGame[]>();
-        return allGames.reduce((acc, game) => {
-            const studioId = game.studio_id || 'unassigned';
-            if (!acc.has(studioId)) {
-                acc.set(studioId, []);
-            }
-            acc.get(studioId)?.push(game);
-            return acc;
-        }, new Map<string, SupabaseGame[]>());
-    }, [allGames]);
-
-    if (isSessionLoading) {
-        return <div className="min-h-screen flex items-center justify-center">Carregando sessão...</div>;
-    }
-
-    if (!isAdmin) {
-        return (
-            <div className="min-h-screen flex items-center justify-center p-8 gaming-background">
-                <Card className="p-6 text-center">
-                    <h1 className="text-2xl font-bold text-destructive">Acesso Negado</h1>
-                    <p className="text-muted-foreground mt-2">Você não tem permissão de administrador para acessar esta página.</p>
-                    <Button onClick={() => navigate('/')} className="mt-4">
-                        <Home className="h-4 w-4 mr-2" /> Voltar ao Dashboard
-                    </Button>
-                </Card>
-            </div>
-        );
-    }
-
-    // --- Handlers ---
-
-    const handleSaveStudio = async (name: string, id?: string) => {
+    const handleAddStudio = useCallback(async (name: string) => {
         try {
-            if (id) {
-                await updateStudio(id, { name });
-                toast.success(`Estúdio "${name}" atualizado.`);
-            } else {
-                await addStudio(name);
-                toast.success(`Estúdio "${name}" criado com sucesso.`);
-            }
+            await addStudio(name);
             refetchStudios();
+            toast.success(`Estúdio "${name}" adicionado com sucesso.`);
             setIsStudioFormOpen(false);
+        } catch (error) {
+            console.error("Error adding studio:", error);
+            toast.error("Falha ao adicionar estúdio.");
+        }
+    }, [refetchStudios]);
+
+    const handleUpdateStudio = useCallback(async (id: string, name: string) => {
+        try {
+            // Corrigido o erro 3: updateStudio espera um objeto Partial<Studio>
+            await updateStudio(id, { name }); 
+            refetchStudios();
+            toast.success(`Estúdio "${name}" atualizado com sucesso.`);
             setEditingStudio(null);
         } catch (error) {
-            console.error("Error saving studio:", error);
-            toast.error("Falha ao salvar estúdio.");
+            console.error("Error updating studio:", error);
+            toast.error("Falha ao atualizar estúdio.");
         }
-    };
+    }, [refetchStudios]);
 
-    const handleDeleteStudio = async (id: string, name: string) => {
+    const handleDeleteStudio = useCallback(async (id: string) => {
         try {
-            // Check if any games are assigned to this studio
-            const gamesAssigned = allGames?.filter(g => g.studio_id === id) || [];
-            if (gamesAssigned.length > 0) {
-                toast.error(`Não é possível deletar o estúdio "${name}". ${gamesAssigned.length} jogos ainda estão atribuídos a ele.`);
-                return;
-            }
-
             await deleteStudio(id);
             refetchStudios();
-            toast.success(`Estúdio "${name}" deletado.`);
+            toast.success("Estúdio excluído com sucesso.");
         } catch (error) {
             console.error("Error deleting studio:", error);
-            toast.error("Falha ao deletar estúdio.");
+            toast.error("Falha ao excluir estúdio.");
         }
-    };
+    }, [refetchStudios]);
 
-    const handleDeleteGameAdmin = async (gameId: string, gameName: string) => {
+    const handleDeleteGame = useCallback(async (gameId: string) => {
         try {
             await deleteGameFromSupabase(gameId);
             refetchGames();
-            toast.success(`Jogo "${gameName}" excluído permanentemente do Supabase.`);
+            toast.success("Jogo excluído com sucesso.");
         } catch (error) {
             console.error("Error deleting game:", error);
             toast.error("Falha ao excluir jogo.");
         }
-    };
+    }, [refetchGames]);
 
-    const handleEditStudio = (studio: Studio) => {
-        setEditingStudio(studio);
-        setIsStudioFormOpen(true);
-    };
+    if (isSessionLoading) {
+        return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+    }
 
-    const handleCloseStudioForm = () => {
-        setIsStudioFormOpen(false);
-        setEditingStudio(null);
-    };
-
-    const getStudioName = (id: string | null) => {
-        if (!id) return 'Não Atribuído (Admin)';
-        return studios?.find(s => s.id === id)?.name || 'Estúdio Desconhecido';
-    };
+    if (!isAdmin) {
+        return <div className="min-h-screen flex items-center justify-center text-red-500">Acesso negado. Apenas administradores podem acessar este painel.</div>;
+    }
 
     return (
-        <div className="min-h-screen p-4 md:p-8 font-sans gaming-background">
-            <div className="space-y-8 max-w-6xl mx-auto bg-card p-6 rounded-lg shadow-xl border border-border">
-                <DashboardHeader />
-                
-                <h1 className="text-3xl font-bold text-gogo-orange flex items-center">
-                    <Settings className="h-6 w-6 mr-3" /> Painel de Administração
-                </h1>
+        <div className="p-6 space-y-8">
+            <h1 className="text-3xl font-bold text-gogo-cyan">Painel de Administração</h1>
 
-                <AnimatedPanel delay={0}>
-                    <div className="flex space-x-4">
-                        <Button onClick={() => navigate('/')} variant="outline">
-                            <Home className="h-4 w-4 mr-2" /> Voltar ao Dashboard
-                        </Button>
-                        <Button onClick={() => navigate('/strategic')} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
-                            <BarChart3 className="h-4 w-4 mr-2" /> Visualização Estratégica
-                        </Button>
-                    </div>
-                </AnimatedPanel>
+            {/* --- Gerenciamento de Estúdios --- */}
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center text-xl">
+                        <Users className="h-5 w-5 mr-2" /> Gerenciar Estúdios
+                    </CardTitle>
+                    <Dialog open={isStudioFormOpen} onOpenChange={setIsStudioFormOpen}>
+                        <DialogTrigger asChild>
+                            <Button onClick={() => setIsStudioFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">
+                                <Plus className="h-4 w-4 mr-2" /> Adicionar Estúdio
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle>Adicionar Novo Estúdio</DialogTitle>
+                            </DialogHeader>
+                            <StudioForm onSave={handleAddStudio} onClose={() => setIsStudioFormOpen(false)} />
+                        </DialogContent>
+                    </Dialog>
+                </CardHeader>
+                <CardContent>
+                    {isStudiosLoading ? (
+                        <p>Carregando estúdios...</p>
+                    ) : studios.length === 0 ? (
+                        <p className="text-muted-foreground">Nenhum estúdio cadastrado.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Nome</TableHead>
+                                        <TableHead>ID</TableHead>
+                                        <TableHead className="text-right">Ações</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {studios.map((studio) => (
+                                        <TableRow key={studio.id}>
+                                            <TableCell className="font-medium">{studio.name}</TableCell>
+                                            <TableCell className="text-xs text-muted-foreground">{studio.id}</TableCell>
+                                            <TableCell className="text-right space-x-2">
+                                                <Button variant="ghost" size="sm" onClick={() => setEditingStudio(studio)}>
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="sm" onClick={() => handleDeleteStudio(studio.id)} className="text-destructive">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
-                {/* --- Gerenciamento de Estúdios --- */}
-                <AnimatedPanel delay={0.1}>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="text-xl flex items-center">
-                                <Users className="h-5 w-5 mr-2 text-gogo-cyan" /> Gerenciar Estúdios
-                            </CardTitle>
-                            <div className="flex space-x-2">
-                                <Button onClick={() => setIsUserFormOpen(true)} className="bg-gogo-orange hover:bg-gogo-orange/90">
-                                    <Plus className="h-4 w-4 mr-2" /> Criar Usuário
-                                </Button>
-                                <Button onClick={() => setIsStudioFormOpen(true)} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
-                                    <Plus className="h-4 w-4 mr-2" /> Criar Estúdio
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            {isStudiosLoading ? (
-                                <div className="flex justify-center items-center h-20"><Loader2 className="h-6 w-6 animate-spin" /></div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Nome do Estúdio</TableHead>
-                                                <TableHead>ID</TableHead>
-                                                <TableHead className="text-center">Jogos Atribuídos</TableHead>
-                                                <TableHead className="text-right">Ações</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {studios?.map(studio => (
-                                                <TableRow key={studio.id}>
-                                                    <TableCell className="font-medium">{studio.name}</TableCell>
-                                                    <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">{studio.id}</TableCell>
-                                                    <TableCell className="text-center">{gamesByStudio.get(studio.id)?.length || 0}</TableCell>
-                                                    <TableCell className="text-right space-x-2">
-                                                        <Button variant="ghost" size="sm" onClick={() => handleEditStudio(studio)}>
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>Excluir Estúdio?</AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        Tem certeza que deseja remover o estúdio "{studio.name}"? Isso não pode ser desfeito.
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDeleteStudio(studio.id, studio.name)} className="bg-destructive hover:bg-destructive/90">
-                                                                        Excluir
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </AnimatedPanel>
-
-                {/* --- Visualização de Todos os Jogos --- */}
-                <AnimatedPanel delay={0.2}>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-xl flex items-center">
-                                <Gamepad2 className="h-5 w-5 mr-2 text-gogo-orange" /> Todos os Jogos ({allGames?.length || 0})
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {isGamesLoading ? (
-                                <div className="flex justify-center items-center h-20"><Loader2 className="h-6 w-6 animate-spin" /></div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Jogo</TableHead>
-                                                <TableHead>Estúdio</TableHead>
-                                                <TableHead>Preço Sugerido (R$)</TableHead>
-                                                <TableHead>Lançamento</TableHead>
-                                                <TableHead className="text-right">Ações</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {allGames?.map(game => (
-                                                <TableRow key={game.id}>
-                                                    <TableCell className="font-medium">{game.name}</TableCell>
-                                                    <TableCell>{getStudioName(game.studio_id)}</TableCell>
-                                                    <TableCell>{game.suggested_price ? `R$ ${game.suggested_price.toFixed(2)}` : '-'}</TableCell>
-                                                    <TableCell>{game.launch_date ? formatDate(new Date(game.launch_date)) : '-'}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>Excluir Jogo Permanentemente?</AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        Esta ação removerá permanentemente o jogo <span className="font-bold text-destructive">"{game.name}"</span> do Supabase. Isso não pode ser desfeito.
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDeleteGameAdmin(game.id, game.name)} className="bg-destructive hover:bg-destructive/90">
-                                                                        Excluir Permanentemente
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </AnimatedPanel>
-
-                {/* Modals */}
-                <Dialog open={isStudioFormOpen} onOpenChange={handleCloseStudioForm}>
-                    <DialogContent className="sm:max-w-[450px]">
-                        <DialogHeader>
-                            <DialogTitle>{editingStudio ? 'Editar Estúdio' : 'Criar Novo Estúdio'}</DialogTitle>
-                        </DialogHeader>
-                        <StudioForm 
-                            existingStudio={editingStudio}
-                            onSave={handleSaveStudio}
-                            onClose={handleCloseStudioForm}
+            {/* Modal de Edição de Estúdio */}
+            <Dialog open={!!editingStudio} onOpenChange={(open) => !open && setEditingStudio(null)}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Editar Estúdio</DialogTitle>
+                    </DialogHeader>
+                    {editingStudio && (
+                        <EditStudioForm 
+                            studio={editingStudio} 
+                            onSave={handleUpdateStudio} 
+                            onClose={() => setEditingStudio(null)} 
                         />
-                    </DialogContent>
-                </Dialog>
+                    )}
+                </DialogContent>
+            </Dialog>
 
-                <Dialog open={isUserFormOpen} onOpenChange={setIsUserFormOpen}>
-                    <DialogContent className="sm:max-w-[450px]">
-                        <DialogHeader>
-                            <DialogTitle>Criar Novo Usuário de Estúdio</DialogTitle>
-                        </DialogHeader>
-                        <UserForm 
-                            studios={studios || []}
-                            onClose={() => setIsUserFormOpen(false)}
-                        />
-                    </DialogContent>
-                </Dialog>
-            </div>
+            {/* --- Gerenciamento de Jogos --- */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center text-xl">
+                        <Gamepad2 className="h-5 w-5 mr-2" /> Gerenciar Jogos (Todos)
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isGamesLoading ? (
+                        <p>Carregando jogos...</p>
+                    ) : games.length === 0 ? (
+                        <p className="text-muted-foreground">Nenhum jogo cadastrado no Supabase.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Nome</TableHead>
+                                        <TableHead>Estúdio ID</TableHead>
+                                        <TableHead>Lançamento</TableHead>
+                                        <TableHead className="text-right">Ações</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {games.map((game) => (
+                                        <TableRow key={game.id}>
+                                            <TableCell className="font-medium">{game.name}</TableCell>
+                                            <TableCell className="text-xs text-muted-foreground">{game.studio_id || 'Global'}</TableCell>
+                                            <TableCell>{game.launch_date ? formatDate(new Date(game.launch_date)) : 'N/A'}</TableCell>
+                                            <TableCell className="text-right">
+                                                <DeleteGameButton 
+                                                    gameId={game.id}
+                                                    gameName={game.name}
+                                                    onDelete={handleDeleteGame}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                />
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 };

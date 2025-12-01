@@ -10,10 +10,11 @@ import WLSalesChartPanel from './WLSalesChartPanel';
 import WLSalesTablePanel from './WLSalesTablePanel';
 import ExportDataButton from './ExportDataButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import AddDailyWLSalesForm from './AddDailyWLSalesForm';
-import AddWLSalesForm from './AddWLSalesForm'; // <-- Adicionando a importação
+import AddDailyWLSalesForm, { DailyWLSalesFormSchema } from './AddDailyWLSalesForm'; // Importando o Schema
+import AddWLSalesForm from './AddWLSalesForm'; 
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import * as z from 'zod';
 
 // Cores do gráfico ajustadas para o tema PlayStation
 const PS_CHART_COLORS = {
@@ -45,6 +46,9 @@ const getDisplayPlatformName = (platform: Platform | 'All') => {
     }
 };
 
+// Usando inferência Zod para garantir que a data é uma string
+type DailyWLSalesData = z.infer<typeof DailyWLSalesFormSchema>;
+
 interface WLSalesPanelThemedProps {
     gameName: string;
     wlSales: WLSalesPlatformEntry[]; 
@@ -57,8 +61,8 @@ interface WLSalesPanelThemedProps {
     onPointClick: (entry: WLSalesPlatformEntry) => void;
     onDeleteWLSalesEntry: (id: string) => void;
     onEditWLSalesEntry: (entry: WLSalesPlatformEntry) => void;
-    onAddDailyWLSalesEntry: (newEntry: { date: string, platform: Platform, wishlists: number, sales: number }) => void;
-    onAddWLSalesEntry: (newEntry: any) => void; // Adicionado para o formulário detalhado
+    onAddDailyWLSalesEntry: (newEntry: DailyWLSalesData) => void; // Usando a interface DailyWLSalesData
+    onAddWLSalesEntry: (newEntry: any) => void; 
     isColorConfigOpen: boolean;
     onColorConfigOpenChange: (open: boolean) => void;
     ColorConfigForm: React.FC;
@@ -182,6 +186,7 @@ const WLSalesPanelThemed: React.FC<WLSalesPanelThemedProps> = ({
                                 <AddDailyWLSalesForm 
                                     gameName={gameName}
                                     wlSalesData={wlSalesDataForRecalculation.filter(e => e.platform === platformForDailyAdd)}
+                                    // Corrigido o erro 14: O tipo DailyWLSalesData garante que 'date' é string.
                                     onSave={(data) => onAddDailyWLSalesEntry({ ...data, platform: platformForDailyAdd })} 
                                     onClose={() => setIsAddDailyWLSalesFormOpen(false)} 
                                 />

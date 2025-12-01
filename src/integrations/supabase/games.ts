@@ -1,88 +1,130 @@
 import { supabase } from './client';
-import { invokeGameDataFetcher, GameOption } from './functions'; // Import GameOption and fetcher
+import { Game as SupabaseGame } from './schema'; // Importa Game do schema e renomeia
 
-export interface Game {
-  id: string;
-  name: string;
-  launch_date: string | null; // ISO date string 'YYYY-MM-DD'
-  suggested_price: number | null; // New field
-  capsule_image_url: string | null; // NEW FIELD
-  studio_id: string | null; // NEW FIELD
-  category: string | null; // NEW FIELD
-  created_at: string;
+// Define a estrutura mínima para um jogo, incluindo campos que podem ser atualizados
+export interface GameOption {
+    id: string;
+    name: string;
+    launch_date: string | null;
+    suggested_price: number | null;
+    capsule_image_url: string | null;
+    category: string | null; // Adicionado 'category'
 }
 
-export const getGames = async (studioId?: string | null): Promise<Game[]> => {
-  let query = supabase.from('games').select('*');
-  
-  // Apply filtering only if studioId is provided and not null
-  if (studioId) {
-    query = query.eq('studio_id', studioId);
-  }
-  
-  const { data, error } = await query.order('name');
-  if (error) throw error;
-  return data;
-};
+// Tipagem para os dados que podem ser atualizados
+type GameUpdate = Partial<Omit<SupabaseGame, 'id' | 'created_at' | 'studio_id'>>;
 
-export const addGame = async (name: string, launch_date: string | null, suggested_price: number | null = null, capsule_image_url: string | null = null, studio_id: string | null = null, category: string | null = null): Promise<Game> => {
-  const { data, error } = await supabase.from('games').insert([{ name, launch_date, suggested_price, capsule_image_url, studio_id, category }]).select().single();
-  if (error) throw error;
-  return data;
-};
+// Função para buscar todos os jogos (opcionalmente filtrado por studioId)
+export const getGames = async (studioId?: string | null): Promise<SupabaseGame[]> => {
+    let query = supabase
+        .from('games')
+        .select('*');
 
-export const updateGame = async (id: string, updates: Partial<Game>): Promise<Game> => {
-  const { data, error } = await supabase.from('games').update(updates).eq('id', id).select().single();
-  if (error) throw error;
-  return data;
-};
-
-export const deleteGame = async (id: string): Promise<void> => {
-  const { error } = await supabase.from('games').delete().eq('id', id);
-  if (error) throw error;
-};
-
-// Hardcoded API Key for Gemini (used for web search)
-const GEMINI_API_KEY = 'AIzaSyCao7UHpJgeYGExguqjvecUwdeztYhnxWU';
-
-/**
- * Fetches game metadata from the web using AI and updates the Supabase record.
- * @returns The updated game object or null if no data was found.
- */
-export const fetchAndSetGameMetadata = async (game: Game): Promise<Game | null> => {
-    // NOTE: We are using the hardcoded key here, which is generally bad practice but required by the current setup.
-    const response = await invokeGameDataFetcher(game.name, GEMINI_API_KEY);
-    const results = response.results; // Access results safely
-
-    if (results.length === 0) {
-        return null;
+    if (studioId) {
+        // Filtra por studio_id, mas permite jogos sem studio_id (para admins ou jogos globais)
+        query = query.or(`studio_id.eq.${studioId},studio_id.is.null`);
     }
 
-    // Prioritize the first result found
-    const bestMatch = results[0];
+    const { data, error } = await query.order('name', { ascending: true });
 
-    const updates: Partial<Game> = {
-        capsule_image_url: bestMatch.capsuleImageUrl || game.capsule_image_url,
-        launch_date: bestMatch.launchDate || game.launch_date,
-        suggested_price: bestMatch.suggestedPrice || game.suggested_price,
-        category: bestMatch.category || game.category,
-        // We don't update developer/publisher/priceUSD here as they are not stored in the main Game table, 
-        // but they are useful for the WebSearchGameForm.
-    };
+    if (error) {
+        console.error("Error fetching games:", error);
+        throw error;
+    }
 
-    // Only update if there is at least one new piece of information
-    if (Object.values(updates).some(v => v !== null && v !== undefined)) {
-        // Ensure we only pass non-null values if they are meant to be updated
-        const cleanUpdates: Partial<Game> = {};
-        for (const key in updates) {
-            const k = key as keyof Partial<Game>;
-            if (updates[k] !== undefined) {
-                cleanUpdates[k] = updates[k];
+    return data || [];
+};
+
+// Função para adicionar um novo jogo
+export const addGame = async (
+    name: string, 
+    launchDate: string | null, 
+    suggestedPrice: number | null, 
+    capsuleImageUrl: string | null,
+    studioId: string | null,
+    category: string | null = null, // Adicionado category
+): Promise<SupabaseGame> => {
+    const { data, error } = await supabase
+        .from('games')
+        .insert([
+            { 
+                name, 
+                launch_date: launchDate, 
+                suggested_price: suggestedPrice, 
+                capsule_image_url: capsuleImageUrl,
+                studio_id: studioId,
+                category: category, // Adicionado category
             }
-        }
-        
-        return updateGame(game.id, cleanUpdates);
+        ])
+        .select()
+        .single();
+
+    if (error) {
+        console.error("Error adding game:", error);
+        throw error;
     }
 
-    return null;
+    return data;
+};
+
+// Função para atualizar um jogo existente
+export const updateGame = async (gameId: string, updates: GameUpdate): Promise<SupabaseGame> => {
+    const cleanUpdates: Partial<SupabaseGame> = {};
+    
+    // Filtra undefined/nulls para evitar sobrescrever valores acidentalmente, exceto se o valor for explicitamente null
+    for (const k in updates) {
+        const key = k as keyof GameUpdate;
+        // Corrigido o erro 1: Usando GameUpdate para garantir que a chave existe e o valor é compatível
+        if (updates[key] !== undefined) {
+            cleanUpdates[key as keyof SupabaseGame] = updates[key] as any; 
+        }
+    }
+
+    const { data, error } = await supabase
+        .from('games')
+        .update(cleanUpdates)
+        .eq('id', gameId)
+        .select()
+        .single();
+
+    if (error) {
+        console.error("Error updating game:", error);
+        throw error;
+    }
+
+    return data;
+};
+
+// Função para deletar um jogo
+export const deleteGame = async (gameId: string): Promise<void> => {
+    const { error } = await supabase
+        .from('games')
+        .delete()
+        .eq('id', gameId);
+
+    if (error) {
+        console.error("Error deleting game:", error);
+        throw error;
+    }
+};
+
+// Função para encontrar o melhor match entre a lista de jogos e uma opção de jogo
+export const findBestGameMatch = (games: GameOption[], gameOption: GameOption): GameOption => {
+    const bestMatch = games.find(g => g.name === gameOption.name);
+    if (bestMatch) {
+        return bestMatch;
+    }
+    return gameOption;
+};
+
+// Função para mesclar dados de jogos (usada em GameComparisonPanel)
+export const mergeGameData = (game: GameOption, bestMatch: GameOption): GameOption => {
+    return {
+        id: game.id,
+        name: game.name,
+        launch_date: bestMatch.launch_date || game.launch_date,
+        suggested_price: bestMatch.suggested_price || game.suggested_price,
+        category: bestMatch.category || game.category, 
+        capsule_image_url: bestMatch.capsule_image_url || game.capsule_image_url,
+    };
 };

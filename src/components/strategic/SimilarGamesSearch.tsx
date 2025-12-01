@@ -1,153 +1,97 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Search, Gamepad, Calendar, DollarSign, MessageSquare, Building2, ArrowRight } from 'lucide-react';
-import { invokeGameDataFetcher, GameOption } from '@/integrations/supabase/functions';
-import { formatCurrency, formatDate, formatNumber } from '@/lib/utils';
-import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Search, Loader2, Gamepad2, DollarSign, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Game as SupabaseGame } from '@/integrations/supabase/games';
+import { Game as SupabaseGame } from '@/integrations/supabase/schema'; // Corrigido o import
 import { Separator } from '@/components/ui/separator';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface SimilarGamesSearchProps {
-    selectedGame: SupabaseGame | undefined;
-    onSelectGameForComparison: (game: GameOption) => void;
+    allGames: SupabaseGame[];
+    onSelectGame: (game: SupabaseGame) => void;
 }
 
-// Hardcoded API Key (as provided by the user)
-const GEMINI_API_KEY = 'AIzaSyCao7UHpJgeYGExguqjvecUwdeztYhnxWU';
+const SimilarGamesSearch: React.FC<SimilarGamesSearchProps> = ({ allGames, onSelectGame }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
 
-const SimilarGamesSearch: React.FC<SimilarGamesSearchProps> = ({ selectedGame, onSelectGameForComparison }) => {
-    const [isLoading, setIsLoading] = useState(false);
-    const [results, setResults] = useState<GameOption[]>([]);
-    const [isSearchVisible, setIsSearchVisible] = useState(false);
+    const filteredGames = useMemo(() => {
+        if (!searchTerm) return [];
+        const lowerCaseSearch = searchTerm.toLowerCase();
+        return allGames.filter(game => 
+            game.name.toLowerCase().includes(lowerCaseSearch) ||
+            game.category?.toLowerCase().includes(lowerCaseSearch)
+        ).slice(0, 5); // Limita a 5 resultados
+    }, [searchTerm, allGames]);
 
     const handleSearch = async () => {
-        if (!selectedGame) {
-            toast.error("Selecione um jogo para buscar similares.");
-            return;
-        }
-
-        setIsLoading(true);
-        setResults([]);
-        setIsSearchVisible(true);
+        if (!searchTerm) return;
+        setIsSearching(true);
+        // Simulação de busca em API externa
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setIsSearching(false);
         
-        const searchName = selectedGame.name;
-        toast.loading(`Buscando jogos similares a "${searchName}" na web...`, { id: 'similar-search' });
-
-        try {
-            // We ask Gemini to search for similar games based on the selected game's name and category
-            const query = `Jogos similares a "${searchName}" (Categoria: ${selectedGame.category || 'Geral'})`;
-            
-            const response = await invokeGameDataFetcher(query, GEMINI_API_KEY);
-            
-            toast.dismiss('similar-search');
-
-            if (response.results && response.results.length > 0) {
-                // Filter out the selected game itself if it appears in results
-                const filteredResults = response.results.filter(r => r.name.trim().toLowerCase() !== searchName.trim().toLowerCase());
-                setResults(filteredResults);
-                toast.success(`${filteredResults.length} jogos similares encontrados.`);
-            } else {
-                toast.error(`A busca não encontrou jogos similares para "${searchName}".`);
-            }
-
-        } catch (error) {
-            console.error("Web Search Error:", error);
-            toast.dismiss('similar-search');
-            toast.error(`Falha na busca: ${error.message}.`);
-        } finally {
-            setIsLoading(false);
+        if (filteredGames.length === 0) {
+            toast.info(`Nenhum jogo encontrado para "${searchTerm}".`);
         }
-    };
-
-    const handleSelect = (game: GameOption) => {
-        onSelectGameForComparison(game);
-        // Optionally hide search results after selection
-        setIsSearchVisible(false);
     };
 
     return (
-        <Card className="shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-xl flex items-center">
-                    <Gamepad className="h-5 w-5 mr-2 text-gogo-orange" /> Busca de Similares (Gemini)
+        <Card className="shadow-lg">
+            <CardHeader>
+                <CardTitle className="text-xl flex items-center text-gogo-cyan">
+                    <Search className="h-5 w-5 mr-2" /> Buscar Jogos Similares
                 </CardTitle>
-                <Button 
-                    onClick={() => isSearchVisible ? setIsSearchVisible(false) : handleSearch()} 
-                    disabled={!selectedGame || isLoading}
-                    variant={isSearchVisible ? 'destructive' : 'default'}
-                    className={isSearchVisible ? 'bg-destructive hover:bg-destructive/90' : 'bg-gogo-cyan hover:bg-gogo-cyan/90'}
-                >
-                    {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                        <Search className="h-4 w-4 mr-2" />
-                    )}
-                    {isSearchVisible ? 'Ocultar Busca' : `Buscar Similares a ${selectedGame?.name || 'Jogo'}`}
-                </Button>
             </CardHeader>
-            
-            {isSearchVisible && (
-                <CardContent className="pt-4 space-y-4">
-                    <Separator />
-                    {isLoading && <p className="text-center text-muted-foreground">Aguarde, buscando dados...</p>}
-                    
-                    {!isLoading && results.length === 0 && selectedGame && (
-                        <p className="text-center text-muted-foreground">Nenhum resultado encontrado. Tente novamente.</p>
-                    )}
+            <CardContent className="space-y-4">
+                <div className="flex space-x-2">
+                    <Input
+                        placeholder="Nome do jogo ou categoria..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        disabled={isSearching}
+                    />
+                    <Button onClick={handleSearch} disabled={isSearching || !searchTerm}>
+                        {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </Button>
+                </div>
 
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                        {results.map((game, index) => (
-                            <Card key={index} className="p-3 hover:bg-muted/50 transition-colors border-l-4 border-gogo-orange">
-                                <CardContent className="p-0 flex justify-between items-start">
-                                    <div className="flex space-x-3">
-                                        <div className="space-y-1 flex-1">
-                                            <p className="font-bold text-sm">{game.name}</p>
-                                            
-                                            {/* Metadados */}
-                                            <div className="flex flex-wrap gap-2 text-xs">
-                                                {game.reviewSummary && (
-                                                    <Badge variant="default" className="bg-gogo-cyan hover:bg-gogo-cyan/90">
-                                                        <MessageSquare className="h-3 w-3 mr-1" /> {game.reviewSummary} ({formatNumber(game.reviewCount || 0)})
-                                                    </Badge>
-                                                )}
-                                                <Badge variant="secondary" className="flex items-center">
-                                                    <DollarSign className="h-3 w-3 mr-1" /> USD: {formatCurrency(game.priceUSD || 0).replace('R$', 'USD')}
-                                                </Badge>
-                                            </div>
-
-                                            {/* Data e Desenvolvedora */}
-                                            <div className="flex flex-wrap gap-x-3 text-xs text-muted-foreground pt-1">
-                                                <span className="flex items-center">
-                                                    <Calendar className="h-3 w-3 mr-1" /> 
-                                                    Lançamento: {game.launchDate ? formatDate(new Date(game.launchDate)) : 'N/A'}
-                                                </span>
-                                                {game.developer && (
-                                                    <span className="flex items-center">
-                                                        <Building2 className="h-3 w-3 mr-1" /> 
-                                                        Dev: {game.developer}
-                                                    </span>
-                                                )}
-                                                <span className="text-xs italic">({game.source})</span>
-                                            </div>
-                                        </div>
+                {filteredGames.length > 0 && (
+                    <div className="space-y-2">
+                        <p className="text-sm font-medium text-muted-foreground">Resultados ({filteredGames.length}):</p>
+                        {filteredGames.map(game => (
+                            <div key={game.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center space-x-3">
+                                    {game.capsule_image_url && (
+                                        <img src={game.capsule_image_url} alt={game.name} className="w-8 h-8 object-cover rounded-sm" />
+                                    )}
+                                    <div>
+                                        <p className="font-semibold">{game.name}</p>
+                                        <Badge variant="secondary" className="text-xs">{game.category || 'N/A'}</Badge>
                                     </div>
-                                    <Button 
-                                        size="sm" 
-                                        onClick={() => handleSelect(game)}
-                                        className="bg-gogo-cyan hover:bg-gogo-cyan/90 flex-shrink-0 ml-4"
-                                    >
-                                        <ArrowRight className="h-4 w-4 mr-1" /> Comparar
+                                </div>
+                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                    <div className="flex items-center">
+                                        <DollarSign className="h-3 w-3 mr-1" /> {formatCurrency(game.suggested_price || 0)}
+                                    </div>
+                                    <div className="flex items-center">
+                                        <Clock className="h-3 w-3 mr-1" /> {game.launch_date ? formatDate(new Date(game.launch_date)) : 'N/A'}
+                                    </div>
+                                    <Button size="sm" onClick={() => onSelectGame(game)} className="bg-gogo-orange hover:bg-gogo-orange/90">
+                                        Selecionar
                                     </Button>
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </div>
                         ))}
                     </div>
-                </CardContent>
-            )}
+                )}
+            </CardContent>
         </Card>
     );
 };

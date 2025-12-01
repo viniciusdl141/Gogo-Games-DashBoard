@@ -1,26 +1,19 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { WlDetails, ReviewEntry, BundleEntry, TrafficEntry, Platform } from '@/data/trackingData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatDate, formatCurrency } from '@/lib/utils';
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, MessageSquare, Package, Globe } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { toast } from 'sonner';
+import { Plus, Trash2, Edit, Package, TrendingUp, DollarSign, Clock, Globe } from 'lucide-react';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { formatDate, formatNumber, cn } from '@/lib/utils';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -32,419 +25,265 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import AddBundleForm from './AddBundleForm'; 
-import AddTrafficForm from './AddTrafficForm'; // Importar o formulário de tráfego
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/form'; 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { toast } from 'sonner';
+import AddBundleForm, { AddBundleFormSchema } from './AddBundleForm'; 
+import AddTrafficForm, { AddTrafficFormSchema } from './AddTrafficForm'; 
+import * as z from 'zod'; 
+import { startOfDay } from 'date-fns';
 
-// --- Forms for adding new entries (moved AddReviewForm here for encapsulation) ---
+// Helper to generate unique IDs locally
+let localIdCounter = 0;
+const generateLocalUniqueId = (prefix: string = 'track') => `${prefix}-${localIdCounter++}`;
 
-const ReviewSchema = z.object({
-    date: z.string().min(1),
-    reviews: z.number().min(0),
-    positive: z.number().min(0),
-    negative: z.number().min(0),
-    rating: z.string().min(1),
-});
-
-type ReviewFormValues = z.infer<typeof ReviewSchema>;
-
-const AddReviewForm: React.FC<{ gameName: string, onSave: (data: ReviewFormValues) => void, onClose: () => void }> = ({ gameName, onSave, onClose }) => {
-    const form = useForm<ReviewFormValues>({
-        resolver: zodResolver(ReviewSchema),
-        defaultValues: {
-            date: new Date().toISOString().split('T')[0],
-            reviews: 0,
-            positive: 0,
-            negative: 0,
-            rating: 'Neutras',
-        },
-    });
-
-    const onSubmit = (values: ReviewFormValues) => {
-        onSave(values);
-        onClose();
-    };
-
-    const ratings = ['Muito Positivas', 'Positivas', 'Neutras', 'Negativas', 'Muito Negativas'];
-
-    return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
-                <h3 className="text-lg font-semibold">Adicionar Análise de Review</h3>
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="date"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Data</FormLabel>
-                                <FormControl>
-                                    <Input type="date" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="rating"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Classificação Steam</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Classificação" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {ratings.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="reviews"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Total Reviews</FormLabel>
-                                <FormControl>
-                                    <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="positive"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Positivas</FormLabel>
-                                <FormControl>
-                                    <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="negative"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Negativas</FormLabel>
-                                <FormControl>
-                                    <Input type="number" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-                <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-                    <Button type="submit" className="bg-gogo-cyan hover:bg-gogo-cyan/90">Salvar Review</Button>
-                </div>
-            </form>
-        </Form>
-    );
-};
-
-
-// --- Display Components ---
-
-const ReviewTable: React.FC<{ reviews: ReviewEntry[], onDelete: (id: string) => void }> = ({ reviews, onDelete }) => (
-    <Table>
-        <TableHeader>
-            <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead className="text-center">Total</TableHead>
-                <TableHead className="text-center">Positivas</TableHead>
-                <TableHead className="text-center">Negativas</TableHead>
-                <TableHead className="text-center">% Positivas</TableHead>
-                <TableHead>Classificação Steam</TableHead>
-                <TableHead className="w-[50px] text-center">Ações</TableHead>
-            </TableRow>
-        </TableHeader>
-        <TableBody>
-            {reviews.map((r, i) => (
-                <TableRow key={r.id || i}>
-                    <TableCell>{formatDate(r.date)}</TableCell>
-                    <TableCell className="text-center">{r.reviews}</TableCell>
-                    <TableCell className="text-center">{r.positive}</TableCell>
-                    <TableCell className="text-center">{r.negative}</TableCell>
-                    <TableCell className="text-center">{`${(Number(r.percentage) * 100).toFixed(0)}%`}</TableCell>
-                    <TableCell>{r.rating}</TableCell>
-                    <TableCell className="text-center">
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta ação removerá permanentemente esta entrada de review da data {formatDate(r.date)}.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => onDelete(r.id)} className="bg-destructive hover:bg-destructive/90">
-                                        Remover
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </TableCell>
-                </TableRow>
-            ))}
-        </TableBody>
-    </Table>
-);
-
-const BundleTable: React.FC<{ bundles: BundleEntry[], onDelete: (id: string) => void }> = ({ bundles, onDelete }) => (
-    <Table>
-        <TableHeader>
-            <TableRow>
-                <TableHead>Nome do Bundle/DLC</TableHead>
-                <TableHead className="text-right">Unidades Bundle</TableHead>
-                <TableHead className="text-right">Unidades Package</TableHead>
-                <TableHead className="text-right">Vendas ($)</TableHead>
-                <TableHead className="w-[50px] text-center">Ações</TableHead>
-            </TableRow>
-        </TableHeader>
-        <TableBody>
-            {bundles.map((b, i) => (
-                <TableRow key={b.id || i}>
-                    <TableCell>{b.name}</TableCell>
-                    <TableCell className="text-right">{b.bundleUnits}</TableCell>
-                    <TableCell className="text-right">{b.packageUnits}</TableCell>
-                    <TableCell className="text-right">{b.sales}</TableCell>
-                    <TableCell className="text-center">
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta ação removerá permanentemente o registro do Bundle/DLC "{b.name}".
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => onDelete(b.id)} className="bg-destructive hover:bg-destructive/90">
-                                        Remover
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </TableCell>
-                </TableRow>
-            ))}
-        </TableBody>
-    </Table>
-);
-
-// --- Main Manager Component ---
+// Definindo o tipo de dados que o AddTrafficFormSchema produz
+type AddTrafficFormOutput = z.infer<typeof AddTrafficFormSchema>;
 
 interface WlDetailsManagerProps {
     details: WlDetails;
     gameName: string;
-    allGames: string[]; // Adicionado para passar a lista de jogos para AddTrafficForm
+    allGames: string[];
     onUpdateDetails: (game: string, newDetails: Partial<WlDetails>) => void;
-    onAddTraffic: (data: { game: string, platform: Platform, source: string, startDate: string, endDate: string, visits: number, impressions?: number, clicks?: number }) => void; // Novo prop para adicionar tráfego
+    // Tipagem corrigida para aceitar o output completo do formulário + gameName
+    onAddTraffic: (newEntry: AddTrafficFormOutput & { game: string, platform: Platform }) => void;
 }
 
+const ReviewTable: React.FC<{ reviews: ReviewEntry[] }> = ({ reviews }) => {
+    if (reviews.length === 0) return <p className="text-muted-foreground p-4">Nenhum dado de reviews disponível.</p>;
+
+    const sortedReviews = [...reviews].sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0));
+
+    return (
+        <div className="overflow-x-auto">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead className="text-right">Total Reviews</TableHead>
+                        <TableHead className="text-right">Positivos</TableHead>
+                        <TableHead className="text-right">Negativos</TableHead>
+                        <TableHead className="text-right">% Positivos</TableHead>
+                        <TableHead>Rating</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {sortedReviews.map((review, index) => (
+                        <TableRow key={index}>
+                            <TableCell>{formatDate(review.date)}</TableCell>
+                            <TableCell className="text-right">{formatNumber(review.reviews)}</TableCell>
+                            <TableCell className="text-right text-green-500">{formatNumber(review.positive)}</TableCell>
+                            <TableCell className="text-right text-red-500">{formatNumber(review.negative)}</TableCell>
+                            <TableCell className="text-right font-medium">{review.percentage}</TableCell>
+                            <TableCell>{review.rating}</TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
+};
+
+const BundleTable: React.FC<{ bundles: BundleEntry[], onDelete: (id: string) => void }> = ({ bundles, onDelete }) => {
+    if (bundles.length === 0) return <p className="text-muted-foreground p-4">Nenhum dado de bundles disponível.</p>;
+
+    return (
+        <div className="overflow-x-auto">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Nome do Bundle</TableHead>
+                        <TableHead className="text-right">Unidades Bundle</TableHead>
+                        <TableHead className="text-right">Unidades Pacote</TableHead>
+                        <TableHead className="text-right">Vendas (USD)</TableHead>
+                        <TableHead className="text-right">Xsolla</TableHead>
+                        <TableHead className="w-[50px] text-center">Ações</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {bundles.map((bundle) => (
+                        <TableRow key={bundle.id}>
+                            <TableCell className="font-medium">{bundle.name}</TableCell>
+                            <TableCell className="text-right">{formatNumber(bundle.bundleUnits)}</TableCell>
+                            <TableCell className="text-right">{formatNumber(bundle.packageUnits)}</TableCell>
+                            <TableCell className="text-right font-medium text-green-500">{bundle.sales}</TableCell>
+                            <TableCell className="text-right">{bundle.xsolla}</TableCell>
+                            <TableCell className="text-center">
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Esta ação removerá permanentemente o registro do bundle "{bundle.name}".
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => onDelete(bundle.id)} className="bg-destructive hover:bg-destructive/90">
+                                                Remover
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
+};
+
+const TrafficTable: React.FC<{ traffic: TrafficEntry[] }> = ({ traffic }) => {
+    if (traffic.length === 0) return <p className="text-muted-foreground p-4">Nenhum dado de tráfego manual disponível.</p>;
+
+    const sortedTraffic = [...traffic].sort((a, b) => (b.startDate?.getTime() || 0) - (a.startDate?.getTime() || 0));
+
+    return (
+        <div className="overflow-x-auto">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Fonte</TableHead>
+                        <TableHead>Plataforma</TableHead>
+                        <TableHead>Período</TableHead>
+                        <TableHead className="text-right">Visitas</TableHead>
+                        <TableHead className="text-right">Impressões</TableHead>
+                        <TableHead className="text-right">Cliques</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {sortedTraffic.map((entry) => (
+                        <TableRow key={entry.id}>
+                            <TableCell className="font-medium">{entry.source}</TableCell>
+                            <TableCell>{entry.platform}</TableCell>
+                            <TableCell>{formatDate(entry.startDate)} - {formatDate(entry.endDate)}</TableCell>
+                            <TableCell className="text-right">{formatNumber(entry.visits)}</TableCell>
+                            <TableCell className="text-right">{formatNumber(entry.impressions)}</TableCell>
+                            <TableCell className="text-right">{formatNumber(entry.clicks)}</TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
+};
+
+
 const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, allGames, onUpdateDetails, onAddTraffic }) => {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [formType, setFormType] = useState<'review' | 'bundle' | 'traffic'>('review');
+    const [isBundleDialogOpen, setIsBundleDialogOpen] = useState(false);
+    const [isTrafficDialogOpen, setIsTrafficDialogOpen] = useState(false);
 
-    if (!details) return null;
+    const handleDeleteBundle = useCallback((id: string) => {
+        const updatedBundles = details.bundles.filter(b => b.id !== id);
+        onUpdateDetails(gameName, { bundles: updatedBundles });
+        toast.success("Bundle removido.");
+    }, [details.bundles, gameName, onUpdateDetails]);
 
-    const latestReview = details.reviews.length > 0 ? details.reviews[details.reviews.length - 1] : null;
-
-    // Helper to generate unique IDs locally (since we are adding new entries)
-    const generateLocalUniqueId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-    const handleSaveReview = (values: ReviewFormValues) => {
-        const dateObject = new Date(values.date);
-        const totalReviews = values.reviews;
-        const positiveReviews = values.positive;
-        const percentage = totalReviews > 0 ? positiveReviews / totalReviews : 0;
-
-        const newReviewEntry: ReviewEntry = {
-            id: generateLocalUniqueId('review'),
-            reviews: totalReviews,
-            positive: positiveReviews,
-            negative: values.negative,
-            percentage: percentage,
-            rating: values.rating,
-            date: dateObject,
-        };
-
-        onUpdateDetails(gameName, {
-            reviews: [...details.reviews, newReviewEntry].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0))
-        });
-        toast.success("Nova análise de review adicionada.");
-    };
-
-    const handleSaveBundle = (values: z.infer<typeof AddBundleForm>) => {
+    const handleSaveBundle = (values: z.infer<typeof AddBundleFormSchema>) => { 
         const newBundleEntry: BundleEntry = {
             id: generateLocalUniqueId('bundle'),
-            name: values.name,
-            bundleUnits: values.bundleUnits,
-            packageUnits: values.packageUnits,
-            sales: `$${values.salesUSD.toFixed(2)}`,
-            xsolla: values.xsolla || '-',
+            name: values.name, 
+            bundleUnits: values.bundleUnits, 
+            packageUnits: values.packageUnits, 
+            sales: `$${values.salesUSD.toFixed(2)}`, 
+            xsolla: values.xsolla || '-', 
         };
-
-        onUpdateDetails(gameName, {
-            bundles: [...details.bundles, newBundleEntry]
-        });
-        toast.success("Nova entrada de Bundle/DLC adicionada.");
-    };
-    
-    const handleSaveTraffic = (values: z.infer<typeof AddTrafficForm>) => {
-        // Ensure the game name is correctly set, even if the form allows selection
-        onAddTraffic({ ...values, game: gameName, platform: values.platform as Platform });
-        setIsDialogOpen(false);
+        
+        const updatedBundles = [...details.bundles, newBundleEntry];
+        onUpdateDetails(gameName, { bundles: updatedBundles });
+        setIsBundleDialogOpen(false);
     };
 
-    const handleDeleteReview = (id: string) => {
-        onUpdateDetails(gameName, {
-            reviews: details.reviews.filter(r => r.id !== id)
-        });
-        toast.success("Entrada de review removida.");
-    };
-
-    const handleDeleteBundle = (id: string) => {
-        onUpdateDetails(gameName, {
-            bundles: details.bundles.filter(b => b.id !== id)
-        });
-        toast.success("Entrada de bundle/DLC removida.");
-    };
-
-    const renderForm = () => {
-        if (formType === 'review') {
-            return <AddReviewForm gameName={gameName} onSave={handleSaveReview} onClose={() => setIsDialogOpen(false)} />;
-        }
-        if (formType === 'bundle') {
-            return <AddBundleForm gameName={gameName} onSave={handleSaveBundle as any} onClose={() => setIsDialogOpen(false)} />;
-        }
-        if (formType === 'traffic') {
-            // Pass the current game name as the default/only option for consistency
-            return (
-                <AddTrafficForm 
-                    games={[gameName]} 
-                    onSave={handleSaveTraffic as any} 
-                    onClose={() => setIsDialogOpen(false)} 
-                />
-            );
-        }
-        return null;
+    const handleSaveTraffic = (values: AddTrafficFormOutput) => { 
+        // O tipo AddTrafficFormOutput já garante que todos os campos obrigatórios (incluindo source, visits, impressions, clicks) estão presentes.
+        onAddTraffic({ 
+            ...values, 
+            game: gameName, 
+            platform: values.platform, 
+            startDate: values.startDate,
+            endDate: values.endDate,
+        }); 
+        setIsTrafficDialogOpen(false);
     };
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Detalhes Adicionais da Página Steam</CardTitle>
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="bg-gogo-orange hover:bg-gogo-orange/90 text-white"
-                            onClick={() => {
-                                setFormType('review'); // Default to review when opening
-                                setIsDialogOpen(true);
-                            }}
-                        >
-                            <Plus className="h-4 w-4 mr-2" /> Adicionar Detalhe
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px]">
-                        <DialogHeader>
-                            <DialogTitle>Adicionar Novo Detalhe de WL</DialogTitle>
-                        </DialogHeader>
-                        <div className="p-4 space-y-4">
-                            <Select value={formType} onValueChange={(value: 'review' | 'bundle' | 'traffic') => setFormType(value)}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Selecione o tipo de entrada" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="review">
-                                        <MessageSquare className="h-4 w-4 inline mr-2" /> Análise de Reviews
-                                    </SelectItem>
-                                    <SelectItem value="bundle">
-                                        <Package className="h-4 w-4 inline mr-2" /> Venda de Bundle/DLC
-                                    </SelectItem>
-                                    <SelectItem value="traffic">
-                                        <Globe className="h-4 w-4 inline mr-2" /> Tráfego/Visitas
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                            {renderForm()}
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                {latestReview && (
-                    <div className="mb-4 p-4 border rounded-md bg-muted/50">
-                        <h3 className="text-md font-semibold mb-2">Última Análise de Reviews ({formatDate(latestReview.date)})</h3>
-                        <div className="flex flex-wrap items-center gap-4 text-sm">
-                            <Badge className="bg-gogo-cyan hover:bg-gogo-cyan/90 text-white">{latestReview.rating}</Badge>
-                            <p>Total: <span className="font-medium">{latestReview.reviews}</span></p>
-                            <p>Positivas: <span className="font-medium text-green-600">{latestReview.positive}</span></p>
-                            <p>Negativas: <span className="font-medium text-red-600">{latestReview.negative}</span></p>
-                        </div>
+        <div className="space-y-6">
+            <Card className="ps-card-glow bg-card/50 backdrop-blur-sm border-ps-blue/50">
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-xl flex items-center text-ps-blue">
+                        <TrendingUp className="h-5 w-5 mr-2" /> Dados de Conversão e Vendas
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    
+                    {/* --- Reviews --- */}
+                    <div className="space-y-2">
+                        <h3 className="text-lg font-semibold flex items-center text-ps-light border-b border-border pb-1">
+                            <Clock className="h-4 w-4 mr-2" /> Histórico de Reviews (Steam)
+                        </h3>
+                        <ReviewTable reviews={details.reviews} />
                     </div>
-                )}
 
-                <Accordion type="multiple" className="w-full">
-                    {details.reviews.length > 0 && (
-                        <AccordionItem value="reviews">
-                            <AccordionTrigger className="font-semibold">Histórico Completo de Reviews ({details.reviews.length} entradas)</AccordionTrigger>
-                            <AccordionContent>
-                                <div className="overflow-x-auto">
-                                    <ReviewTable reviews={details.reviews} onDelete={handleDeleteReview} />
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    )}
+                    {/* --- Bundles --- */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between border-b border-border pb-1">
+                            <h3 className="text-lg font-semibold flex items-center text-ps-light">
+                                <Package className="h-4 w-4 mr-2" /> Vendas de Bundles
+                            </h3>
+                            <Dialog open={isBundleDialogOpen} onOpenChange={setIsBundleDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm" className="text-ps-light border-ps-blue hover:bg-ps-blue/20">
+                                        <Plus className="h-4 w-4 mr-2" /> Adicionar Bundle
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[600px] bg-card text-card-foreground border-ps-blue">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-ps-blue">Adicionar Novo Bundle</DialogTitle>
+                                    </DialogHeader>
+                                    <AddBundleForm 
+                                        onSave={handleSaveBundle} 
+                                        onClose={() => setIsBundleDialogOpen(false)} 
+                                    />
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                        <BundleTable bundles={details.bundles} onDelete={handleDeleteBundle} />
+                    </div>
 
-                    {details.bundles.length > 0 && (
-                        <AccordionItem value="bundles">
-                            <AccordionTrigger className="font-semibold">Vendas de Bundles & DLCs ({details.bundles.length} entradas)</AccordionTrigger>
-                            <AccordionContent>
-                                <div className="overflow-x-auto">
-                                    <BundleTable bundles={details.bundles} onDelete={handleDeleteBundle} />
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    )}
-                </Accordion>
-            </CardContent>
-        </Card>
+                    {/* --- Traffic --- */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between border-b border-border pb-1">
+                            <h3 className="text-lg font-semibold flex items-center text-ps-light">
+                                <Globe className="h-4 w-4 mr-2" /> Tráfego Manual (Visitas/Impressões)
+                            </h3>
+                            <Dialog open={isTrafficDialogOpen} onOpenChange={setIsTrafficDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm" className="text-ps-light border-ps-blue hover:bg-ps-blue/20">
+                                        <Plus className="h-4 w-4 mr-2" /> Adicionar Tráfego
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[600px] bg-card text-card-foreground border-ps-blue">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-ps-blue">Adicionar Entrada de Tráfego</DialogTitle>
+                                    </DialogHeader>
+                                    <AddTrafficForm 
+                                        gameName={gameName}
+                                        onSave={handleSaveTraffic} 
+                                        onClose={() => setIsTrafficDialogOpen(false)} 
+                                    />
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                        <TrafficTable traffic={details.traffic as TrafficEntry[]} />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
     );
 };
 

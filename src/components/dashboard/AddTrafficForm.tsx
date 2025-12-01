@@ -18,35 +18,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Platform } from '@/data/trackingData';
 import { toast } from 'sonner';
 
+// Definindo o tipo de plataforma (Apenas plataformas principais)
 const PlatformEnum = z.enum(['Steam', 'Xbox', 'Playstation', 'Nintendo', 'Android', 'iOS', 'Epic Games', 'Outra']);
 
-// Schema de validação
-const formSchema = z.object({
-    game: z.string().min(1, "O jogo é obrigatório."),
+// Exportando o schema Zod para uso em WlDetailsManager
+export const AddTrafficFormSchema = z.object({
     platform: PlatformEnum.default('Steam'),
     source: z.string().min(1, "A fonte é obrigatória."),
-    startDate: z.string().min(1, "A data de início é obrigatória (YYYY-MM-DD)."),
-    endDate: z.string().min(1, "A data final é obrigatória (YYYY-MM-DD)."),
-    visits: z.number().min(0).default(0),
-    impressions: z.number().min(0).default(0).optional(),
-    clicks: z.number().min(0).default(0).optional(),
+    startDate: z.string().min(1, "A data de início é obrigatória."),
+    endDate: z.string().min(1, "A data final é obrigatória."),
+    visits: z.number().min(0, "Visitas devem ser positivas.").default(0),
+    impressions: z.number().min(0, "Impressões devem ser positivas.").default(0),
+    clicks: z.number().min(0, "Cliques devem ser positivos.").default(0),
 });
 
-type TrafficFormValues = z.infer<typeof formSchema>;
+type AddTrafficFormValues = z.infer<typeof AddTrafficFormSchema>;
 
 interface AddTrafficFormProps {
-    games: string[];
-    onSave: (data: TrafficFormValues) => void;
+    gameName: string;
+    onSave: (values: AddTrafficFormValues & { game: string, platform: Platform }) => void;
     onClose: () => void;
 }
 
-const AddTrafficForm: React.FC<AddTrafficFormProps> = ({ games, onSave, onClose }) => {
-    const form = useForm<TrafficFormValues>({
-        resolver: zodResolver(formSchema),
+const AddTrafficForm: React.FC<AddTrafficFormProps> = ({ gameName, onSave, onClose }) => {
+    const form = useForm<AddTrafficFormValues>({
+        resolver: zodResolver(AddTrafficFormSchema),
         defaultValues: {
-            game: games[0] || '',
-            platform: 'Steam', // Default para Steam
-            source: 'Steam Analytics', // Default para Steam Analytics
+            platform: 'Steam',
+            source: 'Steam Analytics',
             startDate: new Date().toISOString().split('T')[0],
             endDate: new Date().toISOString().split('T')[0],
             visits: 0,
@@ -55,32 +54,32 @@ const AddTrafficForm: React.FC<AddTrafficFormProps> = ({ games, onSave, onClose 
         },
     });
 
-    const onSubmit = (values: TrafficFormValues) => {
-        onSave(values); 
-        toast.success("Entrada de tráfego/visitas adicionada.");
+    const onSubmit = (values: AddTrafficFormValues) => {
+        onSave({ ...values, game: gameName, platform: values.platform });
+        toast.success("Entrada de tráfego adicionada.");
         onClose();
     };
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
-                <h3 className="text-lg font-semibold">Adicionar Dados de Tráfego/Visitas</h3>
+                <h3 className="text-lg font-semibold text-gogo-cyan mb-4">Jogo: {gameName}</h3>
                 
                 <FormField
                     control={form.control}
-                    name="game"
+                    name="platform"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Jogo</FormLabel>
+                            <FormLabel>Plataforma</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Selecione o jogo" />
+                                        <SelectValue placeholder="Selecione a Plataforma" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {games.map(game => (
-                                        <SelectItem key={game} value={game}>{game}</SelectItem>
+                                    {PlatformEnum.options.map(p => (
+                                        <SelectItem key={p} value={p}>{p}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -89,42 +88,19 @@ const AddTrafficForm: React.FC<AddTrafficFormProps> = ({ games, onSave, onClose 
                     )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="platform"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Plataforma</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione a Plataforma" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {PlatformEnum.options.map(p => (
-                                            <SelectItem key={p} value={p}>{p}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="source"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Fonte de Dados</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Ex: Steam Analytics" {...field} />
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
-                </div>
+                <FormField
+                    control={form.control}
+                    name="source"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Fonte do Tráfego</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Ex: Steam Analytics, Google Ads" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
                 <div className="grid grid-cols-2 gap-4">
                     <FormField
@@ -132,7 +108,7 @@ const AddTrafficForm: React.FC<AddTrafficFormProps> = ({ games, onSave, onClose 
                         name="startDate"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Data de Início (YYYY-MM-DD)</FormLabel>
+                                <FormLabel>Data Início</FormLabel>
                                 <FormControl>
                                     <Input type="date" {...field} />
                                 </FormControl>
@@ -145,7 +121,7 @@ const AddTrafficForm: React.FC<AddTrafficFormProps> = ({ games, onSave, onClose 
                         name="endDate"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Data Final (YYYY-MM-DD)</FormLabel>
+                                <FormLabel>Data Final</FormLabel>
                                 <FormControl>
                                     <Input type="date" {...field} />
                                 </FormControl>
@@ -161,7 +137,7 @@ const AddTrafficForm: React.FC<AddTrafficFormProps> = ({ games, onSave, onClose 
                         name="visits"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Visitas/Page Views</FormLabel>
+                                <FormLabel>Visitas</FormLabel>
                                 <FormControl>
                                     <Input 
                                         type="number" 
@@ -179,7 +155,7 @@ const AddTrafficForm: React.FC<AddTrafficFormProps> = ({ games, onSave, onClose 
                         name="impressions"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Impressões (Opcional)</FormLabel>
+                                <FormLabel>Impressões</FormLabel>
                                 <FormControl>
                                     <Input 
                                         type="number" 
@@ -197,7 +173,7 @@ const AddTrafficForm: React.FC<AddTrafficFormProps> = ({ games, onSave, onClose 
                         name="clicks"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Cliques (Opcional)</FormLabel>
+                                <FormLabel>Cliques</FormLabel>
                                 <FormControl>
                                     <Input 
                                         type="number" 

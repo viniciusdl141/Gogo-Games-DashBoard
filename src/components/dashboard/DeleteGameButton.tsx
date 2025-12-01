@@ -1,8 +1,8 @@
 "use client";
 
 import React from 'react';
-import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -15,40 +15,42 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+// Definindo tipos para variant e size (assumindo que são strings para compatibilidade com Button)
+type ButtonVariant = 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+type ButtonSize = 'default' | 'sm' | 'lg' | 'icon';
+
 interface DeleteGameButtonProps {
     gameId: string;
     gameName: string;
-    onDelete: (gameId: string) => void;
+    onDelete: (gameId: string) => Promise<void>;
+    variant?: ButtonVariant;
+    size?: ButtonSize;
 }
 
-const DeleteGameButton: React.FC<DeleteGameButtonProps> = ({ gameId, gameName, onDelete }) => {
-    const handleDelete = () => {
-        onDelete(gameId);
+const DeleteGameButton: React.FC<DeleteGameButtonProps> = ({ gameId, gameName, onDelete, variant = 'destructive', size = 'default' }) => {
+    const handleDelete = async () => {
+        await onDelete(gameId);
     };
 
     return (
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button 
-                    variant="destructive" 
-                    className="w-full text-sm mt-4"
-                >
-                    <Trash2 className="h-4 w-4 mr-2" /> Excluir Jogo
+                <Button variant={variant} size={size} className={size === 'sm' || size === 'icon' ? 'h-8 w-8 p-0' : ''}>
+                    <Trash2 className="h-4 w-4" />
+                    {(size !== 'sm' && size !== 'icon') && <span className="ml-2">Excluir Jogo</span>}
                 </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                    <AlertDialogTitle>Tem certeza que deseja excluir {gameName}?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Esta ação não pode ser desfeita. Isso removerá permanentemente o jogo 
-                        <span className="font-bold text-destructive"> "{gameName}" </span> 
-                        do seu banco de dados Supabase e do dashboard.
+                        Esta ação é irreversível. Todos os dados de tracking e metadados do jogo serão removidos.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                        Sim, Excluir Permanentemente
+                        Excluir Permanentemente
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

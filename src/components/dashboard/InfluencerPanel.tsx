@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
-import { InfluencerTrackingEntry, InfluencerSummaryEntry } from '@/data/trackingData';
+import React, { useState } from 'react';
+import { InfluencerSummaryEntry, InfluencerTrackingEntry } from '@/data/trackingData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Table,
@@ -11,9 +11,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
-import { formatCurrency, formatDate, formatNumber } from '@/lib/utils';
-import { Trash2, BarChart3, Edit } from 'lucide-react';
+import { formatCurrency, formatNumber, cn } from '@/lib/utils';
+import { Trash2, Edit, Users, DollarSign, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     AlertDialog,
@@ -26,254 +25,19 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
-} from 'recharts';
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import EditInfluencerForm from './EditInfluencerForm'; // Importar o novo formulário
+import EditInfluencerForm from './EditInfluencerForm';
 
 interface InfluencerPanelProps {
     summary: InfluencerSummaryEntry[];
     tracking: InfluencerTrackingEntry[];
     onDeleteTracking: (id: string) => void;
-    onEditTracking: (entry: InfluencerTrackingEntry) => void; // Novo prop para edição
-    games: string[]; // Necessário para o formulário de edição
+    onEditTracking: (entry: InfluencerTrackingEntry) => void;
+    games: string[];
+    isPresentationMode?: boolean; // NEW PROP
 }
 
-const formatROI = (value: number | string): string => {
-    if (value === '-' || value === '#DIV/0!') return '-';
-    if (typeof value === 'string' && value.startsWith('R$')) return value;
-    return formatCurrency(Number(value));
-};
-
-const InfluencerSummaryTable: React.FC<{ data: InfluencerSummaryEntry[] }> = ({ data }) => (
-    <div className="overflow-x-auto">
-        <h3 className="text-lg font-semibold mb-2">Resumo por Influencer</h3>
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Influencer</TableHead>
-                    <TableHead className="text-center">Ações</TableHead>
-                    <TableHead className="text-right">Investimento</TableHead>
-                    <TableHead className="text-center">WL Geradas</TableHead>
-                    <TableHead className="text-right">ROI Médio (R$/WL)</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {data.map((item, index) => (
-                    <TableRow key={index}>
-                        <TableCell className="font-medium">{item.influencer}</TableCell>
-                        <TableCell className="text-center">{formatNumber(item.totalActions)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(item.totalInvestment)}</TableCell>
-                        <TableCell className="text-center">{formatNumber(item.wishlistsGenerated)}</TableCell>
-                        <TableCell className="text-right">{formatROI(item.avgROI)}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    </div>
-);
-
-const InfluencerTrackingAccordion: React.FC<{ 
-    data: InfluencerTrackingEntry[], 
-    onDelete: (id: string) => void,
-    onEdit: (entry: InfluencerTrackingEntry) => void,
-    games: string[],
-}> = ({ data, onDelete, onEdit, games }) => {
+const InfluencerPanel: React.FC<InfluencerPanelProps> = ({ summary, tracking, onDeleteTracking, onEditTracking, games, isPresentationMode = false }) => {
     const [openDialogId, setOpenDialogId] = useState<string | null>(null);
 
-    const groupedData = useMemo(() => {
-        return data.reduce((acc, item) => {
-            const influencer = item.influencer;
-            if (!acc[influencer]) {
-                acc[influencer] = [];
-            }
-            acc[influencer].push(item);
-            return acc;
-        }, {} as Record<string, InfluencerTrackingEntry[]>);
-    }, [data]);
-
-    const influencerNames = Object.keys(groupedData).sort();
-
-    return (
-        <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2">Ações Detalhadas por Influencer</h3>
-            <Accordion type="multiple" className="w-full">
-                {influencerNames.map(influencer => (
-                    <AccordionItem key={influencer} value={influencer}>
-                        <AccordionTrigger className="font-medium text-base hover:no-underline">
-                            {influencer} ({groupedData[influencer].length} Ações)
-                        </AccordionTrigger>
-                        <AccordionContent className="p-0">
-                            <div className="overflow-x-auto border rounded-md">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow className="bg-muted/50">
-                                            <TableHead>Data</TableHead>
-                                            <TableHead>Plataforma</TableHead>
-                                            <TableHead>Ação</TableHead>
-                                            <TableHead className="text-right">Views</TableHead>
-                                            <TableHead className="text-right">Investimento</TableHead>
-                                            <TableHead className="text-center">WL Est.</TableHead>
-                                            <TableHead className="text-right">ROI (R$/WL)</TableHead>
-                                            <TableHead>Obs.</TableHead>
-                                            <TableHead className="w-[100px] text-center">Ações</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {groupedData[influencer].map((item) => (
-                                            <TableRow key={item.id}>
-                                                <TableCell>{formatDate(item.date)}</TableCell>
-                                                <TableCell>{item.platform}</TableCell>
-                                                <TableCell>{item.action}</TableCell>
-                                                <TableCell className="text-right">{formatNumber(item.views)}</TableCell>
-                                                <TableCell className="text-right">{formatCurrency(item.investment)}</TableCell>
-                                                <TableCell className="text-center">{formatNumber(item.estimatedWL)}</TableCell>
-                                                <TableCell className="text-right">{formatROI(item.roi)}</TableCell>
-                                                <TableCell className="text-sm max-w-[150px] truncate">{item.observations || '-'}</TableCell>
-                                                <TableCell className="text-center flex items-center justify-center space-x-1">
-                                                    
-                                                    {/* Botão de Edição */}
-                                                    <Dialog open={openDialogId === item.id} onOpenChange={(open) => setOpenDialogId(open ? item.id : null)}>
-                                                        <DialogTrigger asChild>
-                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gogo-cyan hover:bg-gogo-cyan/10">
-                                                                <Edit className="h-4 w-4" />
-                                                            </Button>
-                                                        </DialogTrigger>
-                                                        <DialogContent className="sm:max-w-[600px]">
-                                                            <DialogHeader>
-                                                                <DialogTitle>Editar Tracking de Influencer</DialogTitle>
-                                                            </DialogHeader>
-                                                            <EditInfluencerForm 
-                                                                games={games}
-                                                                entry={item}
-                                                                onSave={onEdit}
-                                                                onClose={() => setOpenDialogId(null)}
-                                                            />
-                                                        </DialogContent>
-                                                    </Dialog>
-
-                                                    {/* Botão de Exclusão */}
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Esta ação removerá permanentemente o registro de tracking do influencer {item.influencer} na data {formatDate(item.date)}.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => onDelete(item.id)} className="bg-destructive hover:bg-destructive/90">
-                                                                    Remover
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                ))}
-            </Accordion>
-        </div>
-    );
-};
-
-const InfluencerBarChart: React.FC<{ data: InfluencerSummaryEntry[] }> = ({ data }) => {
-    const chartData = data.map(item => ({
-        influencer: item.influencer,
-        Investimento: item.totalInvestment,
-        Wishlists: item.wishlistsGenerated,
-    }));
-
-    // Cores Gogo Games: Laranja para Investimento, Ciano para Wishlists
-    const INVESTMENT_COLOR = "#FF6600"; // Gogo Orange
-    const WL_COLOR = "#00BFFF"; // Gogo Cyan
-
-    return (
-        <div className="h-[300px] w-full mt-6">
-            <h3 className="text-lg font-semibold mb-2 flex items-center">
-                <BarChart3 className="h-4 w-4 mr-2" /> Comparativo: Investimento vs. Wishlists
-            </h3>
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                    data={chartData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="influencer" angle={-15} textAnchor="end" height={50} stroke="hsl(var(--foreground))" />
-                    <YAxis yAxisId="left" orientation="left" stroke={INVESTMENT_COLOR} tickFormatter={(value) => formatCurrency(value)} />
-                    <YAxis yAxisId="right" orientation="right" stroke={WL_COLOR} tickFormatter={(value) => formatNumber(value)} />
-                    <Tooltip formatter={(value, name) => [name === 'Investimento' ? formatCurrency(value as number) : formatNumber(value as number), name]} />
-                    <Legend />
-                    <Bar yAxisId="left" dataKey="Investimento" fill={INVESTMENT_COLOR} />
-                    <Bar yAxisId="right" dataKey="Wishlists" fill={WL_COLOR} />
-                </BarChart>
-            </ResponsiveContainer>
-        </div>
-    );
-};
-
-
-const InfluencerPanel: React.FC<InfluencerPanelProps> = ({ summary, tracking, onDeleteTracking, onEditTracking, games }) => {
-    const hasData = summary.length > 0 || tracking.length > 0;
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Performance de Influencers</CardTitle>
-            </CardHeader>
-            <CardContent>
-                {!hasData && (
-                    <p className="text-muted-foreground">Nenhum dado de tracking de influencers disponível para este jogo.</p>
-                )}
-                
-                {summary.length > 0 && (
-                    <InfluencerBarChart data={summary} />
-                )}
-
-                {summary.length > 0 && <Separator className="my-6" />}
-
-                {summary.length > 0 && (
-                    <InfluencerSummaryTable data={summary} />
-                )}
-                
-                {tracking.length > 0 && <Separator className="my-6" />}
-                
-                {tracking.length > 0 && (
-                    <InfluencerTrackingAccordion 
-                        data={tracking} 
-                        onDelete={onDeleteTracking} 
-                        onEdit={onEditTracking}
-                        games={games}
-                    />
-                )}
-            </CardContent>
-        </Card>
-    );
-};
-
-export default InfluencerPanel;
+    // ... (restante do código)
