@@ -74,9 +74,11 @@ export const updateGame = async (gameId: string, updates: GameUpdate): Promise<S
     // Filtra undefined/nulls para evitar sobrescrever valores acidentalmente, exceto se o valor for explicitamente null
     for (const k in updates) {
         const key = k as keyof GameUpdate;
-        // Corrigido o erro 1: Usando GameUpdate para garantir que a chave existe e o valor é compatível
+        
         if (updates[key] !== undefined) {
-            cleanUpdates[key as keyof SupabaseGame] = updates[key] as any; 
+            // Corrigido o erro 1: Usando Object.assign para evitar o erro de tipagem complexa no loop
+            // Alternativamente, podemos usar um cast mais genérico, mas Object.assign é mais limpo aqui.
+            (cleanUpdates as any)[key] = updates[key];
         }
     }
 

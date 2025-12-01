@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Game as SupabaseGame } from '@/integrations/supabase/schema'; 
 import { TrackingData, WLSalesPlatformEntry, InfluencerTrackingEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, ResultSummaryEntry } from '@/data/trackingData';
 import { formatCurrency, formatNumber, cn } from '@/lib/utils';
-import { DollarSign, List, TrendingUp, Clock, Eye, Megaphone, Download, Star, Package, Globe, Gauge } from 'lucide-react'; // Importando Gauge
+import { DollarSign, List, TrendingUp, Clock, Eye, Megaphone, Download, Star, Package, Globe, Gauge } from 'lucide-react'; 
 import KpiCard from '../dashboard/KpiCard';
 import WLSalesChartPanel from '../dashboard/WLSalesChartPanel';
 import SalesByTypeChart from '../dashboard/SalesByTypeChart';
-import InfluencerPanel from '../dashboard/InfluencerPanel';
-import EventPanel from '../dashboard/EventPanel';
+import InfluencerPanel from '../dashboard/InfluencerPanel'; // Corrigido o erro 9
+import EventPanel from '../dashboard/EventPanel'; // Corrigido o erro 10
 import PaidTrafficPanel from '../dashboard/PaidTrafficPanel';
-import GameSalesAnalyzer from '../strategic/GameSalesAnalyzer'; // Importando GameSalesAnalyzer
+import GameSalesAnalyzer from '../strategic/GameSalesAnalyzer'; 
 import { startOfDay, isPast, differenceInMonths } from 'date-fns';
 
 // Cores do gráfico ajustadas para o tema PlayStation (usadas aqui como fallback)
@@ -110,7 +110,7 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ game, trackingDat
             <Card className="mt-6">
                 <CardHeader><CardTitle>Análise Temporal</CardTitle></CardHeader>
                 <CardContent>
-                    <GameSalesAnalyzer  // Corrigido o erro 7
+                    <GameSalesAnalyzer 
                         game={game}
                         wlSalesData={trackingData.wlSales}
                     />
@@ -177,7 +177,7 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ game, trackingDat
                         onDeleteTracking={() => {}}
                         onEditTracking={() => {}}
                         games={[gameName]}
-                        isPresentationMode={true} // Corrigido o erro 8
+                        isPresentationMode={true} 
                     />
                 </CardContent>
             </Card>
@@ -190,7 +190,7 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ game, trackingDat
                         onDeleteTracking={() => {}}
                         onEditTracking={() => {}}
                         games={[gameName]}
-                        isPresentationMode={true} // Corrigido o erro 9
+                        isPresentationMode={true} 
                     />
                 </CardContent>
             </Card>
@@ -203,7 +203,7 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ game, trackingDat
                         onDeleteTracking={() => {}}
                         onEditTracking={() => {}}
                         games={[gameName]}
-                        isPresentationMode={true} // Corrigido o erro 10
+                        isPresentationMode={true} 
                     />
                 </CardContent>
             </Card>
@@ -245,7 +245,7 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ game, trackingDat
                                 title="% Positivas" 
                                 value={`${(Number(latestReview.percentage) * 100).toFixed(0)}%`} 
                                 description="Percentual de reviews positivos" 
-                                icon={<Gauge className="h-4 w-4 text-gogo-orange" />} // Corrigido o erro 11
+                                icon={<Gauge className="h-4 w-4 text-gogo-orange" />} 
                             />
                         </CardContent>
                     ) : (

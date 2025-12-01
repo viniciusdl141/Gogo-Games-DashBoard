@@ -13,7 +13,7 @@ import { useSession } from '@/components/SessionContextProvider';
 import { getTrackingData, TrackingData } from '@/data/trackingData';
 import { toast } from 'sonner';
 
-import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimator'; // Corrigido o erro 5 (assumindo export default)
+import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimator'; // Corrigido o erro 8
 import GameComparisonPanel, { ComparisonGame } from '@/components/strategic/GameComparisonPanel';
 import GameSalesAnalyzer from '@/components/strategic/GameSalesAnalyzer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,7 +28,7 @@ type Game2Selection = GameOption | EstimatedGame | null;
 
 const StrategicView = () => {
     const { isAdmin, studioId, isLoading: isSessionLoading } = useSession();
-    const [localTrackingData, setLocalTrackingData] = useState<TrackingData>(initialLocalTrackingData); // Corrigido o erro 6
+    const [localTrackingData, setLocalTrackingData] = useState<TrackingData>(initialLocalTrackingData); 
     const [game1, setGame1] = useState<Game1Selection>(null);
     const [game2, setGame2] = useState<Game2Selection>(null);
     const [estimatedGame, setEstimatedGame] = useState<EstimatedGame | null>(null);
