@@ -316,7 +316,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                     <h3 className="text-lg font-semibold text-gogo-orange">Resultado da Estimativa</h3>
                     <KpiCard
                         title="Vendas Estimadas"
-                        value={formatNumber(estimatedSales, 0)}
+                        value={formatNumber(estimatedSales)} // Removido o segundo argumento '0'
                         description={`Unidades estimadas em ${currentValues.timeframe}`}
                         icon={<TrendingUp className="h-4 w-4 text-gogo-cyan" />}
                     />
