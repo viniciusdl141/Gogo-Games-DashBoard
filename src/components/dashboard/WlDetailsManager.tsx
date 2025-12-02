@@ -4,7 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { WlDetails, ReviewEntry, BundleEntry, TrafficEntry, Platform } from '@/data/trackingData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Edit, Package, TrendingUp, DollarSign, Clock, Globe } from 'lucide-react';
+import { Plus, Trash2, Package, TrendingUp, Clock, Globe } from 'lucide-react'; // Removed Edit, DollarSign
 import {
     Table,
     TableBody,
@@ -13,7 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { formatDate, formatNumber, cn } from '@/lib/utils';
+import { formatDate, formatNumber } from '@/lib/utils'; // Removed cn
 import {
     AlertDialog,
     AlertDialogAction,
@@ -30,7 +30,7 @@ import { toast } from 'sonner';
 import AddBundleForm, { AddBundleFormSchema } from './AddBundleForm'; 
 import AddTrafficForm, { AddTrafficFormSchema } from './AddTrafficForm'; 
 import * as z from 'zod'; 
-import { startOfDay } from 'date-fns';
+// import { startOfDay } from 'date-fns'; // Removido
 
 // Helper to generate unique IDs locally
 let localIdCounter = 0;
@@ -174,7 +174,7 @@ const TrafficTable: React.FC<{ traffic: TrafficEntry[] }> = ({ traffic }) => {
 };
 
 
-const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, allGames, onUpdateDetails, onAddTraffic }) => {
+const WlDetailsManager: React.FC<WlDetailsManagerProps> = ({ details, gameName, allGames: _allGames, onUpdateDetails, onAddTraffic }) => {
     const [isBundleDialogOpen, setIsBundleDialogOpen] = useState(false);
     const [isTrafficDialogOpen, setIsTrafficDialogOpen] = useState(false);
 

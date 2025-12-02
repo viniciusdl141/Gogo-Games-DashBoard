@@ -11,8 +11,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, formatNumber, cn, formatDate } from '@/lib/utils'; // Importando formatDate
-import { Trash2, Edit, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { formatCurrency, formatNumber, formatDate } from '@/lib/utils'; // Removed cn
+import { Trash2, Edit, Users, TrendingUp } from 'lucide-react'; // Removed DollarSign
 import { Button } from '@/components/ui/button';
 import {
     AlertDialog,

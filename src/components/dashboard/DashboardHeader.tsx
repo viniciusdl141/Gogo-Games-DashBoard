@@ -3,7 +3,7 @@
 import React from 'react';
 import { useSession } from '@/components/SessionContextProvider';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Settings } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react'; // Removed User
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, Link } from 'react-router-dom'; // Importando Link
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -30,7 +30,7 @@ const DashboardHeader: React.FC = () => {
     }
 
     const userRole = profile?.role || 'Convidado';
-    const studioId = profile?.studio_id;
+    // const studioId = profile?.studio_id; // Removed unused variable
     
     // Apply padding to the header content itself, but let the background stretch
     const headerClasses = cn(

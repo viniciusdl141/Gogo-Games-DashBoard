@@ -6,21 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, Bot, TrendingUp, DollarSign, List, Info, Trash2 } from 'lucide-react'; 
+import { Bot, Trash2 } from 'lucide-react'; 
 import { useQuery } from '@tanstack/react-query';
-import { getGames, GameOption, mergeGameData } from '@/integrations/supabase/games';
+import { getGames, GameOption } from '@/integrations/supabase/games';
 import { useSession } from '@/components/SessionContextProvider';
-import { getTrackingData, TrackingData } from '@/data/trackingData';
-import { toast } from 'sonner';
+import { useTrackingData } from '@/hooks/use-tracking-data'; // Importando o novo hook
 
-import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimator'; // Corrigido o erro 8
+import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimator';
 import GameComparisonPanel, { ComparisonGame } from '@/components/strategic/GameComparisonPanel';
 import GameSalesAnalyzer from '@/components/strategic/GameSalesAnalyzer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import KpiCard from '@/components/dashboard/KpiCard'; 
-
-// Inicializa dados locais (simulando o estado global de tracking)
-const initialLocalTrackingData = getTrackingData();
+import { toast } from 'sonner';
 
 // Tipagem para o estado de seleção de jogos
 type Game1Selection = GameOption | null;
@@ -28,7 +24,11 @@ type Game2Selection = GameOption | EstimatedGame | null;
 
 const StrategicView = () => {
     const { isAdmin, studioId, isLoading: isSessionLoading } = useSession();
-    const [localTrackingData, setLocalTrackingData] = useState<TrackingData>(initialLocalTrackingData); 
+    const [selectedGameName, setSelectedGameName] = useState(''); // Usado para inicializar o hook
+    
+    // Usando o hook para gerenciar o estado local de tracking
+    const { trackingData } = useTrackingData(selectedGameName); 
+    
     const [game1, setGame1] = useState<Game1Selection>(null);
     const [game2, setGame2] = useState<Game2Selection>(null);
     const [estimatedGame, setEstimatedGame] = useState<EstimatedGame | null>(null);
@@ -46,13 +46,11 @@ const StrategicView = () => {
     const allAvailableGames = useMemo(() => {
         const combinedMap = new Map<string, GameOption>();
         
-        // 1. Adiciona jogos do Supabase (fonte primária de metadados)
         supabaseGames.forEach(game => {
             combinedMap.set(game.name.trim(), game);
         });
 
-        // 2. Adiciona jogos do tracking local se não estiverem no Supabase (apenas nome)
-        localTrackingData.games.forEach(gameName => {
+        trackingData.games.forEach(gameName => {
             const normalizedGameName = gameName.trim();
             if (!combinedMap.has(normalizedGameName)) {
                 combinedMap.set(normalizedGameName, { 
@@ -67,13 +65,25 @@ const StrategicView = () => {
         });
 
         return Array.from(combinedMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-    }, [supabaseGames, localTrackingData.games]);
+    }, [supabaseGames, trackingData.games]);
+    
+    // Inicializa o jogo 1 se não estiver definido
+    React.useEffect(() => {
+        if (allAvailableGames.length > 0 && !game1) {
+            setGame1(allAvailableGames[0]);
+            setSelectedGameName(allAvailableGames[0].name);
+        }
+    }, [allAvailableGames, game1]);
+
 
     // Função para selecionar um jogo real (GameOption)
     const handleSelectGame = useCallback((gameName: string, setter: React.Dispatch<React.SetStateAction<Game1Selection | Game2Selection>>) => {
         const selected = allAvailableGames.find(g => g.name === gameName);
         if (selected) {
             setter(selected);
+            if (setter === setGame1) {
+                setSelectedGameName(selected.name);
+            }
             // Se o jogo 2 for selecionado, remove a estimativa
             if (setter === setGame2) {
                 setEstimatedGame(null);
@@ -161,7 +171,7 @@ const StrategicView = () => {
                     <GameComparisonPanel 
                         game1={game1}
                         game2={game2} 
-                        localTrackingData={localTrackingData}
+                        localTrackingData={trackingData} // Passando o trackingData do hook
                     />
                 </TabsContent>
 
@@ -169,7 +179,7 @@ const StrategicView = () => {
                     <GameEstimator 
                         allGames={allAvailableGames}
                         onApplyEstimation={handleApplyEstimation}
-                        localTrackingData={localTrackingData}
+                        localTrackingData={trackingData} // Passando o trackingData do hook
                     />
                 </TabsContent>
 
@@ -198,7 +208,7 @@ const StrategicView = () => {
                     {game1 && (
                         <GameSalesAnalyzer 
                             game={game1}
-                            wlSalesData={localTrackingData.wlSales}
+                            wlSalesData={trackingData.wlSales}
                         />
                     )}
                 </TabsContent>

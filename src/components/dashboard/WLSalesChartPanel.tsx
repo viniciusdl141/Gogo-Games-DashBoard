@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import { formatDate, formatNumber, cn } from '@/lib/utils'; // Import cn
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
-import { startOfDay, isBefore, isEqual } from 'date-fns';
+import { startOfDay } from 'date-fns'; // Removed isBefore, isEqual
 
 interface WLSalesChartColors {
     daily: string;
@@ -159,7 +159,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, e
 
 // Custom Dot component to change shape based on frequency and event status
 const CustomDot = (props: any) => {
-    const { cx, cy, stroke, payload, dataKey, eventTracking, manualEventMarkers, chartColors } = props;
+    const { cx, cy, payload, dataKey, eventTracking, manualEventMarkers, chartColors } = props; // Removed unused 'stroke'
     
     // Only apply custom dot logic to Wishlists (WL)
     if (dataKey !== 'Wishlists') {

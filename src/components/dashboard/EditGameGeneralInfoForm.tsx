@@ -14,16 +14,16 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Removed
 import { Image, Loader2, Search } from 'lucide-react';
-import { Game as SupabaseGame } from '@/integrations/supabase/schema'; // Corrigido o import
-import { updateGame } from '@/integrations/supabase/games';
+// import { Game as SupabaseGame } from '@/integrations/supabase/schema'; // Removed
+// import { updateGame } from '@/integrations/supabase/games'; // Removed
 import { toast } from 'sonner';
 
 // Placeholder function (assuming it should exist in games.ts or be implemented here)
 // Since it's not exported from games.ts, I'll define a placeholder here to resolve the import error.
 // NOTE: If this function is needed, it must be implemented fully. For now, it's a stub.
-const fetchAndSetGameMetadata = async (gameName: string, form: any) => {
+const fetchAndSetGameMetadata = async (gameName: string, _form: any) => { // Used _form to mark as unused
     console.warn(`fetchAndSetGameMetadata called for ${gameName}. Implementation needed.`);
     // Simulate fetching data
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -56,7 +56,7 @@ const EditGameGeneralInfoForm: React.FC<EditGameGeneralInfoFormProps> = ({
     currentCapsuleImageUrl,
     currentCategory,
     onUpdateLaunchDate,
-    onMetadataUpdate,
+    onMetadataUpdate: _onMetadataUpdate, // Marked as unused
 }) => {
     const [isSearching, setIsSearching] = useState(false);
     
