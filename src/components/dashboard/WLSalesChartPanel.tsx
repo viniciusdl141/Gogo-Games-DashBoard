@@ -97,7 +97,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, e
 
         return (
             <div className="bg-white/90 dark:bg-gray-800/90 p-3 border rounded-md shadow-lg text-sm backdrop-blur-sm">
-                <p className="font-bold mb-2 text-base">{dateLabel}</p>
+                <p className="font-bold mb-2 text-base text-foreground">{dateLabel}</p>
                 
                 {/* Display active events */}
                 {activeEvents.length > 0 && (
@@ -128,22 +128,22 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, e
 
                     return (
                         <div key={platform} className="mt-2 border-t pt-2 border-muted-foreground/20">
-                            <p className="font-semibold text-sm mb-1 flex items-center justify-between">
+                            <p className="font-semibold text-sm mb-1 flex items-center justify-between text-gogo-cyan">
                                 <span>{platform} ({frequency})</span>
-                                <span className="text-xs text-muted-foreground">WL: {formatNumber(totalWishlists)} {isPlaceholder && '(Estimado)'}</span>
+                                <span className="text-xs text-foreground/70">WL: {formatNumber(totalWishlists)} {isPlaceholder && '(Estimado)'}</span>
                             </p>
                             
                             <div className="space-y-1">
                                 <p className="flex justify-between items-center">
-                                    <span className="text-muted-foreground">Variação WL:</span>
+                                    <span className="text-foreground">Variação WL:</span>
                                     <span className={`font-medium flex items-center ${variationColor}`}>
                                         <VariationIcon className="h-3 w-3 mr-1" />
                                         {formatNumber(Math.abs(variation))}
                                     </span>
                                 </p>
                                 <p className="flex justify-between items-center">
-                                    <span className="text-muted-foreground">Vendas (Unidades):</span>
-                                    <span className="font-medium text-gogo-cyan">
+                                    <span className="text-foreground">Vendas (Unidades):</span>
+                                    <span className="font-medium text-gogo-orange">
                                         {formatNumber(totalSales)}
                                     </span>
                                 </p>
