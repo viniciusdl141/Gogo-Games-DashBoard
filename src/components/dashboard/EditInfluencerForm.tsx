@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { InfluencerTrackingEntry } from '@/data/trackingData';
 import { toast } from 'sonner';
-// import { formatDate } from '@/lib/utils'; // Removido
+import { formatDate } from '@/lib/utils';
 
 // Schema de validação (Deve ser o mesmo do AddForm)
 const formSchema = z.object({

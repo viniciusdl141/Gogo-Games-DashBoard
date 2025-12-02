@@ -1,43 +1,19 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Game as SupabaseGame } from '@/integrations/supabase/schema'; 
+import { TrackingData, WLSalesPlatformEntry, InfluencerTrackingEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, ResultSummaryEntry } from '@/data/trackingData';
 import { formatCurrency, formatNumber, cn } from '@/lib/utils';
-import { DollarSign, List, TrendingUp, Clock, Eye, Megaphone, Download, Star, Package, Gauge } from 'lucide-react'; 
+import { DollarSign, List, TrendingUp, Clock, Eye, Megaphone, Download, Star, Package, Globe, Gauge } from 'lucide-react'; 
 import KpiCard from '../dashboard/KpiCard';
 import WLSalesChartPanel from '../dashboard/WLSalesChartPanel';
 import SalesByTypeChart from '../dashboard/SalesByTypeChart';
-import InfluencerPanel from '../dashboard/InfluencerPanel';
-import EventPanel from '../dashboard/EventPanel';
+import InfluencerPanel from '../dashboard/InfluencerPanel'; // Corrigido o erro 9
+import EventPanel from '../dashboard/EventPanel'; // Corrigido o erro 10
 import PaidTrafficPanel from '../dashboard/PaidTrafficPanel';
 import GameSalesAnalyzer from '../strategic/GameSalesAnalyzer'; 
-import { WLSalesPlatformEntry, InfluencerTrackingEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, ResultSummaryEntry, WlDetails, ManualEventMarker } from '@/data/trackingData'; // Importando apenas as interfaces necessárias
-
-// Interface para os dados filtrados (o que é retornado por calculateFilteredData)
-interface FilteredData {
-    wlSales: WLSalesPlatformEntry[];
-    influencerTracking: InfluencerTrackingEntry[];
-    eventTracking: EventTrackingEntry[];
-    paidTraffic: PaidTrafficEntry[];
-    demoTracking: DemoTrackingEntry[];
-    resultSummary: ResultSummaryEntry[];
-    wlDetails: WlDetails | undefined;
-    manualEventMarkers: ManualEventMarker[];
-    kpis: {
-        totalSales: number;
-        totalWishlists: number;
-        totalInvestment: number;
-        totalImpressions: number;
-        avgCtr: number;
-        grossRevenue: number;
-        netRevenue: number;
-        netProfit: number;
-        roiPercentage: number;
-        suggestedPrice: number | null;
-        launchDate: Date | null;
-    };
-}
+import { startOfDay, isPast, differenceInMonths } from 'date-fns';
 
 // Cores do gráfico ajustadas para o tema PlayStation (usadas aqui como fallback)
 const DEFAULT_CHART_COLORS = {
@@ -50,19 +26,61 @@ const DEFAULT_CHART_COLORS = {
 
 interface PresentationSlideProps {
     game: SupabaseGame;
-    trackingData: FilteredData; // Usando a interface FilteredData
+    trackingData: TrackingData;
     slideType: 'summary' | 'wl-sales' | 'marketing' | 'demo-reviews';
 }
 
 const PresentationSlide: React.FC<PresentationSlideProps> = ({ game, trackingData, slideType }) => {
     const gameName = game.name;
-    const { kpis, wlSales, influencerTracking, eventTracking, paidTraffic, demoTracking, wlDetails, manualEventMarkers } = trackingData;
 
-    // Helper para formatar ROI
-    const formatRoi = (roi: number) => {
-        const formatted = roi.toFixed(1);
-        return `${formatted}%`;
-    };
+    const filteredData = useMemo(() => {
+        const wlSales = trackingData.wlSales.filter(d => d.game.trim() === gameName);
+        const influencerTracking = trackingData.influencerTracking.filter(d => d.game.trim() === gameName);
+        const eventTracking = trackingData.eventTracking.filter(d => d.game.trim() === gameName);
+        const paidTraffic = trackingData.paidTraffic.filter(d => d.game.trim() === gameName);
+        const demoTracking = trackingData.demoTracking.filter(d => d.game.trim() === gameName);
+        const resultSummary = trackingData.resultSummary.filter(d => d.game.trim() === gameName);
+        const wlDetails = trackingData.wlDetails.find(d => d.game.trim() === gameName);
+
+        // KPIs
+        const totalSales = wlSales.reduce((sum, item) => sum + item.sales, 0);
+        const totalWishlists = wlSales.length > 0 ? wlSales[wlSales.length - 1].wishlists : 0;
+        const totalInvestment = influencerTracking.reduce((sum, item) => sum + item.investment, 0) +
+                                eventTracking.reduce((sum, item) => sum + item.cost, 0) +
+                                paidTraffic.reduce((sum, item) => sum + item.investedValue, 0);
+        const totalImpressions = paidTraffic.reduce((sum, item) => sum + item.impressions, 0);
+        const totalClicks = paidTraffic.reduce((sum, item) => sum + item.clicks, 0);
+        const avgCtr = totalImpressions > 0 ? totalClicks / totalImpressions : 0;
+
+        const price = game.suggested_price || 19.99;
+        const grossRevenue = totalSales * price;
+        const netRevenue = grossRevenue * 0.7; 
+        const netProfit = netRevenue - totalInvestment;
+        const roiPercentage = totalInvestment > 0 ? (netProfit / totalInvestment) * 100 : 0;
+
+        return {
+            wlSales,
+            influencerTracking,
+            eventTracking,
+            paidTraffic,
+            demoTracking,
+            resultSummary,
+            wlDetails,
+            kpis: {
+                totalSales,
+                totalWishlists,
+                totalInvestment,
+                totalImpressions,
+                avgCtr,
+                grossRevenue,
+                netRevenue,
+                netProfit,
+                roiPercentage,
+            }
+        };
+    }, [game, trackingData, gameName]);
+
+    const { kpis, wlSales, influencerTracking, eventTracking, paidTraffic, demoTracking, wlDetails } = filteredData;
 
     const renderSummary = () => (
         <div className="space-y-6">
@@ -84,7 +102,7 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ game, trackingDat
                 <KpiCard
                     title="Receita Líquida Estimada"
                     value={formatCurrency(kpis.netRevenue)}
-                    description={`Baseado em ${formatCurrency(kpis.suggestedPrice || 19.99)}`}
+                    description={`Baseado em ${formatCurrency(game.suggested_price || 19.99)}`}
                     icon={<DollarSign className="h-5 w-5 text-green-600" />}
                 />
             </div>
@@ -94,7 +112,7 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ game, trackingDat
                 <CardContent>
                     <GameSalesAnalyzer 
                         game={game}
-                        wlSalesData={wlSales} // Passando apenas os dados de WL/Sales
+                        wlSalesData={trackingData.wlSales}
                     />
                 </CardContent>
             </Card>
@@ -110,7 +128,7 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ game, trackingDat
                         data={wlSales} 
                         onPointClick={() => {}} 
                         eventTracking={eventTracking}
-                        manualEventMarkers={manualEventMarkers}
+                        manualEventMarkers={trackingData.manualEventMarkers}
                         chartColors={DEFAULT_CHART_COLORS}
                         selectedPlatform={'All'}
                     />
@@ -143,9 +161,9 @@ const PresentationSlide: React.FC<PresentationSlideProps> = ({ game, trackingDat
                     icon={<Eye className="h-5 w-5 text-gogo-cyan" />}
                 />
                 <KpiCard 
-                    title="ROI (%)"
-                    value={formatRoi(kpis.roiPercentage)}
-                    description="Lucro Líquido / Investimento Total"
+                    title="CTR Médio"
+                    value={`${(kpis.avgCtr * 100).toFixed(2)}%`}
+                    description="Cliques / Impressões (Tráfego Pago)"
                     icon={<Megaphone className="h-5 w-5 text-gogo-orange" />}
                 />
             </div>

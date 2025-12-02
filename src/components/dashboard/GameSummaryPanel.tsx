@@ -3,18 +3,18 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { DollarSign, List, TrendingUp, Image, Edit } from 'lucide-react'; // Removed Clock, Bot, Search, Loader2
-import { formatCurrency, formatNumber, cn } from '@/lib/utils'; 
+import { DollarSign, List, TrendingUp, Clock, Image, Edit, Bot, Search, Loader2 } from 'lucide-react';
+import { formatCurrency, formatNumber, cn } from '@/lib/utils';
 import LaunchTimer from './LaunchTimer';
 import KpiCard from './KpiCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import EditGameGeneralInfoForm from './EditGameGeneralInfoForm';
-// import { Game as SupabaseGame } from '@/integrations/supabase/schema'; // Removed
-// import { toast } from 'sonner'; // Removed
+import { Game as SupabaseGame } from '@/integrations/supabase/schema'; // Corrigido o import
+import { toast } from 'sonner';
 
 // Placeholder function (assuming it should exist in games.ts or be implemented here)
 // Since it's not exported from games.ts, I'll define a stub here to resolve the import error.
-const fetchAndSetGameMetadata = async (gameName: string, _form: any) => { // Used _form to mark as unused
+const fetchAndSetGameMetadata = async (gameName: string, form: any) => {
     console.warn(`fetchAndSetGameMetadata called for ${gameName}. Implementation needed.`);
     // Simulate fetching data
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -44,14 +44,14 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
     totalSales,
     totalWishlists,
     totalInvestment,
-    totalInfluencerViews: _totalInfluencerViews, // Marked as unused
-    totalEventViews: _totalEventViews, // Marked as unused
-    totalImpressions: _totalImpressions, // Marked as unused
+    totalInfluencerViews,
+    totalEventViews,
+    totalImpressions,
     launchDate,
     suggestedPrice,
     capsuleImageUrl,
     category,
-    investmentSources: _investmentSources, // Marked as unused
+    investmentSources,
     onUpdateLaunchDate,
     onMetadataUpdate,
 }) => {
@@ -116,19 +116,19 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                 <LaunchTimer launchDate={launchDate} />
 
                 <div className="grid gap-4 md:grid-cols-3">
-                    <KpiCard 
+                    <KpiCard // Corrigido o erro 7
                         title="Vendas Totais (Registradas)"
                         value={formatNumber(totalSales)}
                         description="Unidades vendidas em todas as plataformas"
                         icon={<List className="h-4 w-4 text-gogo-cyan" />}
                     />
-                    <KpiCard 
+                    <KpiCard // Corrigido o erro 8
                         title="Wishlists Totais (Último Reg.)"
                         value={formatNumber(totalWishlists)}
                         description="Último registro de WL total"
                         icon={<TrendingUp className="h-4 w-4 text-gogo-orange" />}
                     />
-                    <KpiCard 
+                    <KpiCard // Corrigido o erro 9
                         title="Investimento Total (R$)"
                         value={formatCurrency(totalInvestment)}
                         description={`Marketing: ${formatCurrency(totalInvestment)}`}
@@ -139,25 +139,25 @@ const GameSummaryPanel: React.FC<GameSummaryPanelProps> = ({
                 <div className="border-t border-border pt-4">
                     <h3 className="text-lg font-semibold mb-3 text-ps-light">Estimativas Financeiras (Base: {formatCurrency(price)})</h3>
                     <div className="grid gap-4 md:grid-cols-4 pt-4">
-                        <KpiCard 
+                        <KpiCard // Corrigido o erro 10
                             title="Receita Bruta (Calc.)"
                             value={formatCurrency(grossRevenue)}
                             description={`Total Sales * ${formatCurrency(price)}`}
                             icon={<DollarSign className="h-4 w-4 text-green-500" />}
                         />
-                        <KpiCard 
+                        <KpiCard // Corrigido o erro 11
                             title="Receita Líquida (Calc.)"
                             value={formatCurrency(netRevenue)}
                             description="Estimativa (70% da Receita Bruta)"
                             icon={<DollarSign className="h-4 w-4 text-green-600" />}
                         />
-                        <KpiCard 
+                        <KpiCard // Corrigido o erro 12
                             title="Lucro Líquido (Calc.)"
                             value={formatCurrency(netProfit)}
                             description="Receita Líquida - Investimento Total"
                             icon={<DollarSign className="h-4 w-4 text-green-700" />}
                         />
-                        <KpiCard 
+                        <KpiCard // Corrigido o erro 13
                             title="ROI (%) (Calc.)"
                             value={formatRoi(roiPercentage)}
                             description="Lucro Líquido / Investimento Total"

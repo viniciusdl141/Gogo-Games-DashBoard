@@ -15,17 +15,20 @@ import {
     LineChart,
     Line,
 } from 'recharts';
-import { formatNumber } from '@/lib/utils'; // Removed formatCurrency
+import { formatNumber, formatCurrency } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// import resolveConfig from 'tailwindcss/resolveConfig'; // Removed
-// import tailwindConfig from '../../../tailwind.config'; // Removed
+import resolveConfig from 'tailwindcss/resolveConfig';
+import tailwindConfig from '../../../tailwind.config'; // Adjust path as necessary
 
 interface WlComparisonsPanelProps {
     data: WLSalesPlatformEntry[];
     allPlatforms: Platform[];
 }
 
-// Cores Gogo Games (Hardcoded para evitar dependência de tailwind.config)
+const fullConfig = resolveConfig(tailwindConfig);
+const platformColors: Record<string, string> = (fullConfig.theme?.colors as any)?.platform || {};
+
+// Cores Gogo Games
 const WL_COLOR = "#00BFFF"; // Gogo Cyan
 const SALES_COLOR = "#FF6600"; // Gogo Orange
 const CONVERSION_COLOR = "#4285F4"; // Um azul para conversão (Google Ads blue)

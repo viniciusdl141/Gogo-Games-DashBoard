@@ -5,15 +5,14 @@ import { useQuery } from '@tanstack/react-query';
 import { getGames } from '@/integrations/supabase/games';
 import { Game as SupabaseGame } from '@/integrations/supabase/schema'; 
 import { useSession } from '@/components/SessionContextProvider';
-import { useTrackingData } from '@/hooks/use-tracking-data'; // Importando o novo hook
+import { getTrackingData, TrackingData } from '@/data/trackingData';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Presentation } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Presentation, Loader2 } from 'lucide-react';
 import PresentationSlide from '@/components/presentation/PresentationSlide';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { MadeWithDyad } from '@/components/made-with-dyad';
-import { calculateFilteredData } from '@/lib/dashboard-utils'; // Importando utilitário
+import { MadeWithDyad } from '@/components/made-with-dyad'; // Importando MadeWithDyad
 
 // Tipos de slides
 type SlideType = 'summary' | 'wl-sales' | 'marketing' | 'demo-reviews';
@@ -24,6 +23,9 @@ const PresentationMode: React.FC = () => {
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
     const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
     
+    // Inicializa dados locais (simulando o estado global de tracking)
+    const localTrackingData = useMemo<TrackingData>(() => getTrackingData(), []);
+
     // Fetch games from Supabase
     const { data: supabaseGames, isLoading: isGamesLoading } = useQuery<SupabaseGame[], Error>({
         queryKey: ['supabaseGamesPresentation', studioId, isAdmin],
@@ -31,7 +33,7 @@ const PresentationMode: React.FC = () => {
         initialData: [],
         enabled: !isSessionLoading,
     });
-    
+
     // Seleciona o primeiro jogo como padrão
     React.useEffect(() => {
         if (supabaseGames.length > 0 && !selectedGameId) {
@@ -42,9 +44,6 @@ const PresentationMode: React.FC = () => {
     const selectedGame = useMemo(() => {
         return supabaseGames.find(g => g.id === selectedGameId) || null;
     }, [supabaseGames, selectedGameId]);
-    
-    // Usando o hook para obter os dados de tracking
-    const { trackingData } = useTrackingData(selectedGame?.name || '');
 
     const currentSlideType = SLIDE_ORDER[currentSlideIndex];
 
@@ -55,20 +54,12 @@ const PresentationMode: React.FC = () => {
     const handlePrev = () => {
         setCurrentSlideIndex((prev) => Math.max(0, prev - 1));
     };
-    
-    // Pré-calcula os dados filtrados para o slide
-    const filteredData = useMemo(() => {
-        if (!selectedGame) return null;
-        // Usamos 'All' como plataforma e 'total' como timeframe para o modo de apresentação
-        return calculateFilteredData(selectedGame.name, selectedGame, trackingData, 'All', 'total');
-    }, [selectedGame, trackingData]);
-
 
     if (isSessionLoading || isGamesLoading) {
         return <div className="min-h-screen flex items-center justify-center">Carregando Modo de Apresentação...</div>;
     }
 
-    if (!selectedGame || !filteredData) {
+    if (!selectedGame) {
         return (
             <div className="min-h-screen flex flex-col p-8 bg-background text-foreground">
                 <h1 className="text-3xl font-bold mb-6 text-gogo-cyan flex items-center"><Presentation className="h-7 w-7 mr-2" /> Modo de Apresentação</h1>
@@ -117,7 +108,7 @@ const PresentationMode: React.FC = () => {
             )}>
                 <PresentationSlide 
                     game={selectedGame}
-                    trackingData={filteredData} // Passando os dados filtrados/calculados
+                    trackingData={localTrackingData}
                     slideType={currentSlideType}
                 />
             </div>

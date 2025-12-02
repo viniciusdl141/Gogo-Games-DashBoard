@@ -10,6 +10,7 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
+    Legend,
     ResponsiveContainer,
     Cell, // Importar Cell para aplicar cores dinâmicas
 } from 'recharts';

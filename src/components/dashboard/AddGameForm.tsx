@@ -14,7 +14,7 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
-// import { toast } from 'sonner'; // Removido
+import { toast } from 'sonner';
 
 const formSchema = z.object({
     gameName: z.string().min(1, "O nome do jogo é obrigatório."),

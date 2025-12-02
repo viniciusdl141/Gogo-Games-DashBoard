@@ -77,7 +77,7 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
             console.error("AI Processing Error:", error);
             toast.dismiss('ai-processing');
             // O erro agora deve conter a mensagem detalhada da Edge Function
-            toast.error(`Falha no processamento da IA: ${(error as Error).message}. Verifique a chave da API e o provedor.`);
+            toast.error(`Falha no processamento da IA: ${error.message}. Verifique a chave da API e o provedor.`);
         } finally {
             setIsLoading(false);
         }

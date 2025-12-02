@@ -15,7 +15,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { WLSalesPlatformEntry, Platform } from '@/data/trackingData'; // Removed SaleType, EntryFrequency
+import { WLSalesPlatformEntry, SaleType, EntryFrequency, Platform } from '@/data/trackingData';
 import { toast } from 'sonner';
 
 // Definindo o tipo de venda

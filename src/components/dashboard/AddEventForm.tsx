@@ -15,7 +15,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-// import { Textarea } from '@/components/ui/textarea'; // Removido
+import { Textarea } from '@/components/ui/textarea';
 import { EventTrackingEntry } from '@/data/trackingData';
 import { toast } from 'sonner';
 

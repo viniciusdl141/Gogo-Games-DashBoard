@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import KpiCard from './KpiCard';
-import { TrendingUp, Percent, DollarSign, Clock, MousePointerClick } from 'lucide-react'; // Removed List, CalendarDays
+import { TrendingUp, Percent, DollarSign, List, CalendarDays, Clock, MousePointerClick } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';

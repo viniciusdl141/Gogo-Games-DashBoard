@@ -11,8 +11,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, formatDate, formatNumber } from '@/lib/utils'; // Removed cn
-import { Trash2, Edit } from 'lucide-react'; // Removed Megaphone, DollarSign, MousePointerClick, Eye
+import { formatCurrency, formatDate, formatNumber, cn } from '@/lib/utils';
+import { Trash2, Edit, Megaphone, DollarSign, MousePointerClick, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     AlertDialog,
