@@ -11,8 +11,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, formatNumber, formatDate } from '@/lib/utils'; // Importando formatDate
-import { Trash2, Edit, Users, TrendingUp } from 'lucide-react';
+import { formatCurrency, formatNumber, cn, formatDate } from '@/lib/utils'; // Importando formatDate
+import { Trash2, Edit, Users, DollarSign, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     AlertDialog,
@@ -149,7 +149,7 @@ const InfluencerPanel: React.FC<InfluencerPanelProps> = ({ summary, tracking, on
                                                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
-                                                    </DialogTrigger>
+                                                    </AlertDialogTrigger>
                                                     <AlertDialogContent>
                                                         <AlertDialogHeader>
                                                             <AlertDialogTitle>Tem certeza?</AlertDialogTitle>

@@ -14,11 +14,15 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Image, Loader2, Search } from 'lucide-react';
+import { Game as SupabaseGame } from '@/integrations/supabase/schema'; // Corrigido o import
+import { updateGame } from '@/integrations/supabase/games';
 import { toast } from 'sonner';
 
 // Placeholder function (assuming it should exist in games.ts or be implemented here)
 // Since it's not exported from games.ts, I'll define a placeholder here to resolve the import error.
+// NOTE: If this function is needed, it must be implemented fully. For now, it's a stub.
 const fetchAndSetGameMetadata = async (gameName: string, form: any) => {
     console.warn(`fetchAndSetGameMetadata called for ${gameName}. Implementation needed.`);
     // Simulate fetching data

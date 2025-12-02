@@ -15,6 +15,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { EventTrackingEntry } from '@/data/trackingData';
 import { toast } from 'sonner';
 
@@ -24,7 +25,7 @@ const formSchema = z.object({
     event: z.string().min(1, "O nome do evento é obrigatório."),
     startDate: z.string().min(1, "A data de início é obrigatória (YYYY-MM-DD)."),
     endDate: z.string().min(1, "A data final é obrigatória (YYYY-MM-DD)."),
-    action: z.string().min(1, "Ação é obrigatória."),
+    action: z.string().min(1, "A ação é obrigatória."),
     views: z.number().min(0).default(0),
     cost: z.number().min(0, "Custo deve ser um número positivo.").default(0),
     wlGenerated: z.number().min(0).default(0),

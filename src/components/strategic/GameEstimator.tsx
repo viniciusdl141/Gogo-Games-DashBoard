@@ -16,8 +16,9 @@ import {
 } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { Calculator, TrendingUp, DollarSign, Gauge, List, Info, BookOpen, Bot } from 'lucide-react'; 
+import { Calculator, TrendingUp, DollarSign, MessageSquare, Gauge, List, Info, CheckSquare, Clock, BookOpen, Bot } from 'lucide-react'; 
 import KpiCard from '../dashboard/KpiCard'; 
 import { GameOption } from '@/integrations/supabase/games';
 import { TrackingData } from '@/data/trackingData';

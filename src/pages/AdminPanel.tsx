@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getStudios, addStudio, updateStudio, deleteStudio } from '@/integrations/supabase/studios';
 import { getGames, deleteGame as deleteGameFromSupabase } from '@/integrations/supabase/games';
@@ -21,8 +21,9 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { toast } from 'sonner';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatNumber } from '@/lib/utils';
 import { useSession } from '@/components/SessionContextProvider';
+import { GameOption } from '@/integrations/supabase/games'; // Importando GameOption para tipagem
 
 const AdminPanel: React.FC = () => {
     const { isAdmin, isLoading: isSessionLoading } = useSession();
