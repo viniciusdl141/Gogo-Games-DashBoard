@@ -3,12 +3,12 @@
 import React from 'react';
 import { useSession } from '@/components/SessionContextProvider';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Settings } from 'lucide-react';
+import { LogOut, User, Settings, TrendingUp } from 'lucide-react'; // Importando TrendingUp
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate, Link } from 'react-router-dom'; // Importando Link
+import { useNavigate, Link } from 'react-router-dom'; 
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils'; // Import cn
+import { cn } from '@/lib/utils'; 
 
 const DashboardHeader: React.FC = () => {
     const { user, profile, isAdmin, isLoading } = useSession();
@@ -53,6 +53,16 @@ const DashboardHeader: React.FC = () => {
                 </p>
             </div>
             <div className="flex items-center space-x-4">
+                
+                {/* Botão de Visão Estratégica */}
+                <Button 
+                    onClick={() => navigate('/strategic')} 
+                    variant="default" 
+                    className="bg-gogo-orange hover:bg-gogo-orange/90 text-white"
+                >
+                    <TrendingUp className="h-4 w-4 mr-2" /> Visão Estratégica
+                </Button>
+
                 {isAdmin && (
                     <Button 
                         onClick={() => navigate('/admin')} 
