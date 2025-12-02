@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, Bot, TrendingUp, DollarSign, List, Info, Trash2 } from 'lucide-react'; 
+import { Plus, Bot, TrendingUp, DollarSign, List, Info, Trash2, BookOpen } from 'lucide-react'; 
 import { useQuery } from '@tanstack/react-query';
 import { getGames, GameOption, mergeGameData } from '@/integrations/supabase/games';
 import { useSession } from '@/components/SessionContextProvider';
@@ -16,7 +16,8 @@ import { toast } from 'sonner';
 import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimator'; 
 import GameComparisonPanel, { ComparisonGame } from '@/components/strategic/GameComparisonPanel';
 import GameSalesAnalyzer from '@/components/strategic/GameSalesAnalyzer';
-import SalesAnalyzerPanel from '@/components/strategic/SalesAnalyzerPanel'; // NOVO IMPORT
+import SalesAnalyzerPanel from '@/components/strategic/SalesAnalyzerPanel'; 
+import EstimationMethodReferences from '@/components/strategic/EstimationMethodReferences'; // NOVO IMPORT
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import KpiCard from '@/components/dashboard/KpiCard'; 
 
@@ -112,6 +113,7 @@ const StrategicView = () => {
                     <TabsTrigger value="estimator" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white transition-all duration-200 hover:bg-gogo-cyan/10">Estimador de Vendas</TabsTrigger>
                     <TabsTrigger value="analyzer" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white transition-all duration-200 hover:bg-gogo-cyan/10">Análise Temporal</TabsTrigger>
                     <TabsTrigger value="ai-analysis" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white transition-all duration-200 hover:bg-gogo-cyan/10">Análise de Vendas (IA)</TabsTrigger>
+                    <TabsTrigger value="references" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white transition-all duration-200 hover:bg-gogo-cyan/10"><BookOpen className="h-4 w-4 mr-2" /> Referências</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="comparison" className="space-y-6 mt-4">
@@ -205,11 +207,14 @@ const StrategicView = () => {
                     )}
                 </TabsContent>
                 
-                {/* NOVO CONTEÚDO DA ABA DE ANÁLISE DE VENDAS POR IA */}
                 <TabsContent value="ai-analysis" className="space-y-6 mt-4">
                     <SalesAnalyzerPanel 
                         allGames={allAvailableGames}
                     />
+                </TabsContent>
+                
+                <TabsContent value="references" className="space-y-6 mt-4">
+                    <EstimationMethodReferences />
                 </TabsContent>
             </Tabs>
 

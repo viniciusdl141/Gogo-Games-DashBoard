@@ -32,15 +32,24 @@ export interface EstimatedGame extends GameOption {
     timeframe: string;
 }
 
+const EstimationMethodEnum = z.enum(['wl-to-sales', 'reviews-to-sales', 'ccu-to-sales']);
+
 // Schema de validação para o estimador
 const estimationSchema = z.object({
     baseGameName: z.string().min(1, "Selecione um jogo base."),
     targetGameName: z.string().min(1, "Defina o nome do jogo alvo."),
     targetPrice: z.number().min(0.01, "O preço deve ser maior que zero."),
     targetCategory: z.string().min(1, "Defina a categoria alvo."),
-    wlConversionRate: z.number().min(0).max(1, "A taxa deve estar entre 0 e 1."),
-    targetWishlists: z.number().min(100, "O número de wishlists deve ser realista."),
     timeframe: z.enum(['3 months', '6 months', '1 year', 'total']),
+    
+    // Novos campos de entrada para diferentes métodos
+    targetWishlists: z.number().min(0, "O número de wishlists deve ser positivo.").default(0),
+    targetReviews: z.number().min(0, "O número de reviews deve ser positivo.").default(0),
+    targetCCUPeak: z.number().min(0, "O pico de CCU deve ser positivo.").default(0),
+    
+    // Configuração do método
+    calculationMethod: EstimationMethodEnum.default('wl-to-sales'),
+    multiplier: z.number().min(0.01, "O multiplicador deve ser maior que zero."),
 });
 
 type EstimationFormValues = z.infer<typeof estimationSchema>;
@@ -61,9 +70,12 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
             targetGameName: 'Novo Jogo Estimado',
             targetPrice: 19.99,
             targetCategory: 'Ação',
-            wlConversionRate: 0.15, // 15%
-            targetWishlists: 50000,
             timeframe: '1 year',
+            targetWishlists: 50000,
+            targetReviews: 1000,
+            targetCCUPeak: 2000,
+            calculationMethod: 'wl-to-sales',
+            multiplier: 0.15, // Default WL conversion rate
         },
     });
 
@@ -82,12 +94,47 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
         const totalSales = sales.reduce((sum, item) => sum + item.sales, 0);
         const totalWishlists = sales.length > 0 ? sales[sales.length - 1].wishlists : 0;
         
-        // Calcula a taxa de conversão WL-to-Sales real (se houver dados)
+        // Calcula a taxa de conversão WL-to-Sales real
         const resultSummary = localTrackingData.resultSummary.find(r => r.game === baseGameData.name && r['Conversão vendas/wl']);
         const realConversionRate = Number(resultSummary?.['Conversão vendas/wl']) || 0;
 
         return { totalSales, totalWishlists, realConversionRate };
     }, [baseGameData, localTrackingData]);
+
+    const currentValues = form.watch();
+    const { calculationMethod, multiplier, targetWishlists, targetReviews, targetCCUPeak, targetPrice } = currentValues;
+
+    const { estimatedSales, estimationMethodLabel, baseValueLabel } = useMemo(() => {
+        let sales = 0;
+        let methodLabel = '';
+        let baseLabel = '';
+
+        switch (calculationMethod) {
+            case 'wl-to-sales':
+                sales = targetWishlists * multiplier;
+                methodLabel = `WL-to-Sales (${(multiplier * 100).toFixed(1)}%)`;
+                baseLabel = `Base: ${formatNumber(targetWishlists)} WLs`;
+                break;
+            case 'reviews-to-sales':
+                sales = targetReviews * multiplier;
+                methodLabel = `Reviews-to-Sales (${multiplier}x)`;
+                baseLabel = `Base: ${formatNumber(targetReviews)} Reviews`;
+                break;
+            case 'ccu-to-sales':
+                sales = targetCCUPeak * multiplier;
+                methodLabel = `CCU-to-Sales (${multiplier}x)`;
+                baseLabel = `Base: ${formatNumber(targetCCUPeak)} CCU Peak`;
+                break;
+        }
+
+        return {
+            estimatedSales: Math.round(sales),
+            estimationMethodLabel: methodLabel,
+            baseValueLabel: baseLabel,
+        };
+    }, [calculationMethod, multiplier, targetWishlists, targetReviews, targetCCUPeak]);
+
+    const estimatedRevenue = estimatedSales * targetPrice;
 
     const onSubmit = (values: EstimationFormValues) => {
         if (!baseGameData) {
@@ -95,35 +142,41 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
             return;
         }
 
-        // 1. Calcular vendas estimadas
-        const estimatedSales = values.targetWishlists * values.wlConversionRate;
-        const estimatedRevenue = estimatedSales * values.targetPrice;
-
         const estimation: EstimatedGame = {
             id: `est-${Date.now()}`,
             name: values.targetGameName,
             launch_date: null,
             suggested_price: values.targetPrice,
-            capsule_image_url: baseGameData.capsule_image_url, // Usa a imagem do jogo base
+            capsule_image_url: baseGameData.capsule_image_url, 
             category: values.targetCategory,
-            estimatedSales: Math.round(estimatedSales),
+            estimatedSales: estimatedSales,
             estimatedRevenue: estimatedRevenue,
-            estimationMethod: `Baseado em ${baseGameData.name}`,
+            estimationMethod: estimationMethodLabel,
             timeframe: values.timeframe,
         };
 
         onApplyEstimation(estimation);
     };
-
-    const currentValues = form.watch();
-    const estimatedSales = currentValues.targetWishlists * currentValues.wlConversionRate;
-    const estimatedRevenue = estimatedSales * currentValues.targetPrice;
+    
+    // Helper para determinar o ícone e o rótulo do multiplicador
+    const getMultiplierInfo = (method: EstimationMethodEnum) => {
+        switch (method) {
+            case 'wl-to-sales':
+                return { label: 'Taxa de Conversão (0.0 - 1.0)', icon: <Gauge className="h-4 w-4 mr-2" />, placeholder: '0.15' };
+            case 'reviews-to-sales':
+                return { label: 'Multiplicador (30x - 60x)', icon: <MessageSquare className="h-4 w-4 mr-2" />, placeholder: '40' };
+            case 'ccu-to-sales':
+                return { label: 'Multiplicador CCU (20x - 50x)', icon: <TrendingUp className="h-4 w-4 mr-2" />, placeholder: '30' };
+        }
+    };
+    
+    const multiplierInfo = getMultiplierInfo(calculationMethod);
 
     return (
         <Card className="shadow-lg">
             <CardHeader>
                 <CardTitle className="text-2xl flex items-center text-gogo-cyan">
-                    <Bot className="h-6 w-6 mr-2" /> Estimador de Vendas (WL-to-Sales)
+                    <Bot className="h-6 w-6 mr-2" /> Estimador de Vendas (Multi-Método)
                 </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -133,6 +186,8 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                     <h3 className="text-lg font-semibold text-gogo-orange">Configuração da Estimativa</h3>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                            
+                            {/* Jogo Base */}
                             <FormField
                                 control={form.control}
                                 name="baseGameName"
@@ -156,6 +211,9 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                                 )}
                             />
                             
+                            <Separator />
+                            
+                            {/* Jogo Alvo e Metadados */}
                             <FormField
                                 control={form.control}
                                 name="targetGameName"
@@ -169,13 +227,12 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                                     </FormItem>
                                 )}
                             />
-
                             <FormField
                                 control={form.control}
                                 name="targetPrice"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Preço Alvo (USD)</FormLabel>
+                                        <FormLabel>Preço Alvo (R$)</FormLabel>
                                         <FormControl>
                                             <Input 
                                                 type="number" 
@@ -189,7 +246,6 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                                     </FormItem>
                                 )}
                             />
-                            
                             <FormField
                                 control={form.control}
                                 name="targetCategory"
@@ -203,46 +259,6 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                                     </FormItem>
                                 )}
                             />
-
-                            <FormField
-                                control={form.control}
-                                name="targetWishlists"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Wishlists Alvo (Lançamento)</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                type="number" 
-                                                placeholder="50000" 
-                                                {...field} 
-                                                onChange={e => field.onChange(Number(e.target.value))}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            
-                            <FormField
-                                control={form.control}
-                                name="wlConversionRate"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Taxa de Conversão WL-to-Sales (0.0 - 1.0)</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                type="number" 
-                                                step="0.01"
-                                                placeholder="0.15" 
-                                                {...field} 
-                                                onChange={e => field.onChange(Number(e.target.value))}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            
                             <FormField
                                 control={form.control}
                                 name="timeframe"
@@ -266,6 +282,119 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                                     </FormItem>
                                 )}
                             />
+                            
+                            <Separator />
+                            
+                            {/* Método de Cálculo */}
+                            <FormField
+                                control={form.control}
+                                name="calculationMethod"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Método de Cálculo Principal</FormLabel>
+                                        <Select onValueChange={(value: EstimationMethodEnum) => { field.onChange(value); form.setValue('multiplier', value === 'wl-to-sales' ? 0.15 : 40); }} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione o Método" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="wl-to-sales">WL-to-Sales (Conversão %)</SelectItem>
+                                                <SelectItem value="reviews-to-sales">Reviews-to-Sales (Multiplicador)</SelectItem>
+                                                <SelectItem value="ccu-to-sales">CCU-to-Sales (Multiplicador)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            
+                            {/* Multiplicador */}
+                            <FormField
+                                control={form.control}
+                                name="multiplier"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="flex items-center">
+                                            {multiplierInfo.icon} {multiplierInfo.label}
+                                        </FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="number" 
+                                                step={calculationMethod === 'wl-to-sales' ? "0.01" : "1"}
+                                                placeholder={multiplierInfo.placeholder} 
+                                                {...field} 
+                                                onChange={e => field.onChange(Number(e.target.value))}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            
+                            {/* Valores Base (Condicionais) */}
+                            {calculationMethod === 'wl-to-sales' && (
+                                <FormField
+                                    control={form.control}
+                                    name="targetWishlists"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Wishlists Alvo (Lançamento)</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    type="number" 
+                                                    placeholder="50000" 
+                                                    {...field} 
+                                                    onChange={e => field.onChange(Number(e.target.value))}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                            
+                            {calculationMethod === 'reviews-to-sales' && (
+                                <FormField
+                                    control={form.control}
+                                    name="targetReviews"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Reviews Totais Alvo</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    type="number" 
+                                                    placeholder="1000" 
+                                                    {...field} 
+                                                    onChange={e => field.onChange(Number(e.target.value))}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                            
+                            {calculationMethod === 'ccu-to-sales' && (
+                                <FormField
+                                    control={form.control}
+                                    name="targetCCUPeak"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Pico de CCU Alvo</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    type="number" 
+                                                    placeholder="2000" 
+                                                    {...field} 
+                                                    onChange={e => field.onChange(Number(e.target.value))}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
 
                             <Button type="submit" className="w-full bg-gogo-cyan hover:bg-gogo-cyan/90">
                                 <Calculator className="h-4 w-4 mr-2" /> Aplicar Estimativa ao Jogo 2
@@ -316,22 +445,22 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                     <h3 className="text-lg font-semibold text-gogo-orange">Resultado da Estimativa</h3>
                     <KpiCard
                         title="Vendas Estimadas"
-                        value={formatNumber(estimatedSales)} // Removido o segundo argumento '0'
-                        description={`Unidades estimadas em ${currentValues.timeframe}`}
+                        value={formatNumber(estimatedSales)}
+                        description={baseValueLabel}
                         icon={<TrendingUp className="h-4 w-4 text-gogo-cyan" />}
                     />
                     <KpiCard
                         title="Receita Estimada (Bruta)"
                         value={formatCurrency(estimatedRevenue)}
-                        description={`Baseado em ${formatCurrency(currentValues.targetPrice)}`}
+                        description={`Baseado em ${formatCurrency(targetPrice)}`}
                         icon={<DollarSign className="h-4 w-4 text-green-500" />}
                     />
                     <div className="p-4 bg-gogo-cyan/10 rounded-lg border border-gogo-cyan/30">
                         <p className="text-sm font-medium flex items-center text-gogo-cyan">
-                            <BookOpen className="h-4 w-4 mr-2" /> Fórmula
+                            <BookOpen className="h-4 w-4 mr-2" /> Método
                         </p>
                         <p className="text-sm mt-1 text-muted-foreground">
-                            Vendas = WL Alvo ({formatNumber(currentValues.targetWishlists)}) * Taxa de Conversão ({(currentValues.wlConversionRate * 100).toFixed(1)}%)
+                            {estimationMethodLabel}
                         </p>
                     </div>
                 </div>

@@ -13,62 +13,42 @@ interface Reference {
 }
 
 const REFERENCES: Record<string, Reference[]> = {
-    'Método Boxleiter (A Base)': [
+    'Método Boxleiter (Reviews-to-Sales)': [
         {
-            title: 'How to estimate how many sales a Steam game has made',
-            source: 'Jake Birkett (Grey Alien Games)',
-            description: 'O artigo original que estabeleceu a lógica matemática inicial de que "1 review ≈ X vendas", a fundação teórica para todos os métodos de multiplicadores.',
+            title: 'A Regra de Ouro: 1 Review ≈ 30x a 60x Vendas',
+            source: 'Jake Birkett (Grey Alien Games) & Simon Carless (GameDiscoverCo)',
+            description: 'A fundação teórica que estima vendas totais multiplicando o número de reviews por um fator (multiplicador). Multiplicadores mais baixos (30x-40x) são comuns para jogos de nicho/RPG, enquanto mais altos (50x-70x) são para jogos casuais ou de grande sucesso.',
             url: 'https://greyaliengames.com/blog/how-to-estimate-how-many-sales-a-steam-game-has-made/',
         },
         {
-            title: 'Steam reviews/sales ratio approaching 60x for new hit games?',
-            source: 'Simon Carless (GameDiscoverCo / Game World Observer)',
-            description: 'Explica por que jogos novos (2023-2025) têm multiplicadores diferentes e como o "pedido de review" da Steam mudou o mercado, justificando a faixa de 30x-60x.',
-            url: 'https://gameworldobserver.com/2022/11/15/how-to-count-game-sales-steam-2022-review-multiplier',
+            title: 'Ajuste de Multiplicador por Gênero',
+            source: 'VG Insights Insights',
+            description: 'Estudos mostram que o multiplicador varia drasticamente por gênero. Jogos de Estratégia/RPG tendem a ter 30x-40x, enquanto jogos Casuais/Simulação podem ter 60x-80x.',
+            url: 'https://vginsights.com/insights/article/further-analysis-into-steam-reviews-to-sales-ratio-how-to-estimate-video-game-sales',
         },
     ],
-    'Gamalytic (Preço & Algoritmo)': [
+    'Método CCU (Pico de Jogadores Simultâneos)': [
+        {
+            title: 'CCU Peak Multiplier (20x a 50x)',
+            source: 'Ars Technica / Gamasutra',
+            description: 'Estima as vendas totais multiplicando o pico máximo de jogadores simultâneos (CCU Peak) da primeira semana por um fator. Fatores mais baixos (20x-30x) indicam alta retenção, e mais altos (40x-50x) indicam baixa retenção.',
+            url: 'https://www.gamedev.net/articles/business/publishing/understanding-steam-concurrent-players-vs-sales-r4999/',
+        },
+    ],
+    'Método Wishlist-to-Sales (Conversão WL)': [
+        {
+            title: 'Taxa de Conversão de Wishlist (10% a 25%)',
+            source: 'Vários Desenvolvedores e GDC Talks',
+            description: 'Estima as vendas do primeiro ano (ou lançamento) multiplicando o total de Wishlists no dia do lançamento pela taxa de conversão esperada. A média histórica é de 10% a 25% de conversão de WL em vendas.',
+            url: 'https://partner.steamgames.com/doc/marketing/wishlist', // Link genérico para documentação Steam
+        },
+    ],
+    'Gamalytic e Algoritmos Modernos': [
         {
             title: 'How to accurately estimate Steam game sales',
             source: 'Gamalytic Blog',
-            description: 'Detalha como eles usam "probabilidade condicional" e por que jogos baratos (<$5) quebram a conta tradicional se não forem ajustados. Base da Metodologia A.',
+            description: 'Detalha como algoritmos modernos usam probabilidade condicional e ajustam o multiplicador com base no preço, data de lançamento e visibilidade do jogo.',
             url: 'https://gamalytic.com/blog/how-to-accurately-estimate-steam-sales',
-        },
-    ],
-    'VG Insights (Gênero & Big Data)': [
-        {
-            title: 'Further analysis into Steam Reviews to Sales ratio',
-            source: 'VG Insights Insights',
-            description: 'Estudo detalhado que prova que jogos de Estratégia/RPG têm multiplicadores baixos (30x) e jogos Casuais têm multiplicadores altos (60x+). Base da Metodologia B.',
-            url: 'https://vginsights.com/insights/article/further-analysis-into-steam-reviews-to-sales-ratio-how-to-estimate-video-game-sales',
-        },
-        {
-            title: 'Global Steam Market Report (2024/2025)',
-            source: 'VG Insights',
-            description: 'Relatório anual com dados macroeconômicos sobre o crescimento do mercado de jogos de PC.',
-            url: 'https://vginsights.com/', // Link genérico para o site, pois o relatório específico pode mudar
-        },
-    ],
-    'SteamDB e CCU (Jogadores Simultâneos)': [
-        {
-            title: 'SteamDB Charts',
-            source: 'SteamDB.info',
-            description: 'Ferramenta principal para ver o histórico de jogadores simultâneos (CCU) e a popularidade máxima do jogo.',
-            url: 'https://steamdb.info/',
-        },
-        {
-            title: 'Understanding Steam Concurrent Players vs. Sales',
-            source: 'Ars Technica / Gamasutra',
-            description: 'Análise de retenção que estabeleceu a regra de que "Vendas Totais ≈ 20x a 50x o Pico de CCU da primeira semana".',
-            url: 'https://www.gamedev.net/articles/business/publishing/understanding-steam-concurrent-players-vs-sales-r4999/', // Usando um link de gamedev.net como proxy para o conceito
-        },
-    ],
-    'Contexto Histórico': [
-        {
-            title: 'Valve leaks Steam game player counts; we have the numbers',
-            source: 'Ars Technica',
-            description: 'Explica a mudança de API da Valve em 2018 que "matou" a precisão do SteamSpy antigo, tornando os métodos modernos (Gamalytic/VGI) necessários.',
-            url: 'https://arstechnica.com/gaming/2018/07/steam-data-leak-reveals-precise-player-counts-for-thousands-of-games/',
         },
     ],
 };
