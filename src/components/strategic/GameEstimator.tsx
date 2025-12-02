@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { Calculator, TrendingUp, DollarSign, MessageSquare, Gauge, List, Info, CheckSquare, Clock, BookOpen, Bot } from 'lucide-react'; 
+import { Calculator, TrendingUp, DollarSign, MessageSquare, Gauge, List, Info, CheckSquare, Clock, BookOpen, Bot, Users } from 'lucide-react'; 
 import KpiCard from '../dashboard/KpiCard'; 
 import { GameOption } from '@/integrations/supabase/games';
 import { TrackingData } from '@/data/trackingData';
@@ -32,7 +32,13 @@ export interface EstimatedGame extends GameOption {
     timeframe: string;
 }
 
-const EstimationMethodEnum = z.enum(['wl-to-sales', 'reviews-to-sales', 'ccu-to-sales']);
+const EstimationMethodEnum = z.enum([
+    'wl-to-sales', 
+    'reviews-to-sales', 
+    'ccu-to-sales',
+    'price-adjusted-reviews', // NOVO: Reviews ajustado por preço
+    'dau-to-sales', // NOVO: DAU to Sales
+]);
 
 // Schema de validação para o estimador
 const estimationSchema = z.object({
@@ -46,6 +52,7 @@ const estimationSchema = z.object({
     targetWishlists: z.number().min(0, "O número de wishlists deve ser positivo.").default(0),
     targetReviews: z.number().min(0, "O número de reviews deve ser positivo.").default(0),
     targetCCUPeak: z.number().min(0, "O pico de CCU deve ser positivo.").default(0),
+    targetDAU: z.number().min(0, "O DAU deve ser positivo.").default(0), // NOVO: DAU
     
     // Configuração do método
     calculationMethod: EstimationMethodEnum.default('wl-to-sales'),
@@ -74,6 +81,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
             targetWishlists: 50000,
             targetReviews: 1000,
             targetCCUPeak: 2000,
+            targetDAU: 500, // Default DAU
             calculationMethod: 'wl-to-sales',
             multiplier: 0.15, // Default WL conversion rate
         },
@@ -102,12 +110,15 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
     }, [baseGameData, localTrackingData]);
 
     const currentValues = form.watch();
-    const { calculationMethod, multiplier, targetWishlists, targetReviews, targetCCUPeak, targetPrice } = currentValues;
+    const { calculationMethod, multiplier, targetWishlists, targetReviews, targetCCUPeak, targetDAU, targetPrice } = currentValues;
 
     const { estimatedSales, estimationMethodLabel, baseValueLabel } = useMemo(() => {
         let sales = 0;
         let methodLabel = '';
         let baseLabel = '';
+        
+        // Preço de referência para ajuste (usamos 19.99 BRL como base neutra)
+        const referencePrice = 19.99; 
 
         switch (calculationMethod) {
             case 'wl-to-sales':
@@ -125,6 +136,19 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                 methodLabel = `CCU-to-Sales (${multiplier}x)`;
                 baseLabel = `Base: ${formatNumber(targetCCUPeak)} CCU Peak`;
                 break;
+            case 'price-adjusted-reviews':
+                // Fórmula: Vendas = Reviews * Multiplicador * (Preço Base / Preço Alvo)
+                const priceAdjustmentFactor = referencePrice / targetPrice;
+                sales = targetReviews * multiplier * priceAdjustmentFactor;
+                methodLabel = `Reviews Ajustado por Preço (${multiplier}x, Fator: ${priceAdjustmentFactor.toFixed(2)})`;
+                baseLabel = `Base: ${formatNumber(targetReviews)} Reviews`;
+                break;
+            case 'dau-to-sales':
+                // Fórmula: Vendas = DAU * Multiplicador (Multiplicador representa o número de dias de vendas que 1 DAU representa)
+                sales = targetDAU * multiplier;
+                methodLabel = `DAU-to-Sales (${multiplier}x)`;
+                baseLabel = `Base: ${formatNumber(targetDAU)} DAU`;
+                break;
         }
 
         return {
@@ -132,7 +156,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
             estimationMethodLabel: methodLabel,
             baseValueLabel: baseLabel,
         };
-    }, [calculationMethod, multiplier, targetWishlists, targetReviews, targetCCUPeak]);
+    }, [calculationMethod, multiplier, targetWishlists, targetReviews, targetCCUPeak, targetDAU, targetPrice]);
 
     const estimatedRevenue = estimatedSales * targetPrice;
 
@@ -167,6 +191,10 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                 return { label: 'Multiplicador (30x - 60x)', icon: <MessageSquare className="h-4 w-4 mr-2" />, placeholder: '40' };
             case 'ccu-to-sales':
                 return { label: 'Multiplicador CCU (20x - 50x)', icon: <TrendingUp className="h-4 w-4 mr-2" />, placeholder: '30' };
+            case 'price-adjusted-reviews':
+                return { label: 'Multiplicador Base (30x - 60x)', icon: <MessageSquare className="h-4 w-4 mr-2" />, placeholder: '40' };
+            case 'dau-to-sales':
+                return { label: 'Multiplicador DAU (10x - 30x)', icon: <Users className="h-4 w-4 mr-2" />, placeholder: '20' };
         }
     };
     
@@ -292,16 +320,25 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Método de Cálculo Principal</FormLabel>
-                                        <Select onValueChange={(value: EstimationMethodEnum) => { field.onChange(value); form.setValue('multiplier', value === 'wl-to-sales' ? 0.15 : 40); }} defaultValue={field.value}>
+                                        <Select onValueChange={(value: EstimationMethodEnum) => { 
+                                            field.onChange(value); 
+                                            // Reset multiplier based on method type
+                                            if (value === 'wl-to-sales') form.setValue('multiplier', 0.15);
+                                            else if (value === 'reviews-to-sales' || value === 'price-adjusted-reviews') form.setValue('multiplier', 40);
+                                            else if (value === 'ccu-to-sales') form.setValue('multiplier', 30);
+                                            else if (value === 'dau-to-sales') form.setValue('multiplier', 20);
+                                        }} defaultValue={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Selecione o Método" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="wl-to-sales">WL-to-Sales (Conversão %)</SelectItem>
-                                                <SelectItem value="reviews-to-sales">Reviews-to-Sales (Multiplicador)</SelectItem>
-                                                <SelectItem value="ccu-to-sales">CCU-to-Sales (Multiplicador)</SelectItem>
+                                                <SelectItem value="wl-to-sales">1. WL-to-Sales (Conversão %)</SelectItem>
+                                                <SelectItem value="reviews-to-sales">2. Reviews-to-Sales (Boxleiter Padrão)</SelectItem>
+                                                <SelectItem value="price-adjusted-reviews">3. Reviews Ajustado por Preço</SelectItem>
+                                                <SelectItem value="ccu-to-sales">4. CCU-to-Sales (Pico de Jogadores)</SelectItem>
+                                                <SelectItem value="dau-to-sales">5. DAU-to-Sales (Usuários Ativos Diários)</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -333,7 +370,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                             />
                             
                             {/* Valores Base (Condicionais) */}
-                            {calculationMethod === 'wl-to-sales' && (
+                            {(calculationMethod === 'wl-to-sales') && (
                                 <FormField
                                     control={form.control}
                                     name="targetWishlists"
@@ -354,7 +391,7 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                                 />
                             )}
                             
-                            {calculationMethod === 'reviews-to-sales' && (
+                            {(calculationMethod === 'reviews-to-sales' || calculationMethod === 'price-adjusted-reviews') && (
                                 <FormField
                                     control={form.control}
                                     name="targetReviews"
@@ -386,6 +423,27 @@ const GameEstimator: React.FC<GameEstimatorProps> = ({ allGames, onApplyEstimati
                                                 <Input 
                                                     type="number" 
                                                     placeholder="2000" 
+                                                    {...field} 
+                                                    onChange={e => field.onChange(Number(e.target.value))}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                            
+                            {calculationMethod === 'dau-to-sales' && (
+                                <FormField
+                                    control={form.control}
+                                    name="targetDAU"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>DAU Alvo (Usuários Ativos Diários)</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    type="number" 
+                                                    placeholder="500" 
                                                     {...field} 
                                                     onChange={e => field.onChange(Number(e.target.value))}
                                                 />
