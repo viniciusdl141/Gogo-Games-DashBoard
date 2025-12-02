@@ -13,9 +13,10 @@ import { useSession } from '@/components/SessionContextProvider';
 import { getTrackingData, TrackingData } from '@/data/trackingData';
 import { toast } from 'sonner';
 
-import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimator'; // Corrigido o erro 8
+import GameEstimator, { EstimatedGame } from '@/components/strategic/GameEstimator'; 
 import GameComparisonPanel, { ComparisonGame } from '@/components/strategic/GameComparisonPanel';
 import GameSalesAnalyzer from '@/components/strategic/GameSalesAnalyzer';
+import SalesAnalyzerPanel from '@/components/strategic/SalesAnalyzerPanel'; // NOVO IMPORT
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import KpiCard from '@/components/dashboard/KpiCard'; 
 
@@ -110,6 +111,7 @@ const StrategicView = () => {
                     <TabsTrigger value="comparison" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white transition-all duration-200 hover:bg-gogo-cyan/10">Comparação de Jogos</TabsTrigger>
                     <TabsTrigger value="estimator" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white transition-all duration-200 hover:bg-gogo-cyan/10">Estimador de Vendas</TabsTrigger>
                     <TabsTrigger value="analyzer" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white transition-all duration-200 hover:bg-gogo-cyan/10">Análise Temporal</TabsTrigger>
+                    <TabsTrigger value="ai-analysis" className="min-w-fit px-4 py-2 data-[state=active]:bg-gogo-cyan data-[state=active]:text-white transition-all duration-200 hover:bg-gogo-cyan/10">Análise de Vendas (IA)</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="comparison" className="space-y-6 mt-4">
@@ -201,6 +203,13 @@ const StrategicView = () => {
                             wlSalesData={localTrackingData.wlSales}
                         />
                     )}
+                </TabsContent>
+                
+                {/* NOVO CONTEÚDO DA ABA DE ANÁLISE DE VENDAS POR IA */}
+                <TabsContent value="ai-analysis" className="space-y-6 mt-4">
+                    <SalesAnalyzerPanel 
+                        allGames={allAvailableGames}
+                    />
                 </TabsContent>
             </Tabs>
 
