@@ -76,8 +76,9 @@ interface CustomTooltipProps {
 
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, eventTracking, manualEventMarkers }) => {
     if (active && payload && payload.length && label) {
-        const dateLabel = formatDate(label);
-        const date = new Date(label);
+        // Garantir que o label é um número antes de formatar
+        const dateLabel = typeof label === 'number' ? formatDate(label) : '-';
+        const date = typeof label === 'number' ? new Date(label) : null;
         
         // Find active events for this date
         const activeEvents = getActiveEventsForDate(date, eventTracking, manualEventMarkers);
