@@ -5,8 +5,8 @@ import { WLSalesPlatformEntry, InfluencerTrackingEntry, EventTrackingEntry, Paid
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatDate, formatCurrency, formatNumber } from '@/lib/utils';
-import { startOfDay, isBefore, isEqual } from 'date-fns';
-import { List, DollarSign, Eye, Megaphone, Download, CalendarDays, Clock } from 'lucide-react';
+import { startOfDay } from 'date-fns';
+import { List, DollarSign, Eye, Megaphone, CalendarDays, Clock } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import PlatformIcon from './PlatformIcon'; // Import PlatformIcon

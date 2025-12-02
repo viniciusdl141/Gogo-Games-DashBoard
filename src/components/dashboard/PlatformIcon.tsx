@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Monitor, Gamepad, Smartphone, Apple, Store, Globe, Gamepad2, Zap, Package, Tag, Headset } from 'lucide-react'; // Importando ícones disponíveis
+import { Monitor, Gamepad, Smartphone, Apple, Store, Globe, Gamepad2 } from 'lucide-react'; // Importando ícones disponíveis
 import { Platform } from '@/data/trackingData';
 
 interface PlatformIconProps {

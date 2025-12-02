@@ -15,10 +15,10 @@ import {
     LineChart,
     Line,
 } from 'recharts';
-import { formatNumber, formatCurrency } from '@/lib/utils';
+import { formatNumber } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import resolveConfig from 'tailwindcss/resolveConfig';
-import tailwindConfig from '../../../tailwind.config'; // Adjust path as necessary
+import tailwindConfig from '../../../tailwind.config.ts'; // Adjust path as necessary
 
 interface WlComparisonsPanelProps {
     data: WLSalesPlatformEntry[];
@@ -26,7 +26,7 @@ interface WlComparisonsPanelProps {
 }
 
 const fullConfig = resolveConfig(tailwindConfig);
-const platformColors: Record<string, string> = (fullConfig.theme?.colors as any)?.platform || {};
+// const platformColors: Record<string, string> = (fullConfig.theme?.colors as any)?.platform || {};
 
 // Cores Gogo Games
 const WL_COLOR = "#00BFFF"; // Gogo Cyan

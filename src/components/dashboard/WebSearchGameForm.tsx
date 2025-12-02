@@ -68,7 +68,7 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
         } catch (error) {
             console.error("Web Search Error:", error);
             toast.dismiss('web-search');
-            toast.error(`Falha na busca: ${error.message}. Verifique a chave da API e o nome do jogo.`);
+            toast.error(`Falha na busca: ${(error as Error).message}. Verifique a chave da API e o nome do jogo.`);
         } finally {
             setIsLoading(false);
         }

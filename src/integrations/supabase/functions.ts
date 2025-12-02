@@ -2,7 +2,6 @@ import { supabase } from './client';
 
 // NOTE: Replace 'ynlebwtutvyxybqgupke' with your actual Supabase Project ID in a real deployment.
 const PROJECT_ID = 'ynlebwtutvyxybqgupke';
-const EDGE_FUNCTION_URL_PROCESS = `https://${PROJECT_ID}.supabase.co/functions/v1/process-raw-data`;
 const EDGE_FUNCTION_URL_FETCH_GAME = `https://${PROJECT_ID}.supabase.co/functions/v1/fetch-game-data`; 
 const EDGE_FUNCTION_URL_ANALYZE_SALES = `https://${PROJECT_ID}.supabase.co/functions/v1/analyze-game-sales`; 
 const EDGE_FUNCTION_URL_ADMIN_CREATE_USER = `https://${PROJECT_ID}.supabase.co/functions/v1/admin-create-user`; // Re-adding URL

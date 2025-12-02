@@ -15,7 +15,6 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { Textarea } from '@/components/ui/textarea';
 
 const formSchema = z.object({
     date: z.string().min(1, "A data é obrigatória (YYYY-MM-DD)."),

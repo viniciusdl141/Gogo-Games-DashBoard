@@ -6,8 +6,8 @@ import { Separator } from "@/components/ui/separator";
 import { GameOption } from '@/integrations/supabase/games';
 import { WLSalesPlatformEntry } from '@/data/trackingData';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { DollarSign, List, TrendingUp, Clock, Gauge, Info } from 'lucide-react'; 
-import { differenceInMonths, differenceInDays, isPast, startOfDay } from 'date-fns';
+import { DollarSign, List, TrendingUp, Clock, Info } from 'lucide-react'; 
+import { differenceInMonths, isPast, startOfDay } from 'date-fns';
 import KpiCard from '../dashboard/KpiCard'; 
 
 interface GameSalesAnalyzerProps {

@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import { WLSalesPlatformEntry, ManualEventMarker, InfluencerTrackingEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, Platform } from '@/data/trackingData';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Edit, CalendarPlus, List, Trash2, ArrowLeft, Search } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CalendarPlus, List, ArrowLeft, Search } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import EditWLSalesForm from './EditWLSalesForm';
 import ManualEventMarkerForm from './ManualEventMarkerForm';
@@ -47,7 +47,6 @@ const WLSalesActionMenu: React.FC<WLSalesActionMenuProps> = ({
     const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
 
     const isRealData = !entry.isPlaceholder;
-    const dateString = entry.date ? entry.date.toISOString().split('T')[0] : '';
     
     // Determine the effective platform for the entry (used for filtering data in DailySummaryPanel)
     const effectivePlatform: Platform = ['PS Plus', 'Add-Ons', 'Free to Play', 'VR'].includes(entry.platform) ? 'Playstation' : entry.platform;
@@ -75,7 +74,7 @@ const WLSalesActionMenu: React.FC<WLSalesActionMenuProps> = ({
                     <ManualEventMarkerForm 
                         gameName={gameName}
                         existingMarker={existingMarker}
-                        onSave={onSaveManualMarker}
+                        onSave={handleSaveManualMarker}
                         onDelete={onDeleteManualMarker}
                         onClose={onClose} // Fecha o diálogo principal após salvar/remover
                     />

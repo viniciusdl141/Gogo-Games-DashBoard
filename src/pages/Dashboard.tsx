@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { getTrackingData, InfluencerTrackingEntry, InfluencerSummaryEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, WLSalesPlatformEntry, ResultSummaryEntry, WlDetails, SaleType, Platform, ManualEventMarker, TrafficEntry, TrackingData, recalculateWLSalesForPlatform } from '@/data/trackingData';
+import { getTrackingData, InfluencerTrackingEntry, InfluencerSummaryEntry, EventTrackingEntry, PaidTrafficEntry, DemoTrackingEntry, WLSalesPlatformEntry, WlDetails, SaleType, Platform, ManualEventMarker, TrafficEntry, TrackingData, recalculateWLSalesForPlatform } from '@/data/trackingData';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from '@/components/ui/card';
-import { DollarSign, Eye, List, Plus, EyeOff, Megaphone, CalendarPlus, Palette, Bot, History } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Plus, Bot, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; 
@@ -16,49 +16,34 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { useQuery } from '@tanstack/react-query';
-import { getGames, addGame as addGameToSupabase, updateGame as updateGameInSupabase, deleteGame as deleteGameFromSupabase } from '@/integrations/supabase/games';
+import { getGames, addGame as addGameToSupabase, deleteGame as deleteGameFromSupabase } from '@/integrations/supabase/games';
 import { Game as SupabaseGame } from '@/integrations/supabase/schema'; 
 import { rawData } from '@/data/rawTrackingData'; 
 import { useSession } from '@/components/SessionContextProvider'; 
 
 import ResultSummaryPanel from '@/components/dashboard/ResultSummaryPanel';
-import WLSalesChartPanel from '@/components/dashboard/WLSalesChartPanel';
-import WLSalesTablePanel from '@/components/dashboard/WLSalesTablePanel';
 import SalesByTypeChart from '@/components/dashboard/SalesByTypeChart';
-import InfluencerPanel from '@/components/dashboard/InfluencerPanel'; // Corrigido o erro 6
-import EventPanel from '@/components/dashboard/EventPanel'; // Corrigido o erro 7
+import InfluencerPanel from '@/components/dashboard/InfluencerPanel';
+import EventPanel from '@/components/dashboard/EventPanel';
 import PaidTrafficPanel from '@/components/dashboard/PaidTrafficPanel';
 import DemoTrackingPanel from '@/components/dashboard/DemoTrackingPanel';
-import KpiCard from '@/components/dashboard/KpiCard';
-import WlDetailsManager from '@/components/dashboard/WlDetailsManager';
-import AddInfluencerForm from '@/components/dashboard/AddInfluencerForm';
-import AddEventForm from '@/components/dashboard/AddEventForm';
-import AddPaidTrafficForm from '@/components/dashboard/AddPaidTrafficForm';
-import AddWLSalesForm from '@/components/dashboard/AddWLSalesForm';
-import EditWLSalesForm from '@/components/dashboard/EditWLSalesForm';
 import GameSummaryPanel from '@/components/dashboard/GameSummaryPanel';
 import ExportDataButton from '@/components/dashboard/ExportDataButton';
-import { formatCurrency, formatNumber, convertToCSV, cn } from '@/lib/utils'; 
-import AddGameForm from '@/components/dashboard/AddGameForm';
+import { cn } from '@/lib/utils'; 
 import WlComparisonsPanel from '@/components/dashboard/WlComparisonsPanel';
 import AddDemoForm from '@/components/dashboard/AddDemoForm';
 import EditDemoForm from '@/components/dashboard/EditDemoForm';
-import ManualEventMarkerForm from '@/components/dashboard/ManualEventMarkerForm'; 
 import WLSalesActionMenu from '@/components/dashboard/WLSalesActionMenu'; 
 import WlConversionKpisPanel, { TimeFrame } from '@/components/dashboard/WlConversionKpisPanel'; 
-import AddTrafficForm from '@/components/dashboard/AddTrafficForm'; 
 import AIDataProcessor from '@/components/dashboard/AIDataProcessor'; 
 import AddGameModal from '@/components/dashboard/AddGameModal'; 
 import DeleteGameButton from '@/components/dashboard/DeleteGameButton'; 
 import DashboardHeader from '@/components/dashboard/DashboardHeader'; 
-import AnimatedPanel from '@/components/AnimatedPanel'; // CORRIGIDO: Usando 'AnimatedPanel' com A e P maiúsculos
+import AnimatedPanel from '@/components/AnimatedPanel';
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
-import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import EditGameGeneralInfoForm from '@/components/dashboard/EditGameGeneralInfoForm'; 
-import AddDailyWLSalesForm from '@/components/dashboard/AddDailyWLSalesForm'; 
 import WLSalesPanelThemed from '@/components/dashboard/WLSalesPanelThemed'; 
-import SteamScraperImportModal from '@/components/SteamScraperImportModal'; // NOVO IMPORT
+import SteamScraperImportModal from '@/components/SteamScraperImportModal';
 
 // Initialize data once
 const initialRawData = getTrackingData();
@@ -98,8 +83,6 @@ const Dashboard = () => {
   const [isAddInfluencerFormOpen, setIsAddInfluencerFormOpen] = useState(false);
   const [isAddEventFormOpen, setIsAddEventFormOpen] = useState(false);
   const [isAddPaidTrafficFormOpen, setIsAddPaidTrafficFormOpen] = useState(false);
-  const [isAddWLSalesFormOpen, setIsAddWLSalesFormOpen] = useState(false);
-  const [isAddDailyWLSalesFormOpen, setIsAddDailyWLSalesFormOpen] = useState(false); // NOVO STATE
   const [isAddGameFormOpen, setIsAddGameFormOpen] = useState(false);
   const [isAddDemoFormOpen, setIsAddDemoFormOpen] = useState(false);
   const [isColorConfigOpen, setIsColorConfigOpen] = useState(false); 
@@ -368,7 +351,7 @@ const Dashboard = () => {
         };
     });
     
-    setIsAddWLSalesFormOpen(false);
+    // Removed unused state setter: setIsAddWLSalesFormOpen(false);
   }, []);
   
   // NOVO HANDLER: Adição Diária Simplificada
@@ -398,7 +381,7 @@ const Dashboard = () => {
         };
     });
     
-    setIsAddDailyWLSalesFormOpen(false);
+    // Removed unused state setter: setIsAddDailyWLSalesFormOpen(false);
     toast.success(`Entrada diária de WL/Vendas para ${newEntry.platform} adicionada.`);
   }, [selectedGameName]);
 
@@ -602,7 +585,7 @@ const Dashboard = () => {
   }, []);
 
   // --- Demo Tracking Handlers ---
-  const handleAddDemoEntry = useCallback((newEntry: Omit<DemoTrackingEntry, 'id' | 'date'> & { date: string }) => {
+  const handleAddDemoEntry = useCallback((newEntry: { date: string, downloads: number, avgPlaytime: string, totalDemoTime: string, totalGameTime: string }) => {
     const dateObject = new Date(newEntry.date);
     const entryToAdd: DemoTrackingEntry = {
         ...newEntry,
@@ -888,16 +871,14 @@ const Dashboard = () => {
     const influencerSummaryMap = new Map<string, { totalActions: number, totalInvestment: number, wishlistsGenerated: number }>();
 
     influencerTracking.forEach(item => {
-        influencerTracking.forEach(item => {
-            const influencer = item.influencer;
-            const current = influencerSummaryMap.get(influencer) || { totalActions: 0, totalInvestment: 0, wishlistsGenerated: 0 };
-            
-            current.totalActions += 1;
-            current.totalInvestment += item.investment;
-            current.wishlistsGenerated += item.estimatedWL; 
-            
-            influencerSummaryMap.set(influencer, current);
-        });
+        const influencer = item.influencer;
+        const current = influencerSummaryMap.get(influencer) || { totalActions: 0, totalInvestment: 0, wishlistsGenerated: 0 };
+        
+        current.totalActions += 1;
+        current.totalInvestment += item.investment;
+        current.wishlistsGenerated += item.estimatedWL; 
+        
+        influencerSummaryMap.set(influencer, current);
     });
 
     const influencerSummary: InfluencerSummaryEntry[] = Array.from(influencerSummaryMap.entries()).map(([influencer, data]) => ({
@@ -920,9 +901,9 @@ const Dashboard = () => {
     const totalInvestment = investmentSources.influencers + investmentSources.events + investmentSources.paidTraffic;
 
     // Separar Visualizações e Impressões
-    const totalInfluencerViews = influencerTracking.reduce((sum, item) => sum + item.views, 0);
-    const totalEventViews = eventTracking.reduce((sum, item) => sum + item.views, 0);
-    const totalImpressions = paidTraffic.reduce((sum, item) => sum + item.impressions, 0);
+    const totalWLGenerated = influencerTracking.reduce((sum, item) => sum + item.estimatedWL, 0) +
+                             eventTracking.reduce((sum, item) => sum + item.wlGenerated, 0) +
+                             paidTraffic.reduce((sum, item) => sum + item.estimatedWishlists, 0);
     
     // Calculate total WL increase across all time for AVG daily growth calculation
     const totalWLIncrease = realWLSales.length > 0 
@@ -934,9 +915,7 @@ const Dashboard = () => {
     const totalWishlists = realWLSales.length > 0 ? realWLSales[realWLSales.length - 1].wishlists : 0;
 
     // Calculate total WL generated from marketing activities
-    const totalWLGenerated = influencerTracking.reduce((sum, item) => sum + item.estimatedWL, 0) +
-                             eventTracking.reduce((sum, item) => sum + item.wlGenerated, 0) +
-                             paidTraffic.reduce((sum, item) => sum + item.estimatedWishlists, 0);
+    // (Already calculated in totalWLGenerated, but keeping the variable name for clarity)
 
     // --- NEW KPI CALCULATIONS ---
     
@@ -1099,7 +1078,7 @@ const Dashboard = () => {
             return (
                 <div key={key} className="flex items-center justify-between space-x-4">
                     <Label htmlFor={`color-${key}`}>{labelMap[colorKey]}</Label>
-                    <Input
+                    <input
                         id={`color-${key}`}
                         type="color"
                         value={chartColors[colorKey]}

@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { GameOption } from '@/integrations/supabase/games';
 import { ResultSummaryEntry, TrackingData } from '@/data/trackingData';
-import { formatCurrency, formatNumber, cn } from '@/lib/utils';
+import { formatCurrency, formatNumber } from '@/lib/utils';
+import { DollarSign, List, Gauge } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DollarSign, List, TrendingUp, Clock, Gauge, Info } from 'lucide-react';
 import KpiCard from '../dashboard/KpiCard'; // Importado KpiCard
 import LaunchTimer from '../dashboard/LaunchTimer';
 

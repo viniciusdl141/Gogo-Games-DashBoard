@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { WLSalesPlatformEntry, EventTrackingEntry, ManualEventMarker, Platform } from '@/data/trackingData';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { cn, formatNumber } from '@/lib/utils';
-import { Plus, EyeOff, Eye, CalendarPlus, Palette, History, ArrowRight, ArrowLeft, Gamepad2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Plus, EyeOff, Eye, CalendarPlus, Palette, Gamepad2 } from 'lucide-react';
 import WLSalesChartPanel from './WLSalesChartPanel';
 import WLSalesTablePanel from './WLSalesTablePanel';
 import ExportDataButton from './ExportDataButton';
