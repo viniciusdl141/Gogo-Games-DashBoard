@@ -96,15 +96,15 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, e
         }, {});
 
         return (
-            <div className="bg-white/90 dark:bg-gray-800/90 p-3 border rounded-md shadow-lg text-sm backdrop-blur-sm">
-                <p className="font-bold mb-2 text-base text-foreground">{dateLabel}</p>
+            <div className="bg-gray-900/90 p-3 border border-gray-700 rounded-md shadow-lg text-sm backdrop-blur-sm text-white">
+                <p className="font-bold mb-2 text-base text-white">{dateLabel}</p>
                 
                 {/* Display active events */}
                 {activeEvents.length > 0 && (
-                    <div className="mb-2 p-2 bg-gogo-orange/10 border border-gogo-orange rounded-md">
+                    <div className="mb-2 p-2 bg-gogo-orange/20 border border-gogo-orange rounded-md">
                         <p className="font-semibold text-gogo-orange text-xs mb-1">Eventos Ativos:</p>
                         {activeEvents.map((event, index) => (
-                            <p key={event.id || index} className="text-xs text-foreground">
+                            <p key={event.id || index} className="text-xs text-white">
                                 {event.name} ({event.type === 'manual' ? 'Manual' : 'Automático'})
                             </p>
                         ))}
@@ -124,25 +124,25 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, e
                     const frequency = wlEntry?.frequency || 'Diário';
 
                     const VariationIcon = variation > 0 ? ArrowUp : variation < 0 ? ArrowDown : Minus;
-                    const variationColor = variation > 0 ? 'text-green-500' : variation < 0 ? 'text-red-500' : 'text-muted-foreground';
+                    const variationColor = variation > 0 ? 'text-green-400' : variation < 0 ? 'text-red-400' : 'text-gray-400';
 
                     return (
-                        <div key={platform} className="mt-2 border-t pt-2 border-muted-foreground/20">
+                        <div key={platform} className="mt-2 border-t pt-2 border-gray-700">
                             <p className="font-semibold text-sm mb-1 flex items-center justify-between text-gogo-cyan">
                                 <span>{platform} ({frequency})</span>
-                                <span className="text-xs text-foreground/70">WL: {formatNumber(totalWishlists)} {isPlaceholder && '(Estimado)'}</span>
+                                <span className="text-xs text-white/70">WL: {formatNumber(totalWishlists)} {isPlaceholder && '(Estimado)'}</span>
                             </p>
                             
                             <div className="space-y-1">
                                 <p className="flex justify-between items-center">
-                                    <span className="text-foreground">Variação WL:</span>
+                                    <span className="text-white">Variação WL:</span>
                                     <span className={`font-medium flex items-center ${variationColor}`}>
                                         <VariationIcon className="h-3 w-3 mr-1" />
                                         {formatNumber(Math.abs(variation))}
                                     </span>
                                 </p>
                                 <p className="flex justify-between items-center">
-                                    <span className="text-foreground">Vendas (Unidades):</span>
+                                    <span className="text-white">Vendas (Unidades):</span>
                                     <span className="font-medium text-gogo-orange">
                                         {formatNumber(totalSales)}
                                     </span>
