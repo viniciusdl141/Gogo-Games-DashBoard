@@ -23,9 +23,16 @@ export function formatDate(date: Date | number | null): string {
     let dateToFormat: Date;
 
     if (typeof date === 'number') {
-        const jsDate = excelSerialDateToJSDate(date);
-        if (!jsDate) return '-';
-        dateToFormat = jsDate;
+        // Heurística: Se o número for muito grande (maior que 100000, que é aproximadamente 2240), 
+        // assumimos que é um timestamp JS em milissegundos.
+        if (date > 10000000000) { // 10 bilhões de milissegundos (aprox. 1970-04-26)
+            dateToFormat = new Date(date);
+        } else {
+            // Caso contrário, assumimos que é um serial date do Excel
+            const jsDate = excelSerialDateToJSDate(date);
+            if (!jsDate) return '-';
+            dateToFormat = jsDate;
+        }
     } else {
         dateToFormat = date;
     }
