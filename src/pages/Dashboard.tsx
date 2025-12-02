@@ -51,7 +51,7 @@ import AIDataProcessor from '@/components/dashboard/AIDataProcessor';
 import AddGameModal from '@/components/dashboard/AddGameModal'; 
 import DeleteGameButton from '@/components/dashboard/DeleteGameButton'; 
 import DashboardHeader from '@/components/dashboard/DashboardHeader'; 
-import AnimatedPanel from '@/components/animated-panel'; 
+import AnimatedPanel from '@/components/AnimatedPanel'; // CORRIGIDO: Usando 'AnimatedPanel' com A e P maiúsculos
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -354,6 +354,8 @@ const Dashboard = () => {
             id: generateLocalUniqueId('wl'),
             date: dateObject,
             variation: 0, // Will be recalculated
+            saleType: newEntry.saleType, // Ensure saleType is carried over
+            frequency: newEntry.frequency, // Ensure frequency is carried over
         };
         
         const updatedWLSales = [...prevData.wlSales, entryToAdd];
