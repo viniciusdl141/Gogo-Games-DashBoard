@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Zap, BarChart3, Gamepad2, Users, DollarSign } from 'lucide-react';
+import { Zap, BarChart3, Gamepad2, Users, DollarSign, Loader2 } from 'lucide-react';
 import SteamJsonAIProcessor from '@/components/SteamJsonAIProcessor';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
