@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// Usando o import direto do esm.sh para a versão mais recente do @google/genai
 import { GoogleGenAI } from "https://esm.sh/@google/genai@0.16.0";
 
 const corsHeaders = {
@@ -63,6 +64,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // NOTE: Authentication is handled manually here.
+  // For simplicity in this demo, we rely on the client passing the JWT, 
+  // but the function itself doesn't strictly verify it against the DB unless needed.
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
