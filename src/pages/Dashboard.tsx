@@ -51,13 +51,14 @@ import AIDataProcessor from '@/components/dashboard/AIDataProcessor';
 import AddGameModal from '@/components/dashboard/AddGameModal'; 
 import DeleteGameButton from '@/components/dashboard/DeleteGameButton'; 
 import DashboardHeader from '@/components/dashboard/DashboardHeader'; 
-import AnimatedPanel from '@/components/AnimatedPanel'; 
+import AnimatedPanel from '@/components/animated-panel'; 
 import { addDays, isBefore, isEqual, startOfDay, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EditGameGeneralInfoForm from '@/components/dashboard/EditGameGeneralInfoForm'; 
 import AddDailyWLSalesForm from '@/components/dashboard/AddDailyWLSalesForm'; 
 import WLSalesPanelThemed from '@/components/dashboard/WLSalesPanelThemed'; 
+import SteamScraperImportModal from '@/components/SteamScraperImportModal'; // NOVO IMPORT
 
 // Initialize data once
 const initialRawData = getTrackingData();
@@ -109,6 +110,7 @@ const Dashboard = () => {
   
   const [isHistoryVisible, setIsHistoryVisible] = useState(true);
   const [isAIDataProcessorOpen, setIsAIDataProcessorOpen] = useState(false); // NEW STATE
+  const [isSteamScraperImportOpen, setIsSteamScraperImportOpen] = useState(false); // NOVO STATE
 
   // Fetch games from Supabase, filtered by studioId if not admin
   const { data: supabaseGames, refetch: refetchSupabaseGames, isLoading: isGamesLoading } = useQuery<SupabaseGame[], Error>({
@@ -1202,6 +1204,24 @@ const Dashboard = () => {
                                 />
                             </DialogContent>
                         </Dialog>
+                        
+                        {/* START NEW FEATURE: Steam Scraper Import */}
+                        <Dialog open={isSteamScraperImportOpen} onOpenChange={setIsSteamScraperImportOpen}>
+                            <DialogTrigger asChild>
+                                <Button 
+                                    onClick={() => setIsSteamScraperImportOpen(true)} 
+                                    variant="default" 
+                                    className="w-full text-sm mt-2 bg-gogo-orange hover:bg-gogo-orange/90 text-white"
+                                >
+                                    <Bot className="h-4 w-4 mr-2" /> Importar JSON (Steam Scraper)
+                                </Button>
+                            </DialogTrigger>
+                            <SteamScraperImportModal 
+                                isOpen={isSteamScraperImportOpen}
+                                onClose={() => setIsSteamScraperImportOpen(false)}
+                            />
+                        </Dialog>
+                        {/* END NEW FEATURE */}
                         
                         {/* Delete Game Button */}
                         {selectedGame && (
