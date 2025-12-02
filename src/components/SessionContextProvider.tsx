@@ -1,108 +1,121 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Session, SupabaseClient, User } from '@supabase/supabase-js';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import toast from 'react-hot-toast';
 
-// Define types for Profile and Context
-interface Profile {
-  id: string;
-  email: string;
+interface UserProfile {
   role: 'admin' | 'studio' | 'user';
   studio_id: string | null;
 }
 
-interface SupabaseContextType {
-  supabase: SupabaseClient;
+interface SessionContextType {
   session: Session | null;
   user: User | null;
-  profile: Profile | null;
-  isLoading: boolean;
+  profile: UserProfile | null;
   isAdmin: boolean;
   studioId: string | null;
+  isLoading: boolean;
 }
 
-const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined);
+const SessionContext = createContext<SessionContextType | undefined>(undefined);
+
+const ADMIN_EMAIL = 'viniciusgamejamplus@gmail.com';
 
 export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = async (currentUser: User) => {
+    const isAdminUser = currentUser.email === ADMIN_EMAIL;
+    
+    if (isAdminUser) {
+        // Admin bypasses profile fetch for speed and guarantees admin role
+        setProfile({ role: 'admin', studio_id: null });
+        return { role: 'admin', studio_id: null };
+    }
+
+    // Fetch profile for non-admin users
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
-      .eq('id', userId)
+      .select('role, studio_id')
+      .eq('id', currentUser.id)
       .single();
 
     if (error) {
       console.error('Error fetching profile:', error);
       setProfile(null);
-      return;
+      return null;
     }
-    
-    setProfile(data as Profile);
-  }, []);
+
+    const userProfile: UserProfile = {
+        role: data.role as 'admin' | 'studio' | 'user',
+        studio_id: data.studio_id,
+    };
+    setProfile(userProfile);
+    return userProfile;
+  };
 
   useEffect(() => {
-    // Handle initial session and profile fetch
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      }
-      setIsLoading(false);
-    });
+    const handleSession = async (currentSession: Session | null) => {
+      if (currentSession) {
+        setSession(currentSession);
+        setUser(currentSession.user);
+        const userProfile = await fetchProfile(currentSession.user);
+        
+        // If the user is the admin but the profile fetch failed (shouldn't happen if admin logic is correct), 
+        // we still rely on the email check for isAdmin status.
+        const isAdminStatus = currentSession.user.email === ADMIN_EMAIL;
+        
+        if (isAdminStatus && (!userProfile || userProfile.role !== 'admin')) {
+            // Force update profile table if admin profile is missing or incorrect
+            await supabase.from('profiles').upsert({ 
+                id: currentSession.user.id, 
+                email: currentSession.user.email, 
+                role: 'admin', 
+                studio_id: null 
+            });
+            setProfile({ role: 'admin', studio_id: null });
+        }
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        toast.success('Login realizado com sucesso!');
-        fetchProfile(session.user.id);
-      } else if (event === 'SIGNED_OUT') {
-        toast.success('Logout realizado.');
+      } else {
+        setSession(null);
+        setUser(null);
         setProfile(null);
-      } else if (event === 'USER_UPDATED' && session?.user) {
-        fetchProfile(session.user.id);
       }
-      
       setIsLoading(false);
+    };
+
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        handleSession(session);
     });
 
-    return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleSession(session);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   const isAdmin = profile?.role === 'admin';
   const studioId = profile?.studio_id || null;
 
-  const value = {
-    supabase,
-    session,
-    user,
-    profile,
-    isLoading,
-    isAdmin,
-    studioId,
-  };
-
   return (
-    <SupabaseContext.Provider value={value}>
+    <SessionContext.Provider value={{ session, user, profile, isAdmin, studioId, isLoading }}>
       {children}
-    </SupabaseContext.Provider>
+    </SessionContext.Provider>
   );
 };
 
 export const useSession = () => {
-  const context = useContext(SupabaseContext);
+  const context = useContext(SessionContext);
   if (context === undefined) {
-    // This is the error message you were seeing
     throw new Error('useSession must be used within a SessionContextProvider');
   }
   return context;
