@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-// Tentando a versão 0.15.0, que pode ser mais estável no ambiente Deno/Supabase.
+// Usando a versão 0.15.0 para consistência.
 import { GoogleGenAI } from "npm:@google/genai@0.15.0";
 
 const corsHeaders = {
