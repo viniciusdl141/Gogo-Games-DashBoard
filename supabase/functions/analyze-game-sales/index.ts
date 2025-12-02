@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-// Corrigido: Usando o prefixo 'npm:' para garantir que o Deno resolva a dependência corretamente.
-import { GoogleGenAI } from "npm:@google/genai@0.16.0";
+// Tentando a versão 0.15.0, que pode ser mais estável no ambiente Deno/Supabase.
+import { GoogleGenAI } from "npm:@google/genai@0.15.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
