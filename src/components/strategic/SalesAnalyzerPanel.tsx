@@ -22,6 +22,7 @@ import { GameOption } from '@/integrations/supabase/games';
 import { invokeSalesAnalyzer, SalesAnalysisReport } from '@/integrations/supabase/functions';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import KpiCard from '../dashboard/KpiCard'; // IMPORT CORRIGIDO
 
 const formSchema = z.object({
     gameName: z.string().min(1, "Selecione um jogo."),
