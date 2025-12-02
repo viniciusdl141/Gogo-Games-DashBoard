@@ -90,7 +90,7 @@ export async function processSteamScraperJson(rawJson: string, apiKey: string): 
                 .limit(1);
 
             if (fetchError) {
-                console.error(\`Erro ao buscar jogo \${game.name}:\`, fetchError);
+                console.error('Erro ao buscar jogo ' + game.name + ':', fetchError);
                 continue;
             }
 
@@ -103,7 +103,7 @@ export async function processSteamScraperJson(rawJson: string, apiKey: string): 
                     .eq('id', gameId);
 
                 if (updateError) {
-                    console.error(\`Erro ao atualizar jogo \${game.name}:\`, updateError);
+                    console.error('Erro ao atualizar jogo ' + game.name + ':', updateError);
                 } else {
                     updatedCount++;
                 }
@@ -114,7 +114,7 @@ export async function processSteamScraperJson(rawJson: string, apiKey: string): 
                     .insert([dbData]);
 
                 if (insertError) {
-                    console.error(\`Erro ao inserir novo jogo \${game.name}:\`, insertError);
+                    console.error('Erro ao inserir novo jogo ' + game.name + ':', insertError);
                 } else {
                     createdCount++;
                 }
@@ -122,13 +122,13 @@ export async function processSteamScraperJson(rawJson: string, apiKey: string): 
         }
 
         toast.dismiss(toastId);
-        toast.success(\`Processamento concluído! \${updatedCount} jogos atualizados, \${createdCount} jogos criados.\`);
+        toast.success('Processamento concluído! ' + updatedCount + ' jogos atualizados, ' + createdCount + ' jogos criados.');
         
         return structuredResponse;
 
     } catch (error) {
         toast.dismiss(toastId);
-        toast.error(\`Erro: \${error.message}\`);
+        toast.error('Erro: ' + error.message);
         throw error;
     }
 }
