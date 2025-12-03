@@ -40,7 +40,7 @@ const SalesAnalyzerPanel: React.FC<SalesAnalyzerPanelProps> = ({ allGames }) => 
     const [report, setReport] = useState<SalesAnalysisReport | null>(null);
     
     // Usando a chave fornecida pelo usuário como valor inicial
-    const initialApiKey = 'AIzaSyBX7maloS1javL5woTMI1bKyxZ5o2Pbl18'; 
+    const initialApiKey = 'AIzaSyBewls5qn39caQJu8fnlxDwmR7aoyHjyLE'; 
 
     const form = useForm<AnalyzerFormValues>({
         resolver: zodResolver(formSchema),

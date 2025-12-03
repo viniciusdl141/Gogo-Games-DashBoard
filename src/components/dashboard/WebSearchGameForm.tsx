@@ -38,7 +38,7 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
     const [results, setResults] = useState<GameOption[]>([]);
     
     // Usando a chave fornecida pelo usuário como valor inicial
-    const initialApiKey = 'AIzaSyCao7UHpJgeYGExguqjvecUwdeztYhnxWU'; 
+    const initialApiKey = 'AIzaSyBewls5qn39caQJu8fnlxDwmR7aoyHjyLE'; 
 
     const form = useForm<WebSearchFormValues>({
         resolver: zodResolver(formSchema),

@@ -28,17 +28,13 @@ interface AIDataProcessorProps {
     onClose: () => void;
 }
 
-const AI_PROVIDERS = [
-    { value: 'openai', label: 'OpenAI (GPT-4o-mini)' },
-    { value: 'gemini', label: 'Google Gemini (2.5 Flash)' },
-    { value: 'deepseek', label: 'DeepSeek (deepseek-coder)' },
-    { value: 'mistral', label: 'Mistral AI (mistral-large)' },
-];
+// Apenas Gemini como provedor padrão
+const AI_PROVIDER = 'gemini';
 
 const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProcessed, onClose }) => {
     const [rawData, setRawData] = useState('');
-    const [aiApiKey, setAiApiKey] = useState('');
-    const [aiProvider, setAiProvider] = useState(AI_PROVIDERS[0].value);
+    // Chave de API Gemini fornecida pelo usuário
+    const [aiApiKey, setAiApiKey] = useState('AIzaSyBewls5qn39caQJu8fnlxDwmR7aoyHjyLE'); 
     const [isLoading, setIsLoading] = useState(false);
     const [processedData, setProcessedData] = useState<StructuredData | null>(null);
 
@@ -51,18 +47,14 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
             toast.error("Por favor, insira a chave da API da IA.");
             return;
         }
-        if (!aiProvider) {
-            toast.error("Por favor, selecione um provedor de IA.");
-            return;
-        }
 
         setIsLoading(true);
         setProcessedData(null);
         toast.loading("Enviando dados para a IA processar...", { id: 'ai-processing' });
 
         try {
-            // A Edge Function agora espera o provedor e a chave
-            const response = await invokeAIDataProcessor(rawData, gameName, aiApiKey, aiProvider); 
+            // Passamos o provedor fixo 'gemini'
+            const response = await invokeAIDataProcessor(rawData, gameName, aiApiKey, AI_PROVIDER); 
             
             toast.dismiss('ai-processing');
             
@@ -77,7 +69,7 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
             console.error("AI Processing Error:", error);
             toast.dismiss('ai-processing');
             // O erro agora deve conter a mensagem detalhada da Edge Function
-            toast.error(`Falha no processamento da IA: ${error.message}. Verifique a chave da API e o provedor.`);
+            toast.error(`Falha no processamento da IA: ${error.message}. Verifique a chave da API.`);
         } finally {
             setIsLoading(false);
         }
@@ -118,7 +110,7 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
         <Card className="border-none shadow-none">
             <CardHeader>
                 <CardTitle className="flex items-center text-gogo-cyan">
-                    <Bot className="h-5 w-5 mr-2" /> Processamento de Dados Brutos por IA
+                    <Bot className="h-5 w-5 mr-2" /> Processamento de Dados Brutos por IA (Gemini)
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -126,34 +118,17 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
                     Cole aqui o conteúdo bruto (ex: texto de planilha, CSV, ou dados não estruturados) para que a IA os converta em entradas estruturadas para o jogo **{gameName}**.
                 </p>
                 
-                {/* AI PROVIDER SELECTION */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="ai-provider-select">Provedor de IA</Label>
-                        <Select onValueChange={setAiProvider} defaultValue={aiProvider}>
-                            <SelectTrigger id="ai-provider-select">
-                                <SelectValue placeholder="Selecione o Provedor" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {AI_PROVIDERS.map(p => (
-                                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    
-                    {/* API KEY INPUT */}
-                    <div className="space-y-2">
-                        <Label htmlFor="ai-api-key">Chave da API da IA</Label>
-                        <Input
-                            id="ai-api-key"
-                            type="password"
-                            placeholder="sk-..."
-                            value={aiApiKey}
-                            onChange={(e) => setAiApiKey(e.target.value)}
-                            disabled={isLoading}
-                        />
-                    </div>
+                {/* API KEY INPUT */}
+                <div className="space-y-2">
+                    <Label htmlFor="ai-api-key">Chave da API Gemini</Label>
+                    <Input
+                        id="ai-api-key"
+                        type="password"
+                        placeholder="AIzaSy..."
+                        value={aiApiKey}
+                        onChange={(e) => setAiApiKey(e.target.value)}
+                        disabled={isLoading}
+                    />
                 </div>
                 <p className="text-xs text-red-500">
                     ⚠️ **AVISO DE SEGURANÇA:** A chave da API é enviada diretamente do seu navegador para a Edge Function.
@@ -172,7 +147,7 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
                     </Button>
                     <Button 
                         onClick={handleProcessData} 
-                        disabled={isLoading || !rawData.trim() || !aiApiKey.trim() || !aiProvider}
+                        disabled={isLoading || !rawData.trim() || !aiApiKey.trim()}
                         className="bg-gogo-cyan hover:bg-gogo-cyan/90"
                     >
                         {isLoading ? (
