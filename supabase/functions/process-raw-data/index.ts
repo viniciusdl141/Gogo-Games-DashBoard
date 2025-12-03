@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-// Importando a biblioteca Gemini
+// Corrigindo a importação do SDK do Google AI
 import { GoogleGenAI } from 'https://esm.sh/@google/genai@0.1.0';
 
 const corsHeaders = {
