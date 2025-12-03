@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Bot, Check } from 'lucide-react';
 import { invokeAIDataProcessor } from '@/integrations/supabase/functions';
 import { toast } from 'sonner';
+import { Label } from '@/components/ui/label';
 
 // Define a estrutura esperada da Edge Function Gemini
 interface StructuredGameData {
@@ -39,6 +40,7 @@ const AI_PROVIDER = 'gemini';
 
 const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpen, onClose, gameName, onDataProcessed }) => {
   const [rawJson, setRawJson] = useState('');
+  const [aiApiKey, setAiApiKey] = useState('AIzaSyBewls5qn39caQJu8fnlxDwmR7aoyHjyLE'); // Default key provided by user
   const [isLoading, setIsLoading] = useState(false);
   const [structuredPreview, setStructuredPreview] = useState<any | null>(null);
 
@@ -47,14 +49,18 @@ const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpe
       toast.error('Por favor, cole o JSON bruto.');
       return;
     }
+    if (!aiApiKey.trim()) {
+        toast.error("Por favor, insira a chave da API Gemini.");
+        return;
+    }
 
     setIsLoading(true);
     setStructuredPreview(null);
     toast.loading("Enviando dados para a IA processar...", { id: 'ai-processing-scraper' });
 
     try {
-      // Chamada à função genérica de processamento de dados. A chave da API é esperada no servidor.
-      const result = await invokeAIDataProcessor(rawJson, gameName, 'SERVER_SECRET_KEY', AI_PROVIDER);
+      // Chamada à função genérica de processamento de dados.
+      const result = await invokeAIDataProcessor(rawJson, gameName, aiApiKey, AI_PROVIDER);
       
       toast.dismiss('ai-processing-scraper');
       
@@ -115,9 +121,17 @@ const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpe
             />
           </div>
           
-          <p className="text-xs text-red-500">
-              ⚠️ **AVISO DE CONFIGURAÇÃO:** A chave da API Gemini deve ser configurada como um segredo de ambiente (`GEMINI_API_KEY`) na sua Edge Function.
-          </p>
+          <div className="space-y-2">
+              <Label htmlFor="ai-api-key-scraper">Chave da API Gemini</Label>
+              <Input 
+                  id="ai-api-key-scraper"
+                  type="password" 
+                  placeholder="AIzaSy..." 
+                  value={aiApiKey}
+                  onChange={(e) => setAiApiKey(e.target.value)}
+                  disabled={isLoading}
+              />
+          </div>
 
           {structuredPreview && (
             <div className="space-y-2 mt-4 p-3 border rounded-lg bg-muted/50">
@@ -138,7 +152,7 @@ const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpe
                   <Check className="mr-2 h-4 w-4" /> Aprovar e Inserir Dados
               </Button>
           ) : (
-              <Button onClick={handleProcess} disabled={isLoading || !rawJson} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
+              <Button onClick={handleProcess} disabled={isLoading || !rawJson || !aiApiKey.trim()} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
                   {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Bot className="h-4 w-4 mr-2" />}
                   Processar JSON
               </Button>

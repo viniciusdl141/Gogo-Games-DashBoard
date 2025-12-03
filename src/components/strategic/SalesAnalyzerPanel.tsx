@@ -185,7 +185,7 @@ const SalesAnalyzerPanel: React.FC<SalesAnalyzerPanelProps> = ({ allGames }) => 
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Chave da API Gemini</FormLabel>
-                                        <Input type="password" placeholder="AIzaSy..." {...field} disabled={isLoading} />
+                                        <Input type="password" placeholder="••••••••" {...field} disabled={isLoading} />
                                         <FormMessage />
                                     </FormItem>
                                 )}

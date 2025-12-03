@@ -33,6 +33,7 @@ const AI_PROVIDER = 'gemini';
 
 const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProcessed, onClose }) => {
     const [rawData, setRawData] = useState('');
+    const [aiApiKey, setAiApiKey] = useState('AIzaSyBewls5qn39caQJu8fnlxDwmR7aoyHjyLE'); // Default key provided by user
     const [isLoading, setIsLoading] = useState(false);
     const [processedData, setProcessedData] = useState<StructuredData | null>(null);
 
@@ -41,14 +42,17 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
             toast.error("Por favor, insira os dados brutos para processamento.");
             return;
         }
+        if (!aiApiKey.trim()) {
+            toast.error("Por favor, insira a chave da API Gemini.");
+            return;
+        }
 
         setIsLoading(true);
         setProcessedData(null);
         toast.loading("Enviando dados para a IA processar...", { id: 'ai-processing' });
 
         try {
-            // A chave da API Gemini agora deve ser configurada como um segredo no Supabase (GEMINI_API_KEY)
-            const response = await invokeAIDataProcessor(rawData, gameName, 'SERVER_SECRET_KEY', AI_PROVIDER); 
+            const response = await invokeAIDataProcessor(rawData, gameName, aiApiKey, AI_PROVIDER); 
             
             toast.dismiss('ai-processing');
             
@@ -112,9 +116,17 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
                     Cole aqui o conteúdo bruto (ex: texto de planilha, CSV, ou dados não estruturados) para que a IA os converta em entradas estruturadas para o jogo **{gameName}**.
                 </p>
                 
-                <p className="text-xs text-red-500">
-                    ⚠️ **AVISO DE CONFIGURAÇÃO:** A chave da API Gemini deve ser configurada como um segredo de ambiente (`GEMINI_API_KEY`) na sua Edge Function.
-                </p>
+                <div className="space-y-2">
+                    <Label htmlFor="ai-api-key">Chave da API Gemini</Label>
+                    <Input 
+                        id="ai-api-key"
+                        type="password" 
+                        placeholder="AIzaSy..." 
+                        value={aiApiKey}
+                        onChange={(e) => setAiApiKey(e.target.value)}
+                        disabled={isLoading}
+                    />
+                </div>
                 
                 <Textarea
                     placeholder="Cole seus dados brutos aqui..."
@@ -129,7 +141,7 @@ const AIDataProcessor: React.FC<AIDataProcessorProps> = ({ gameName, onDataProce
                     </Button>
                     <Button 
                         onClick={handleProcessData} 
-                        disabled={isLoading || !rawData.trim()}
+                        disabled={isLoading || !rawData.trim() || !aiApiKey.trim()}
                         className="bg-gogo-cyan hover:bg-gogo-cyan/90"
                     >
                         {isLoading ? (

@@ -20,6 +20,7 @@ import { invokeGameDataFetcher, GameOption } from '@/integrations/supabase/funct
 import { formatCurrency, formatDate, formatNumber } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label'; // Import Label
 
 const formSchema = z.object({
     gameName: z.string().min(1, "O nome do jogo é obrigatório."),
@@ -35,6 +36,7 @@ interface WebSearchGameFormProps {
 const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [results, setResults] = useState<GameOption[]>([]);
+    const [aiApiKey, setAiApiKey] = useState('AIzaSyBewls5qn39caQJu8fnlxDwmR7aoyHjyLE'); // Default key provided by user
     
     const form = useForm<WebSearchFormValues>({
         resolver: zodResolver(formSchema),
@@ -44,13 +46,17 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
     });
 
     const handleSearch = async (values: WebSearchFormValues) => {
+        if (!aiApiKey.trim()) {
+            toast.error("Por favor, insira a chave da API Gemini.");
+            return;
+        }
+        
         setIsLoading(true);
         setResults([]);
         toast.loading(`Buscando dados públicos para "${values.gameName}"...`, { id: 'web-search' });
 
         try {
-            // Passamos uma chave placeholder, pois a chave real deve estar no segredo do servidor
-            const response = await invokeGameDataFetcher(values.gameName, 'SERVER_SECRET_KEY');
+            const response = await invokeGameDataFetcher(values.gameName, aiApiKey);
             
             toast.dismiss('web-search');
 
@@ -100,15 +106,23 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
                     )}
                 />
                 
-                <p className="text-xs text-red-500">
-                    ⚠️ **AVISO DE CONFIGURAÇÃO:** A chave da API Gemini deve ser configurada como um segredo de ambiente (`GEMINI_API_KEY`) na sua Edge Function.
-                </p>
+                <div className="space-y-2">
+                    <Label htmlFor="ai-api-key-search">Chave da API Gemini</Label>
+                    <Input 
+                        id="ai-api-key-search"
+                        type="password" 
+                        placeholder="AIzaSy..." 
+                        value={aiApiKey}
+                        onChange={(e) => setAiApiKey(e.target.value)}
+                        disabled={isLoading}
+                    />
+                </div>
 
                 <div className="flex justify-end space-x-2 pt-4">
                     <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
                         Cancelar
                     </Button>
-                    <Button type="submit" disabled={isLoading || !form.formState.isValid}>
+                    <Button type="submit" disabled={isLoading || !form.formState.isValid || !aiApiKey.trim()}>
                         {isLoading ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
