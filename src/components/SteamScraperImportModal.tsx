@@ -5,53 +5,86 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { processSteamScraperJson, StructuredResponse } from '@/utils/steamScraper';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Bot } from 'lucide-react';
+import { invokeAIDataProcessor } from '@/integrations/supabase/functions';
+import { toast } from 'sonner';
+
+// Define a estrutura esperada da Edge Function Gemini
+interface StructuredGameData {
+  appId?: string;
+  name: string;
+  wishlistDelta?: number;
+  followers?: number;
+  tags?: string[];
+  reviews?: string;
+  owners?: string;
+  price?: number; // Mapeia para price_usd
+  releaseDate?: string; // Mapeia para launch_date
+}
+
+export interface StructuredResponse {
+    games: StructuredGameData[];
+}
 
 interface SteamScraperImportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  gameName: string; // Adicionando gameName para passar para a IA
+  onDataProcessed: (data: any) => void; // Função para lidar com os dados estruturados
 }
 
-const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpen, onClose }) => {
+// Apenas Gemini como provedor padrão
+const AI_PROVIDER = 'gemini';
+
+const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpen, onClose, gameName, onDataProcessed }) => {
   const [rawJson, setRawJson] = useState('');
   // Usando a chave fornecida pelo usuário como valor inicial
-  const [apiKey, setApiKey] = useState('AIzaSyCao7UHpJgeYGExguqjvecUwdeztYhnxWU'); 
+  const [aiApiKey, setAiApiKey] = useState('AIzaSyBewls5qn39caQJu8fnlxDwmR7aoyHjyLE'); 
   const [isLoading, setIsLoading] = useState(false);
-  const [structuredPreview, setStructuredPreview] = useState<StructuredResponse | null>(null);
+  const [structuredPreview, setStructuredPreview] = useState<any | null>(null);
 
   const handleProcess = async () => {
-    if (!rawJson || !apiKey) {
-      alert('Por favor, cole o JSON bruto e insira a Chave da API Gemini.');
-      return;
-    }
-
-    try {
-      // Validação básica de JSON antes de enviar para a IA
-      JSON.parse(rawJson);
-    } catch (e) {
-      alert('O texto inserido não é um JSON válido.');
+    if (!rawJson || !aiApiKey) {
+      toast.error('Por favor, cole o JSON bruto e insira a Chave da API Gemini.');
       return;
     }
 
     setIsLoading(true);
     setStructuredPreview(null);
+    toast.loading("Enviando dados para a IA processar...", { id: 'ai-processing-scraper' });
 
     try {
-      const result = await processSteamScraperJson(rawJson, apiKey);
-      setStructuredPreview(result);
+      // Chamada à função genérica de processamento de dados
+      const result = await invokeAIDataProcessor(rawJson, gameName, aiApiKey, AI_PROVIDER);
+      
+      toast.dismiss('ai-processing-scraper');
+      
+      if (result.structuredData && Object.values(result.structuredData).some(arr => arr.length > 0)) {
+          setStructuredPreview(result.structuredData);
+          toast.success("Dados processados. Revise e aprove a inserção.");
+      } else {
+          toast.error("A IA retornou dados vazios ou inválidos. Verifique o formato de entrada.");
+      }
+
     } catch (error) {
-      // O tratamento de erro já é feito dentro de processSteamScraperJson usando toast
+      toast.dismiss('ai-processing-scraper');
+      toast.error("Erro: " + error.message);
       console.error("Processing failed:", error);
     } finally {
       setIsLoading(false);
     }
   };
+  
+  const handleApprove = () => {
+      if (structuredPreview) {
+          onDataProcessed(structuredPreview);
+          handleClose();
+      }
+  };
 
   const handleClose = () => {
     setRawJson('');
-    // Mantemos a chave da API para conveniência
     setStructuredPreview(null);
     setIsLoading(false);
     onClose();
@@ -65,7 +98,7 @@ const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpe
             <Bot className="h-5 w-5 mr-2" /> Importar JSON (Steam Scraper)
           </DialogTitle>
           <DialogDescription>
-            Cole o JSON bruto do scraper e forneça sua chave Gemini para estruturar e importar os dados dos jogos.
+            Cole o JSON bruto do scraper e forneça sua chave Gemini para estruturar e importar os dados de tracking para o jogo **{gameName}**.
           </DialogDescription>
         </DialogHeader>
 
@@ -92,8 +125,8 @@ const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpe
               id="gemini-key"
               type="password"
               placeholder="Insira sua chave da API Gemini"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              value={aiApiKey}
+              onChange={(e) => setAiApiKey(e.target.value)}
               disabled={isLoading}
             />
           </div>
@@ -112,10 +145,16 @@ const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpe
           <Button variant="outline" onClick={handleClose} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button onClick={handleProcess} disabled={isLoading || !rawJson || !apiKey} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
-            {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Bot className="h-4 w-4 mr-2" />}
-            Processar JSON
-          </Button>
+          {structuredPreview ? (
+              <Button onClick={handleApprove} className="bg-gogo-orange hover:bg-gogo-orange/90">
+                  <Check className="mr-2 h-4 w-4" /> Aprovar e Inserir Dados
+              </Button>
+          ) : (
+              <Button onClick={handleProcess} disabled={isLoading || !rawJson || !aiApiKey} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
+                  {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Bot className="h-4 w-4 mr-2" />}
+                  Processar JSON
+              </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

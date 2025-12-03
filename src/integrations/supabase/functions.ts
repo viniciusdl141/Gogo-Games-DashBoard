@@ -2,10 +2,12 @@ import { supabase } from './client';
 
 // NOTE: Replace 'ynlebwtutvyxybqgupke' with your actual Supabase Project ID in a real deployment.
 const PROJECT_ID = 'ynlebwtutvyxybqgupke';
-const EDGE_FUNCTION_URL_PROCESS = `https://${PROJECT_ID}.supabase.co/functions/v1/process-raw-data`;
-const EDGE_FUNCTION_URL_FETCH_GAME = `https://${PROJECT_ID}.supabase.co/functions/v1/fetch-game-data`; 
-const EDGE_FUNCTION_URL_ANALYZE_SALES = `https://${PROJECT_ID}.supabase.co/functions/v1/analyze-game-sales`; 
-const EDGE_FUNCTION_URL_ADMIN_CREATE_USER = `https://${PROJECT_ID}.supabase.co/functions/v1/admin-create-user`; // Re-adding URL
+const EDGE_FUNCTION_BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1`;
+
+const EDGE_FUNCTION_URL_PROCESS = `${EDGE_FUNCTION_BASE_URL}/process-raw-data`;
+const EDGE_FUNCTION_URL_FETCH_GAME = `${EDGE_FUNCTION_BASE_URL}/fetch-game-data`; 
+const EDGE_FUNCTION_URL_ANALYZE_SALES = `${EDGE_FUNCTION_BASE_URL}/analyze-game-sales`; 
+const EDGE_FUNCTION_URL_ADMIN_CREATE_USER = `${EDGE_FUNCTION_BASE_URL}/admin-create-user`; // Re-adding URL
 
 interface AIResponse {
     structuredData: {
@@ -68,17 +70,37 @@ export interface SalesAnalysisReport {
 }
 
 export async function invokeAIDataProcessor(rawData: string, gameName: string, aiApiKey: string, aiProvider: string): Promise<AIResponse> {
-    // Usamos supabase.functions.invoke para lidar com autenticação e URL base automaticamente
-    const { data, error } = await supabase.functions.invoke('process-raw-data', {
-        body: { rawData, gameName, aiApiKey, aiProvider }, // Passa aiApiKey e aiProvider no corpo
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token;
+
+    const response = await fetch(EDGE_FUNCTION_URL_PROCESS, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ rawData, gameName, aiApiKey, aiProvider }),
     });
 
-    if (error) {
-        // O SDK do Supabase lança um erro que contém a mensagem de erro do corpo da resposta 500/400
-        throw new Error(`Edge Function Error: ${error.message}`);
+    const responseText = await response.text();
+    let data;
+    try {
+        data = JSON.parse(responseText);
+    } catch (e) {
+        // Se o status for 2xx mas o corpo não for JSON, lançamos um erro claro
+        if (response.ok) {
+            throw new Error(`Edge Function returned 2xx status but response body is not valid JSON. Raw response: ${responseText}`);
+        }
+        // Se o status não for 2xx e o corpo não for JSON, usamos o status code
+        throw new Error(`Edge Function returned status ${response.status}. Raw response: ${responseText}`);
+    }
+
+    if (!response.ok) {
+        // Se a resposta não for 2xx, lança um erro com a mensagem detalhada do corpo
+        const errorMessage = data.error || `Edge Function retornou status ${response.status}.`;
+        throw new Error(`Falha no processamento da IA: ${errorMessage}`);
     }
     
-    // O dado retornado é o corpo da resposta JSON
     if (data && data.structuredData) {
         return data as AIResponse;
     }
