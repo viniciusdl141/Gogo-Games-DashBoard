@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-// Corrigindo a importação do SDK do Google AI
-import { GoogleGenAI } from 'https://esm.sh/@google/genai@0.1.0';
+// Corrigindo a importação para usar o SDK do Google AI via Deno nativo
+import { GoogleGenAI } from 'https://deno.land/x/google_genai@0.1.0/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
