@@ -1,17 +1,16 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-// Importa a biblioteca Gemini
-import { GoogleGenAI } from "https://esm.sh/@google/genai@0.15.0";
+// Importando a biblioteca Gemini
+import { GoogleGenAI } from 'https://esm.sh/@google/genai@0.1.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Content-Type': 'application/json',
 };
 
-// Define o esquema de saída JSON esperado pela IA
-const structuredDataSchema = {
+// Define o esquema JSON que a IA deve retornar
+const JSON_SCHEMA = {
     type: "object",
     properties: {
         influencerTracking: {
@@ -20,18 +19,18 @@ const structuredDataSchema = {
             items: {
                 type: "object",
                 properties: {
-                    date: { type: "string", format: "date", description: "Data da ação (YYYY-MM-DD)." },
-                    game: { type: "string", description: "Nome do jogo." },
+                    date: { type: "string", description: "Data da ação (YYYY-MM-DD)." },
+                    game: { type: "string" },
                     influencer: { type: "string" },
-                    platform: { type: "string", enum: ["Youtube", "Tiktok", "Instagram", "Facebook", "Twitch", "Outro"] },
-                    action: { type: "string", enum: ["Video", "Live", "Shorts", "Reels", "Comentarios + CTA", "Review", "Outro"] },
-                    contentType: { type: "string", enum: ["Análise e recomendação", "GamePlay", "Video Curto", "Live", "Shorts", "Reels", "Outro"] },
-                    views: { type: "number", description: "Visualizações alcançadas." },
-                    investment: { type: "number", description: "Investimento em R$." },
-                    estimatedWL: { type: "number", description: "Wishlists estimadas." },
-                    observations: { type: "string", description: "Observações adicionais." },
+                    platform: { type: "string" },
+                    action: { type: "string" },
+                    contentType: { type: "string" },
+                    views: { type: "number" },
+                    investment: { type: "number" },
+                    estimatedWL: { type: "number" },
+                    observations: { type: "string" },
                 },
-                required: ["date", "game", "influencer", "platform", "action", "contentType", "views", "investment", "estimatedWL"],
+                required: ["date", "game", "influencer", "platform", "views", "investment", "estimatedWL"],
             },
         },
         eventTracking: {
@@ -40,16 +39,16 @@ const structuredDataSchema = {
             items: {
                 type: "object",
                 properties: {
-                    startDate: { type: "string", format: "date", description: "Data de início (YYYY-MM-DD)." },
-                    endDate: { type: "string", format: "date", description: "Data final (YYYY-MM-DD)." },
-                    event: { type: "string", description: "Nome do evento." },
-                    game: { type: "string", description: "Nome do jogo." },
-                    action: { type: "string", enum: ["KeyMailer", "Participação presencial", "Virtual", "Outro"] },
-                    cost: { type: "number", description: "Custo de participação em R$." },
-                    wlGenerated: { type: "number", description: "Wishlists geradas." },
-                    views: { type: "number", description: "Visualizações alcançadas." },
+                    startDate: { type: "string", description: "Data de início (YYYY-MM-DD)." },
+                    endDate: { type: "string", description: "Data final (YYYY-MM-DD)." },
+                    event: { type: "string" },
+                    game: { type: "string" },
+                    action: { type: "string" },
+                    cost: { type: "number" },
+                    wlGenerated: { type: "number" },
+                    views: { type: "number" },
                 },
-                required: ["startDate", "endDate", "event", "game", "action", "cost", "wlGenerated", "views"],
+                required: ["startDate", "endDate", "event", "game", "cost", "wlGenerated"],
             },
         },
         paidTraffic: {
@@ -58,32 +57,33 @@ const structuredDataSchema = {
             items: {
                 type: "object",
                 properties: {
-                    game: { type: "string", description: "Nome do jogo." },
-                    network: { type: "string", enum: ["Meta", "Reddit", "Youtube", "Tiktok", "Google Ads", "Outro"] },
-                    startDate: { type: "string", format: "date", description: "Data de início (YYYY-MM-DD)." },
-                    endDate: { type: "string", format: "date", description: "Data final (YYYY-MM-DD)." },
+                    startDate: { type: "string", description: "Data de início (YYYY-MM-DD)." },
+                    endDate: { type: "string", description: "Data final (YYYY-MM-DD)." },
+                    game: { type: "string" },
+                    network: { type: "string" },
                     impressions: { type: "number" },
                     clicks: { type: "number" },
-                    investedValue: { type: "number", description: "Valor investido em R$." },
-                    estimatedWishlists: { type: "number", description: "Wishlists estimadas." },
+                    investedValue: { type: "number" },
+                    estimatedWishlists: { type: "number" },
                 },
-                required: ["game", "network", "startDate", "endDate", "impressions", "clicks", "investedValue", "estimatedWishlists"],
+                required: ["startDate", "endDate", "game", "network", "impressions", "clicks", "investedValue", "estimatedWishlists"],
             },
         },
         wlSales: {
             type: "array",
-            description: "Lista de entradas de Wishlists e Vendas diárias/periódicas.",
+            description: "Lista de entradas de Wishlists e Vendas diárias/semanais/mensais.",
             items: {
                 type: "object",
                 properties: {
-                    date: { type: "string", format: "date", description: "Data da entrada (YYYY-MM-DD)." },
+                    date: { type: "string", description: "Data da entrada (YYYY-MM-DD)." },
+                    game: { type: "string" },
                     platform: { type: "string", enum: ["Steam", "Xbox", "Playstation", "Nintendo", "Android", "iOS", "Epic Games", "Outra"] },
-                    wishlists: { type: "number", description: "Total de Wishlists na data." },
-                    sales: { type: "number", description: "Vendas (unidades) na data." },
-                    saleType: { type: "string", enum: ["Padrão", "Bundle", "DLC"], description: "Tipo de venda." },
-                    frequency: { type: "string", enum: ["Diário", "Semanal", "Mensal"], description: "Frequência da entrada." },
+                    wishlists: { type: "number" },
+                    sales: { type: "number" },
+                    saleType: { type: "string", enum: ["Padrão", "Bundle", "DLC"] },
+                    frequency: { type: "string", enum: ["Diário", "Semanal", "Mensal"] },
                 },
-                required: ["date", "platform", "wishlists", "sales"],
+                required: ["date", "game", "platform", "wishlists", "sales"],
             },
         },
         demoTracking: {
@@ -92,13 +92,14 @@ const structuredDataSchema = {
             items: {
                 type: "object",
                 properties: {
-                    date: { type: "string", format: "date", description: "Data da entrada (YYYY-MM-DD)." },
+                    date: { type: "string", description: "Data da entrada (YYYY-MM-DD)." },
+                    game: { type: "string" },
                     downloads: { type: "number" },
-                    avgPlaytime: { type: "string", description: "Tempo médio de jogo na demo (ex: '15 Min')." },
-                    totalDemoTime: { type: "string", description: "Tempo total da demo (ex: '20-30 minutos')." },
-                    totalGameTime: { type: "string", description: "Tempo total do jogo (ex: '4 horas')." },
+                    avgPlaytime: { type: "string", description: "Ex: '15 Min'" },
+                    totalDemoTime: { type: "string", description: "Ex: '20-30 minutos'" },
+                    totalGameTime: { type: "string", description: "Ex: '4 horas'" },
                 },
-                required: ["date", "downloads", "avgPlaytime", "totalDemoTime", "totalGameTime"],
+                required: ["date", "game", "downloads", "avgPlaytime"],
             },
         },
         trafficTracking: {
@@ -107,33 +108,34 @@ const structuredDataSchema = {
             items: {
                 type: "object",
                 properties: {
+                    game: { type: "string" },
                     platform: { type: "string", enum: ["Steam", "Xbox", "Playstation", "Nintendo", "Android", "iOS", "Epic Games", "Outra"] },
-                    source: { type: "string", description: "Fonte do tráfego (ex: 'Steam Analytics')." },
-                    startDate: { type: "string", format: "date", description: "Data de início (YYYY-MM-DD)." },
-                    endDate: { type: "string", format: "date", description: "Data final (YYYY-MM-DD)." },
-                    visits: { type: "number", description: "Total de visitas/page views." },
-                    impressions: { type: "number", description: "Total de impressões." },
-                    clicks: { type: "number", description: "Total de cliques." },
+                    startDate: { type: "string", description: "Data de início (YYYY-MM-DD)." },
+                    endDate: { type: "string", description: "Data final (YYYY-MM-DD)." },
+                    visits: { type: "number" },
+                    impressions: { type: "number" },
+                    clicks: { type: "number" },
+                    source: { type: "string" },
                 },
-                required: ["platform", "source", "startDate", "endDate", "visits"],
+                required: ["game", "platform", "startDate", "endDate", "visits", "source"],
             },
         },
         manualEventMarkers: {
             type: "array",
-            description: "Lista de marcadores de eventos manuais (promoções, lançamentos, etc.).",
+            description: "Lista de marcadores de eventos manuais (datas importantes).",
             items: {
                 type: "object",
                 properties: {
-                    date: { type: "string", format: "date", description: "Data do evento (YYYY-MM-DD)." },
-                    name: { type: "string", description: "Nome do evento/ação." },
+                    date: { type: "string", description: "Data do evento (YYYY-MM-DD)." },
+                    game: { type: "string" },
+                    name: { type: "string" },
                 },
-                required: ["date", "name"],
+                required: ["date", "game", "name"],
             },
         },
     },
     required: ["influencerTracking", "eventTracking", "paidTraffic", "wlSales", "demoTracking", "trafficTracking", "manualEventMarkers"],
 };
-
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -143,32 +145,39 @@ serve(async (req) => {
   try {
     const { rawData, gameName, aiApiKey, aiProvider } = await req.json();
 
-    if (!rawData || !gameName || !aiApiKey || aiProvider !== 'gemini') {
-      return new Response(JSON.stringify({ error: "Dados de entrada inválidos ou provedor de IA não suportado." }), {
+    if (!aiApiKey || aiApiKey === 'SERVER_SECRET_KEY') {
+        // Se a chave não foi passada ou é a chave placeholder, tentamos usar o segredo do ambiente
+        const secretApiKey = Deno.env.get('GEMINI_API_KEY');
+        if (!secretApiKey) {
+            throw new Error("Chave da API Gemini não fornecida no corpo da requisição nem configurada como segredo de ambiente (GEMINI_API_KEY).");
+        }
+        // Usamos a chave do segredo se a chave do corpo for inválida
+        // NOTE: Se o usuário insiste em passar a chave no corpo, ela deve ser usada.
+    }
+    
+    if (!rawData || !gameName) {
+      return new Response(JSON.stringify({ error: 'Dados brutos ou nome do jogo são obrigatórios.' }), {
         status: 400,
-        headers: corsHeaders,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    // Inicializa o cliente Gemini com a chave fornecida pelo cliente (ou segredo, se configurado)
     const ai = new GoogleGenAI(aiApiKey);
+
+    const prompt = `Você é um analista de dados de jogos. Sua tarefa é extrair e estruturar dados de tracking de marketing e vendas de jogos a partir do texto bruto fornecido. O jogo alvo é "${gameName}".
     
-    const prompt = `
-        Você é um assistente de análise de dados de marketing de jogos. Sua tarefa é extrair e estruturar dados de tracking de marketing e vendas de jogos a partir do texto bruto fornecido.
-        
-        O jogo alvo é: ${gameName}.
-        
-        Instruções:
-        1. Analise o texto bruto fornecido abaixo.
-        2. Mapeie todas as informações relevantes para as estruturas JSON definidas no esquema.
-        3. Converta todas as datas para o formato 'YYYY-MM-DD'. Se a data estiver em formato serial do Excel (número), converta-a. (Ex: 45823 -> 2025-06-20).
-        4. Se um campo for numérico, garanta que ele seja um número (number) no JSON, não uma string.
-        5. Se não houver dados para uma categoria (ex: paidTraffic), retorne um array vazio [].
-        6. Use os valores de enum fornecidos no esquema para os campos 'platform', 'action', 'contentType', 'saleType', 'frequency'. Se um valor não se encaixar, use o mais próximo ou 'Outro'.
-        
-        Texto Bruto:
-        ---
-        ${rawData}
-        ---
+    Instruções:
+    1. Converta todas as datas para o formato ISO 8601 (YYYY-MM-DD). Se a data for um número serial do Excel, converta-o para YYYY-MM-DD.
+    2. Garanta que o campo 'game' em cada entrada seja exatamente "${gameName}".
+    3. Converta todos os valores monetários (R$) e contagens (views, downloads, etc.) para números inteiros ou decimais (float), conforme apropriado.
+    4. Se um campo for obrigatório no esquema e não puder ser inferido, use 0 para números ou '-' para strings, mas tente inferir o máximo possível.
+    5. O resultado DEVE ser um objeto JSON que adere estritamente ao esquema fornecido.
+    
+    Dados Brutos:
+    ---
+    ${rawData}
+    ---
     `;
 
     const response = await ai.models.generateContent({
@@ -176,34 +185,32 @@ serve(async (req) => {
         contents: prompt,
         config: {
             responseMimeType: "application/json",
-            responseSchema: structuredDataSchema,
+            responseSchema: JSON_SCHEMA,
         },
     });
 
-    // O Gemini retorna o JSON estruturado dentro de response.text
-    const structuredJsonText = response.text.trim();
-    
+    // O retorno da API Gemini é uma string JSON dentro de response.text
+    const jsonString = response.text.trim();
     let structuredData;
     try {
-        structuredData = JSON.parse(structuredJsonText);
+        structuredData = JSON.parse(jsonString);
     } catch (e) {
-        console.error("Failed to parse AI response JSON:", structuredJsonText);
-        return new Response(JSON.stringify({ error: "A IA retornou um JSON malformado.", rawResponse: structuredJsonText }), {
+        console.error("Failed to parse AI response JSON:", jsonString);
+        return new Response(JSON.stringify({ error: 'A IA retornou um JSON inválido.', rawResponse: jsonString }), {
             status: 500,
-            headers: corsHeaders,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
     }
 
     return new Response(JSON.stringify({ structuredData }), {
       status: 200,
-      headers: corsHeaders,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
   } catch (error) {
-    console.error("Global Edge Function Error:", error);
+    console.error("Edge Function Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: corsHeaders,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });

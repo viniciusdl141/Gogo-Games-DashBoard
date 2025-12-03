@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { AIResponse } from './types'; // Importando o novo tipo
 
 // NOTE: Replace 'ynlebwtutvyxybqgupke' with your actual Supabase Project ID in a real deployment.
 const PROJECT_ID = 'ynlebwtutvyxybqgupke';
@@ -8,18 +9,6 @@ const EDGE_FUNCTION_URL_PROCESS = `${EDGE_FUNCTION_BASE_URL}/process-raw-data`;
 const EDGE_FUNCTION_URL_FETCH_GAME = `${EDGE_FUNCTION_BASE_URL}/fetch-game-data`; 
 const EDGE_FUNCTION_URL_ANALYZE_SALES = `${EDGE_FUNCTION_BASE_URL}/analyze-game-sales`; 
 const EDGE_FUNCTION_URL_ADMIN_CREATE_USER = `${EDGE_FUNCTION_BASE_URL}/admin-create-user`; // Re-adding URL
-
-interface AIResponse {
-    structuredData: {
-        influencerTracking: any[];
-        eventTracking: any[];
-        paidTraffic: any[];
-        wlSales: any[];
-        demoTracking: any[];
-        trafficTracking: any[];
-        manualEventMarkers: any[];
-    };
-}
 
 export interface GameOption {
     name: string;
