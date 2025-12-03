@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Bot } from 'lucide-react';
+import { Loader2, Bot, Check } from 'lucide-react';
 import { invokeAIDataProcessor } from '@/integrations/supabase/functions';
 import { toast } from 'sonner';
 
@@ -39,14 +39,12 @@ const AI_PROVIDER = 'gemini';
 
 const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpen, onClose, gameName, onDataProcessed }) => {
   const [rawJson, setRawJson] = useState('');
-  // Usando a chave fornecida pelo usuário como valor inicial
-  const [aiApiKey, setAiApiKey] = useState('AIzaSyBewls5qn39caQJu8fnlxDwmR7aoyHjyLE'); 
   const [isLoading, setIsLoading] = useState(false);
   const [structuredPreview, setStructuredPreview] = useState<any | null>(null);
 
   const handleProcess = async () => {
-    if (!rawJson || !aiApiKey) {
-      toast.error('Por favor, cole o JSON bruto e insira a Chave da API Gemini.');
+    if (!rawJson) {
+      toast.error('Por favor, cole o JSON bruto.');
       return;
     }
 
@@ -55,8 +53,8 @@ const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpe
     toast.loading("Enviando dados para a IA processar...", { id: 'ai-processing-scraper' });
 
     try {
-      // Chamada à função genérica de processamento de dados
-      const result = await invokeAIDataProcessor(rawJson, gameName, aiApiKey, AI_PROVIDER);
+      // Chamada à função genérica de processamento de dados. A chave da API é esperada no servidor.
+      const result = await invokeAIDataProcessor(rawJson, gameName, 'SERVER_SECRET_KEY', AI_PROVIDER);
       
       toast.dismiss('ai-processing-scraper');
       
@@ -98,7 +96,7 @@ const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpe
             <Bot className="h-5 w-5 mr-2" /> Importar JSON (Steam Scraper)
           </DialogTitle>
           <DialogDescription>
-            Cole o JSON bruto do scraper e forneça sua chave Gemini para estruturar e importar os dados de tracking para o jogo **{gameName}**.
+            Cole o JSON bruto do scraper para que a IA o estruture e importe os dados de tracking para o jogo **{gameName}**.
           </DialogDescription>
         </DialogHeader>
 
@@ -116,20 +114,10 @@ const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpe
               disabled={isLoading}
             />
           </div>
-
-          <div className="space-y-2">
-            <label htmlFor="gemini-key" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Chave da API Gemini
-            </label>
-            <Input
-              id="gemini-key"
-              type="password"
-              placeholder="Insira sua chave da API Gemini"
-              value={aiApiKey}
-              onChange={(e) => setAiApiKey(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
+          
+          <p className="text-xs text-red-500">
+              ⚠️ **AVISO DE CONFIGURAÇÃO:** A chave da API Gemini deve ser configurada como um segredo de ambiente (`GEMINI_API_KEY`) na sua Edge Function.
+          </p>
 
           {structuredPreview && (
             <div className="space-y-2 mt-4 p-3 border rounded-lg bg-muted/50">
@@ -150,7 +138,7 @@ const SteamScraperImportModal: React.FC<SteamScraperImportModalProps> = ({ isOpe
                   <Check className="mr-2 h-4 w-4" /> Aprovar e Inserir Dados
               </Button>
           ) : (
-              <Button onClick={handleProcess} disabled={isLoading || !rawJson || !aiApiKey} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
+              <Button onClick={handleProcess} disabled={isLoading || !rawJson} className="bg-gogo-cyan hover:bg-gogo-cyan/90">
                   {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Bot className="h-4 w-4 mr-2" />}
                   Processar JSON
               </Button>

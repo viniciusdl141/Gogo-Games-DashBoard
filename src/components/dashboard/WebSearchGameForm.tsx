@@ -23,7 +23,6 @@ import { Badge } from '@/components/ui/badge';
 
 const formSchema = z.object({
     gameName: z.string().min(1, "O nome do jogo é obrigatório."),
-    aiApiKey: z.string().min(1, "A chave da API é obrigatória."),
 });
 
 type WebSearchFormValues = z.infer<typeof formSchema>;
@@ -37,14 +36,10 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
     const [isLoading, setIsLoading] = useState(false);
     const [results, setResults] = useState<GameOption[]>([]);
     
-    // Usando a chave fornecida pelo usuário como valor inicial
-    const initialApiKey = 'AIzaSyBewls5qn39caQJu8fnlxDwmR7aoyHjyLE'; 
-
     const form = useForm<WebSearchFormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             gameName: '',
-            aiApiKey: initialApiKey,
         },
     });
 
@@ -54,7 +49,8 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
         toast.loading(`Buscando dados públicos para "${values.gameName}"...`, { id: 'web-search' });
 
         try {
-            const response = await invokeGameDataFetcher(values.gameName, values.aiApiKey);
+            // Passamos uma chave placeholder, pois a chave real deve estar no segredo do servidor
+            const response = await invokeGameDataFetcher(values.gameName, 'SERVER_SECRET_KEY');
             
             toast.dismiss('web-search');
 
@@ -68,7 +64,7 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
         } catch (error) {
             console.error("Web Search Error:", error);
             toast.dismiss('web-search');
-            toast.error(`Falha na busca: ${error.message}. Verifique a chave da API e o nome do jogo.`);
+            toast.error(`Falha na busca: ${error.message}.`);
         } finally {
             setIsLoading(false);
         }
@@ -104,19 +100,9 @@ const WebSearchGameForm: React.FC<WebSearchGameFormProps> = ({ onSave, onClose }
                     )}
                 />
                 
-                <FormField
-                    control={form.control}
-                    name="aiApiKey"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Chave da API Gemini</FormLabel>
-                            <FormControl>
-                                <Input type="password" placeholder="AIzaSy..." {...field} disabled={isLoading} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                <p className="text-xs text-red-500">
+                    ⚠️ **AVISO DE CONFIGURAÇÃO:** A chave da API Gemini deve ser configurada como um segredo de ambiente (`GEMINI_API_KEY`) na sua Edge Function.
+                </p>
 
                 <div className="flex justify-end space-x-2 pt-4">
                     <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
