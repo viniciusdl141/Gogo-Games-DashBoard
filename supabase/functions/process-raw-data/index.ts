@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-// Tentando a importação via esm.sh com o parâmetro ?dts para forçar a compatibilidade Deno
-import { GoogleGenAI } from 'https://esm.sh/@google/genai@0.1.0?dts';
+// Simplificando a importação para evitar problemas de empacotamento
+import { GoogleGenAI } from 'https://esm.sh/@google/genai@0.1.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -145,14 +145,14 @@ serve(async (req) => {
   try {
     const { rawData, gameName, aiApiKey, aiProvider } = await req.json();
 
-    if (!aiApiKey || aiApiKey === 'SERVER_SECRET_KEY') {
-        // Se a chave não foi passada ou é a chave placeholder, tentamos usar o segredo do ambiente
-        const secretApiKey = Deno.env.get('GEMINI_API_KEY');
-        if (!secretApiKey) {
-            throw new Error("Chave da API Gemini não fornecida no corpo da requisição nem configurada como segredo de ambiente (GEMINI_API_KEY).");
-        }
-        // Usamos a chave do segredo se a chave do corpo for inválida
-        // NOTE: Se o usuário insiste em passar a chave no corpo, ela deve ser usada.
+    // A chave da API é obrigatória, seja passada pelo cliente ou via segredo de ambiente
+    let finalApiKey = aiApiKey;
+    if (!finalApiKey || finalApiKey === 'AIzaSyBewls5qn39caQJu8fnlxDwmR7aoyHjyLE') {
+        finalApiKey = Deno.env.get('GEMINI_API_KEY') || '';
+    }
+    
+    if (!finalApiKey) {
+        throw new Error("Chave da API Gemini não fornecida.");
     }
     
     if (!rawData || !gameName) {
@@ -162,8 +162,8 @@ serve(async (req) => {
       });
     }
 
-    // Inicializa o cliente Gemini com a chave fornecida pelo cliente (ou segredo, se configurado)
-    const ai = new GoogleGenAI(aiApiKey);
+    // Inicializa o cliente Gemini
+    const ai = new GoogleGenAI(finalApiKey);
 
     const prompt = `Você é um analista de dados de jogos. Sua tarefa é extrair e estruturar dados de tracking de marketing e vendas de jogos a partir do texto bruto fornecido. O jogo alvo é "${gameName}".
     
